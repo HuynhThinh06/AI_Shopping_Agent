@@ -127,7 +127,7 @@ AI_Shopping_Agent/
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/HuynhThinh06/AIShoppingAgent.git
+git clone https://github.com/HuynhThinh06/AI_Shopping_Agent.git
 cd AI_Shopping_Agent
 
 # 2. Tạo file .env từ template
