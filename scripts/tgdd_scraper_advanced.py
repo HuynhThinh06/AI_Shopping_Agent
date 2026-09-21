@@ -7,54 +7,77 @@ from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
 API_URL = "http://localhost:8080/api/seed/products"
-TARGET_COUNT = 20
+TARGET_COUNT = 80
 
 def parse_specs(raw_specs, category_code):
     specs = {}
     if category_code == "LAPTOP":
-        # CPU
-        if "CPU" in raw_specs:
-            specs["cpu"] = raw_specs["CPU"]
-        elif "Chíp xử lý" in raw_specs:
-            specs["cpu"] = raw_specs["Chíp xử lý"]
-        # RAM
+        # 1. CPU
+        if "Công nghệ CPU" in raw_specs: specs["cpu"] = raw_specs["Công nghệ CPU"]
+        elif "CPU" in raw_specs: specs["cpu"] = raw_specs["CPU"]
+        elif "Chíp xử lý" in raw_specs: specs["cpu"] = raw_specs["Chíp xử lý"]
+        
+        # 2. RAM (Integer)
         if "RAM" in raw_specs:
             m = re.search(r'(\d+)\s*GB', raw_specs["RAM"])
             if m: specs["ram"] = int(m.group(1))
-        # Storage
+            
+        # 3. Storage (Integer)
         if "Ổ cứng" in raw_specs:
             m = re.search(r'(\d+)\s*(GB|TB)', raw_specs["Ổ cứng"])
             if m:
                 val = int(m.group(1))
                 if m.group(2) == 'TB': val *= 1024
                 specs["storage"] = val
-        # Screen
-        if "Màn hình" in raw_specs:
-            m = re.search(r'(\d+\.?\d*)\s*inch', raw_specs["Màn hình"].lower())
+                
+        # 4. Screen Size (Float)
+        if "Kích thước màn hình" in raw_specs or "Màn hình" in raw_specs:
+            val = raw_specs.get("Kích thước màn hình", raw_specs.get("Màn hình", ""))
+            m = re.search(r'(\d+\.?\d*)\s*(inch|")', val.lower())
             if m: specs["screen_size"] = float(m.group(1))
-        # Battery
+            
+        # 5. VGA (String)
+        if "Card màn hình" in raw_specs: specs["vga"] = raw_specs["Card màn hình"]
+        elif "VGA" in raw_specs: specs["vga"] = raw_specs["VGA"]
+        
+        # 6. Refresh Rate (Integer)
+        if "Tần số quét" in raw_specs or "Màn hình" in raw_specs:
+            val = raw_specs.get("Tần số quét", raw_specs.get("Màn hình", ""))
+            m = re.search(r'(\d+)\s*Hz', val, re.IGNORECASE)
+            if m: specs["refresh_rate"] = int(m.group(1))
+            
+        # 7. OS (String)
+        if "Hệ điều hành" in raw_specs: specs["os"] = raw_specs["Hệ điều hành"]
+        
+        # 8. Battery (Float)
         if "Thông tin Pin" in raw_specs or "Pin" in raw_specs:
             val = raw_specs.get("Thông tin Pin", raw_specs.get("Pin", ""))
             m = re.search(r'(\d+\.?\d*)\s*Wh', val)
             if m: specs["battery"] = float(m.group(1))
-            else: specs["battery"] = random.choice([42, 50, 70, 86, 90]) # fallback
-        else: specs["battery"] = random.choice([42, 50, 70, 86, 90])
-        # Weight
-        if "Trọng lượng" in raw_specs or "Kích thước, khối lượng" in raw_specs:
-            val = raw_specs.get("Trọng lượng", raw_specs.get("Kích thước, khối lượng", ""))
-            m = re.search(r'Nặng\s*(\d+\.?\d*)\s*kg', val) or re.search(r'(\d+\.?\d*)\s*kg', val)
+            else: specs["battery"] = __import__('random').choice([42.0, 50.0, 70.0, 86.0, 90.0]) # fallback
+        else: specs["battery"] = __import__('random').choice([42.0, 50.0, 70.0, 86.0, 90.0])
+        
+        # 9. Weight (Float)
+        if "Kích thước" in raw_specs or "Trọng lượng" in raw_specs or "Kích thước, khối lượng" in raw_specs:
+            val = raw_specs.get("Kích thước", raw_specs.get("Trọng lượng", raw_specs.get("Kích thước, khối lượng", "")))
+            m = re.search(r'(\d+\.?\d*)\s*kg', val)
             if m: specs["weight"] = float(m.group(1))
             else: specs["weight"] = 1.5
+            
+        # 10. Material (String)
+        if "Chất liệu" in raw_specs: specs["material"] = raw_specs["Chất liệu"]
 
     elif category_code == "PHONE":
-        # Chipset
+        # 1. Chipset (String)
         if "Chip xử lý (CPU)" in raw_specs: specs["chipset"] = raw_specs["Chip xử lý (CPU)"]
         elif "Chip" in raw_specs: specs["chipset"] = raw_specs["Chip"]
-        # RAM
+        
+        # 2. RAM (Integer)
         if "RAM" in raw_specs:
             m = re.search(r'(\d+)\s*GB', raw_specs["RAM"])
             if m: specs["ram"] = int(m.group(1))
-        # Storage
+            
+        # 3. Storage (Integer)
         if "Dung lượng lưu trữ" in raw_specs or "ROM" in raw_specs:
             val = raw_specs.get("Dung lượng lưu trữ", raw_specs.get("ROM", ""))
             m = re.search(r'(\d+)\s*(GB|TB)', val)
@@ -62,23 +85,45 @@ def parse_specs(raw_specs, category_code):
                 val_num = int(m.group(1))
                 if m.group(2) == 'TB': val_num *= 1024
                 specs["storage"] = val_num
-        # Screen
-        if "Màn hình" in raw_specs:
-            m = re.search(r'(\d+\.?\d*)\s*inch', raw_specs["Màn hình"].lower())
+                
+        # 4. Screen Size & 9. Refresh Rate
+        if "Màn hình rộng" in raw_specs or "Màn hình" in raw_specs:
+            val = raw_specs.get("Màn hình rộng", raw_specs.get("Màn hình", ""))
+            m = re.search(r'(\d+\.?\d*)\s*(inch|")', val.lower())
             if m: specs["screen_size"] = float(m.group(1))
-            elif "inch" in raw_specs["Màn hình"]:
-                # Sometimes it's inside another tag or weird format
-                m = re.search(r'(\d+\.?\d*)"', raw_specs["Màn hình"])
-                if m: specs["screen_size"] = float(m.group(1))
-        # Camera
-        if "Camera sau" in raw_specs:
-            m = re.search(r'(\d+)\s*MP', raw_specs["Camera sau"])
+            m_hz = re.search(r'(\d+)\s*Hz', val, re.IGNORECASE)
+            if m_hz: specs["refresh_rate"] = int(m_hz.group(1))
+            
+        # 5. Camera (Integer)
+        if "Độ phân giải camera sau" in raw_specs or "Camera sau" in raw_specs:
+            val = raw_specs.get("Độ phân giải camera sau", raw_specs.get("Camera sau", ""))
+            m = re.search(r'(\d+)\s*MP', val)
             if m: specs["camera"] = int(m.group(1))
-        # Battery
+            
+        # 6. Front Camera (Integer)
+        if "Độ phân giải camera trước" in raw_specs or "Camera trước" in raw_specs:
+            val = raw_specs.get("Độ phân giải camera trước", raw_specs.get("Camera trước", ""))
+            m = re.search(r'(\d+)\s*MP', val)
+            if m: specs["front_camera"] = int(m.group(1))
+            
+        # 7. Battery (Integer)
         if "Dung lượng pin" in raw_specs or "Pin" in raw_specs:
             val = raw_specs.get("Dung lượng pin", raw_specs.get("Pin", ""))
             m = re.search(r'(\d+)\s*mAh', val)
             if m: specs["battery"] = int(m.group(1))
+            else: specs["battery"] = __import__('random').choice([4000, 4500, 5000]) # fallback for iPhones lacking mAh
+            
+        # 8. Charging (Integer)
+        if "Hỗ trợ sạc tối đa" in raw_specs or "Pin, Sạc" in raw_specs:
+            val = raw_specs.get("Hỗ trợ sạc tối đa", raw_specs.get("Pin, Sạc", ""))
+            m = re.search(r'(\d+)\s*W', val)
+            if m: specs["charging"] = int(m.group(1))
+            
+        # 9. OS (String)
+        if "Hệ điều hành" in raw_specs: specs["os"] = raw_specs["Hệ điều hành"]
+        
+        # 10. Material (String)
+        if "Chất liệu" in raw_specs: specs["material"] = raw_specs["Chất liệu"]
 
     return specs
 
@@ -105,7 +150,16 @@ def scrape_category(page, category_url, category_name, category_code):
         print(f"Error loading {category_url}: {e}")
         return
 
-    time.sleep(3) 
+    time.sleep(3)
+    # Try to click view more to get enough items
+    try:
+        for _ in range(5):
+            btn = page.query_selector(".view-more a")
+            if btn:
+                btn.click()
+                time.sleep(3)
+    except Exception as e:
+        print("Could not click view-more:", e)
 
     # Scroll a bit to load more items (TGDD uses lazy loading)
     for _ in range(5):
@@ -167,10 +221,10 @@ def scrape_category(page, category_url, category_name, category_code):
                 continue
 
             # Image
-            img_tag = detail_soup.select_one('.owl-carousel .item img')
-            img_url = img_tag.get('src') if img_tag else ""
+            og_img = detail_soup.select_one('meta[property="og:image"]')
+            img_url = og_img.get('content') if og_img else ""
             if not img_url:
-                 img_tag = detail_soup.select_one('.detail-slider img')
+                 img_tag = detail_soup.select_one('.owl-carousel .item img')
                  img_url = img_tag.get('src') if img_tag else ""
 
             # Raw Specs
@@ -180,11 +234,11 @@ def scrape_category(page, category_url, category_name, category_code):
             if box_specifi:
                 current_key = None
                 for aside in box_specifi:
-                    strong = aside.select_one('strong')
-                    if strong:
-                        current_key = strong.text.strip().replace(':', '')
+                    text = aside.text.strip()
+                    if text.endswith(':'):
+                        current_key = text.replace(':', '').strip()
                     elif current_key:
-                        raw_specs[current_key] = aside.text.strip()
+                        raw_specs[current_key] = text
                         current_key = None
             else:
                 spec_items = detail_soup.select('.parameter .parameter__item') or detail_soup.select('.parameter-all li')
@@ -211,7 +265,12 @@ def scrape_category(page, category_url, category_name, category_code):
             
             if brand == "Unknown":
                 # Fallback to extract from name
-                brand = name.split(" ")[1] if len(name.split(" ")) > 1 else "Unknown"
+                if name.startswith("Điện thoại "):
+                    brand = name.replace("Điện thoại ", "").split(" ")[0]
+                elif name.startswith("Laptop "):
+                    brand = name.replace("Laptop ", "").split(" ")[0]
+                else:
+                    brand = name.split(" ")[1] if len(name.split(" ")) > 1 else "Unknown"
 
             # Randomize review data to make it look real (TGDD reviews are often loaded via API)
             rating_tag = detail_soup.select_one('.point')
@@ -248,7 +307,7 @@ def send_to_api(product_data, img_url):
 
     if img_url:
         try:
-            headers = {"User-Agent": "Mozilla/5.0"}
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
             img_response = requests.get(img_url, headers=headers, timeout=10)
             if img_response.status_code == 200:
                 ctype = "image/jpeg"

@@ -7,8 +7,27 @@
 .env.*
 !.env.example
 *.env.local
+*.env.production
+*.env.development
 
-# --- Java / Maven ---
+# Credentials, Keys & Certificates
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.jks
+credentials.json
+client_secret*.json
+service-account*.json
+secrets/
+**/secrets/
+
+# --- GitGuardian Local Cache ---
+.gitguardian/
+
+# --- Java / Maven (Backend) ---
 target/
 **/target/
 *.class
@@ -18,8 +37,9 @@ target/
 *.nar
 .mvn/wrapper/maven-wrapper.jar
 backend/.mvn/wrapper/maven-wrapper.jar
+*.flat
 
-# --- Node / React ---
+# --- Node / React / Vite (Frontend) ---
 node_modules/
 **/node_modules/
 dist/
@@ -32,6 +52,20 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# --- Python (Scripts & Data Crawlers) ---
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+ENV/
+env/
+*.sqlite3
 
 # --- IDE & Editors ---
 .idea/
@@ -51,15 +85,23 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+*.bak
 
 # --- OS Specific ---
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 desktop.ini
 
 # --- Logs & Temp ---
 *.log
-logs/
-**/logs/
+logs/*
+!logs/.gitkeep
+**/logs/*
+!**/logs/.gitkeep
 tmp/
 temp/
