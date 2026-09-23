@@ -1,6 +1,8 @@
 package com.shoppingagent.product;
 
 import com.shoppingagent.shared.entity.Product;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -31,4 +33,33 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /** Lấy tất cả sản phẩm active của một ngành hàng (dùng cho admin) */
     @Query("SELECT p FROM Product p JOIN p.category c WHERE c.code = :code AND p.isActive = TRUE")
     List<Product> findByCategoryCode(@Param("code") String code);
+
+    /**
+     * [MỚI - B7] Tìm kiếm sản phẩm với filter tùy chọn + phân trang.
+     *
+     * Tất cả tham số filter đều nullable:
+     *   - categoryCode null → không lọc theo ngành hàng
+     *   - minPrice / maxPrice null → không giới hạn giá
+     *   - keyword null → không lọc theo tên/hãng
+     *
+     * keyword khớp cả name lẫn brand (OR), không phân biệt hoa/thường.
+     */
+    @Query("""
+            SELECT p FROM Product p
+            JOIN p.category c
+            WHERE p.isActive = TRUE
+              AND (:categoryCode IS NULL OR c.code          = :categoryCode)
+              AND (:minPrice     IS NULL OR p.price         >= :minPrice)
+              AND (:maxPrice     IS NULL OR p.price         <= :maxPrice)
+              AND (:keyword      IS NULL
+                   OR LOWER(p.name)  LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(p.brand) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            """)
+    Page<Product> searchProducts(
+            @Param("categoryCode") String   categoryCode,
+            @Param("minPrice")     Long     minPrice,
+            @Param("maxPrice")     Long     maxPrice,
+            @Param("keyword")      String   keyword,
+            Pageable pageable
+    );
 }
