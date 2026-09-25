@@ -51,7 +51,7 @@ public class GeminiClient implements LlmClient {
                     "budgetMin",      Map.of("type", "number", "nullable", true),
                     "requiredSpecs",  Map.of("type", "object") // Đã xóa additionalProperties
             ),
-            "required", List.of("categoryCode", "requiredSpecs")
+            "required", List.of("categoryCode", "budgetMin", "budgetMax", "requiredSpecs")
     );
 
     // ─── Schema cho SummaryResult ─────────────────────────────────────────────
