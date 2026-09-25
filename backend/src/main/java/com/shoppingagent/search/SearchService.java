@@ -81,20 +81,27 @@ public class SearchService {
         if (lower.contains("điện thoại") || lower.contains("phone")
                 || lower.contains("iphone") || lower.contains("samsung")
                 || lower.contains("android")) {
-            return "phone";
+            return "PHONE";
         }
-        return "laptop"; // mặc định
+        return "LAPTOP"; // mặc định
     }
 
     private SearchQuery saveSearchQuery(SearchRequest request, Long userId,
                                          ExtractedCriteria criteria, String categoryCode) {
         var category = categoryRepository.findByCode(categoryCode).orElse(null);
         com.shoppingagent.shared.entity.User userRef = userId != null ? com.shoppingagent.shared.entity.User.builder().id(userId.intValue()).build() : null;
+        
+        Map<String, Object> criteriaMap = new java.util.HashMap<>();
+        if (criteria.getBudgetMin() != null) criteriaMap.put("budgetMin", criteria.getBudgetMin());
+        if (criteria.getBudgetMax() != null) criteriaMap.put("budgetMax", criteria.getBudgetMax());
+        if (criteria.getRequiredSpecs() != null) criteriaMap.put("requiredSpecs", criteria.getRequiredSpecs());
+
         SearchQuery query = SearchQuery.builder()
                 .user(userRef)
                 .sessionId(request.getSessionId())
                 .queryText(request.getQueryText())
                 .categoryDetected(category)
+                .extractedCriteria(criteriaMap)
                 .isTestQuery(false)
                 .build();
         return searchQueryRepository.save(query);

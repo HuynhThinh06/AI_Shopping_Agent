@@ -27,6 +27,7 @@ public class QueryParserService {
 
     private final LlmClient llmClient;
     private final CategoryRepository categoryRepository;
+    private final CriteriaValidatorService criteriaValidatorService;
 
     /**
      * @param queryText    Câu hỏi gốc
@@ -45,7 +46,11 @@ public class QueryParserService {
         log.debug("[QueryParser] Filterable attributes for '{}': {}", categoryCode, filterableKeys);
 
         ExtractedCriteria criteria = llmClient.extractCriteria(queryText, categoryCode, filterableKeys);
-        log.info("[QueryParser] Extracted: budget=[{},{}], specs={}",
+        
+        // Gọi lớp Validation để làm sạch và chuẩn hóa dữ liệu bị lỗi (Task A3)
+        criteriaValidatorService.validateAndNormalize(criteria);
+        
+        log.info("[QueryParser] Extracted and Validated: budget=[{},{}], specs={}",
                 criteria.getBudgetMin(), criteria.getBudgetMax(), criteria.getRequiredSpecs());
         return criteria;
     }
