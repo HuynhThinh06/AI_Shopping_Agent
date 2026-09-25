@@ -42,14 +42,14 @@ public class GeminiClient implements LlmClient {
     private int maxRetries;
 
     // ─── Schema cho ExtractedCriteria ────────────────────────────────────────
+    // ─── Schema cho ExtractedCriteria ────────────────────────────────────────
     private static final Map<String, Object> CRITERIA_SCHEMA = Map.of(
             "type", "object",
             "properties", Map.of(
                     "categoryCode",   Map.of("type", "string"),
                     "budgetMax",      Map.of("type", "number", "nullable", true),
                     "budgetMin",      Map.of("type", "number", "nullable", true),
-                    "requiredSpecs",  Map.of("type", "object",
-                            "additionalProperties", Map.of("type", "string"))
+                    "requiredSpecs",  Map.of("type", "object") // Đã xóa additionalProperties
             ),
             "required", List.of("categoryCode", "requiredSpecs")
     );
