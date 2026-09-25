@@ -37,7 +37,7 @@ public class SearchQuery {
     private Category categoryDetected;
 
     /** Ràng buộc LLM trích xuất dạng JSONB, vd: {"budget":20000000,"ram":16} */
-    @Convert(converter = JsonbConverter.class)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "extracted_criteria", columnDefinition = "jsonb")
     private Map<String, Object> extractedCriteria;
 
