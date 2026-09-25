@@ -111,6 +111,7 @@ public class GeminiClient implements LlmClient {
         String status = "failed";
         long startMs = System.currentTimeMillis();
         int attempt = 0;
+        int totalTokenCount = 0;
 
         for (attempt = 0; attempt <= maxRetries; attempt++) {
             try {
@@ -123,6 +124,12 @@ public class GeminiClient implements LlmClient {
 
                 Map<String, Object> parsed = objectMapper.readValue(raw,
                         new TypeReference<>() {});
+                
+                Map<String, Object> usageMetadata = (Map<String, Object>) parsed.get("usageMetadata");
+                if (usageMetadata != null && usageMetadata.get("totalTokenCount") != null) {
+                    totalTokenCount = ((Number) usageMetadata.get("totalTokenCount")).intValue();
+                }
+
                 List<Map<String, Object>> candidates =
                         (List<Map<String, Object>>) parsed.get("candidates");
                 Map<String, Object> content =
@@ -141,14 +148,22 @@ public class GeminiClient implements LlmClient {
                 if (attempt == maxRetries) {
                     status = "failed";
                     saveLog(requestType, prompt, null, status, (short) attempt,
-                            (int)(System.currentTimeMillis() - startMs), queryId);
+                            (int)(System.currentTimeMillis() - startMs), totalTokenCount, queryId);
                     throw new LlmCallException("LLM call failed after " + (maxRetries + 1) + " attempts", e);
+                }
+                
+                // Task A4: Exponential Backoff (1s, 2s, 4s...)
+                try {
+                    long waitTime = (long) Math.pow(2, attempt) * 1000;
+                    Thread.sleep(waitTime);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
                 }
             }
         }
 
         int latencyMs = (int)(System.currentTimeMillis() - startMs);
-        saveLog(requestType, prompt, responseJson, status, (short) attempt, latencyMs, queryId);
+        saveLog(requestType, prompt, responseJson, status, (short) attempt, latencyMs, totalTokenCount, queryId);
         return responseJson;
     }
 
@@ -158,17 +173,28 @@ public class GeminiClient implements LlmClient {
                                           String categoryCode,
                                           List<String> filterableAttributes) {
         return """
-                Bạn là trợ lý phân tích yêu cầu mua sắm. Hãy trích xuất thông tin từ câu hỏi của người dùng.
+                Bạn là trợ lý phân tích yêu cầu mua sắm của Thế Giới Di Động. Nhiệm vụ của bạn là trích xuất thông tin từ câu hỏi của người dùng.
 
                 Ngành hàng: %s
                 Các thuộc tính có thể lọc: %s
 
-                Câu hỏi của người dùng: "%s"
+                QUY TẮC TIẾNG LÓNG (SLANG RULES):
+                - Tiền tệ: "củ" = "chai" = "tr" = "triệu" = 1.000.000 VNĐ. Ví dụ: "15 củ" -> 15000000.
+                - "k" = 1.000 VNĐ. Ví dụ: "10k" -> 10000.
+                - Về Pin: "pin trâu", "pin lâu" -> với điện thoại là pin >= 5000mAh, với laptop là battery >= 60Wh.
+                - Về nhu cầu: "lập trình", "code", "IT" -> RAM >= 16GB. "đồ họa", "game" -> cần có VGA rời.
 
-                Trả về JSON theo schema đã quy định. Lưu ý:
-                - budgetMax: ngân sách tối đa bằng VNĐ (null nếu không đề cập)
-                - budgetMin: ngân sách tối thiểu bằng VNĐ (null nếu không đề cập)
-                - requiredSpecs: chỉ điền các thuộc tính được đề cập rõ ràng, bỏ qua phần còn lại
+                VÍ DỤ MẪU (FEW-SHOTS):
+                Input: "lap 15 củ học IT" -> Output: {"categoryCode": "LAPTOP", "budgetMax": 15000000, "requiredSpecs": {"ram": "16", "use_case": "IT"}}
+                Input: "đt pin trâu dưới 10 chai" -> Output: {"categoryCode": "PHONE", "budgetMax": 10000000, "requiredSpecs": {"battery": "5000"}}
+                Input: "macbook m3 tầm 30 đến 40 củ" -> Output: {"categoryCode": "LAPTOP", "budgetMin": 30000000, "budgetMax": 40000000, "requiredSpecs": {"brand": "Apple", "cpu": "M3"}}
+
+                CÂU HỎI THỰC TẾ CỦA NGƯỜI DÙNG: "%s"
+
+                Hãy phân tích và trả về định dạng JSON thuần túy tuân thủ chặt chẽ response_schema đã định nghĩa.
+                - budgetMax: ngân sách tối đa bằng VNĐ (null nếu không đề cập).
+                - budgetMin: ngân sách tối thiểu bằng VNĐ (null nếu không đề cập).
+                - requiredSpecs: chỉ điền các thuộc tính được đề cập rõ ràng, bỏ qua phần còn lại.
                 """.formatted(categoryCode, filterableAttributes, queryText);
     }
 
@@ -202,7 +228,7 @@ public class GeminiClient implements LlmClient {
     }
 
     private void saveLog(String requestType, String prompt, String response,
-                          String status, short retryCount, int latencyMs, Long queryId) {
+                          String status, short retryCount, int latencyMs, int totalTokenCount, Long queryId) {
         try {
             LlmRequestLog log = LlmRequestLog.builder()
                     .requestType(requestType)
@@ -211,6 +237,7 @@ public class GeminiClient implements LlmClient {
                     .status(status)
                     .retryCount(retryCount)
                     .latencyMs(latencyMs)
+                    .tokensUsed(totalTokenCount)
                     .build();
             entityManager.persist(log);
         } catch (Exception e) {
