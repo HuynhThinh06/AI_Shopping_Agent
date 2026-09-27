@@ -15,4 +15,5 @@ public class ProductSeedRequest {
     private BigDecimal avgRating;
     private Integer reviewCount;
     private Map<String, Object> specs;
+    private java.util.List<ReviewSeedRequest> reviews;
 }
