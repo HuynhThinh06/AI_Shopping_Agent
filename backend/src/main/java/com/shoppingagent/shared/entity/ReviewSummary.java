@@ -39,12 +39,8 @@ public class ReviewSummary {
     @Column(name = "llm_model_used", length = 100)
     private String llmModelUsed;
 
-    /**
-     * Số lượng review tại thời điểm LLM tóm tắt.
-     * So với products.review_count để quyết định có cần tạo lại không.
-     */
-    @Column(name = "review_count_at_generate")
-    private Integer reviewCountAtGenerate;
+    @Column(name = "review_hash", length = 64, nullable = false)
+    private String reviewHash;
 
     @Column(name = "generated_at")
     private LocalDateTime generatedAt;

@@ -36,6 +36,10 @@ public class Product {
     @Column(length = 100)
     private String brand;
 
+    @Builder.Default
+    @Column(name = "stock_quantity", nullable = false)
+    private Integer stockQuantity = 0;
+
     /** Giá sản phẩm tính bằng VNĐ */
     @Column(nullable = false)
     private Long price;
