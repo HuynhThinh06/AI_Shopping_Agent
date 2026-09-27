@@ -14,19 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Tóm tắt review sản phẩm bằng LLM với cơ chế cache.
- *
- * Luồng:
- * 1. Lấy sản phẩm từ DB
- * 2. Kiểm tra cache: nếu review_count không đổi → trả cache ngay
- * 3. Nếu cần tóm tắt lại:
- *    a. Lấy review valid (active + not spam)
- *    b. Lọc rác qua ReviewFilterService
- *    c. Gọi LlmClient.summarizeReviews()
- *    d. Lưu kết quả vào review_summaries
- * 4. Trả SummaryDTO
+ * Sử dụng reviewHash để kiểm tra xem danh sách review có thay đổi không.
  */
 @Slf4j
 @Service
@@ -39,7 +31,7 @@ public class SummarizerService {
     private final ReviewSummaryRepository reviewSummaryRepository;
     private final ReviewFilterService reviewFilterService;
 
-    @Value("${llm.gemini.model:gemini-2.0-flash}")
+    @Value("${llm.gemini.model:gemini-3.8-flash}")
     private String llmModel;
 
     @Transactional
@@ -47,38 +39,42 @@ public class SummarizerService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
 
-        // ── Kiểm tra cache ────────────────────────────────────────────────────
-        ReviewSummary cached = product.getReviewSummary();
-        if (isCacheValid(cached, product)) {
-            log.info("[Summarizer] Cache hit for product {}", productId);
-            return toDTO(cached, true);
-        }
-
-        // ── Lấy review và lọc rác ─────────────────────────────────────────────
+        // 1. Lấy danh sách review hợp lệ
         List<Review> validReviews = reviewRepository.findValidReviews(productId);
         if (validReviews.isEmpty()) {
             log.warn("[Summarizer] No valid reviews for product {}", productId);
             return emptyDTO();
         }
 
+        // 2. Tính toán hash hiện tại của tập review
+        String currentHash = generateHash(validReviews);
+
+        // 3. Kiểm tra cache
+        ReviewSummary cached = product.getReviewSummary();
+        if (isCacheValid(cached, currentHash)) {
+            log.info("[Summarizer] Cache hit for product {}", productId);
+            return toDTO(cached, true);
+        }
+
+        // 4. Lọc rác
         List<String> filteredContents = reviewFilterService.filter(validReviews);
         if (filteredContents.isEmpty()) {
             log.warn("[Summarizer] All reviews filtered out for product {}", productId);
             return emptyDTO();
         }
 
-        // ── Gọi LLM ──────────────────────────────────────────────────────────
+        // 5. Gọi LLM tóm tắt
         log.info("[Summarizer] Calling LLM for product {} ({} reviews)", productId, filteredContents.size());
         SummaryDTO result = llmClient.summarizeReviews(product.getName(), filteredContents);
 
-        // ── Lưu cache ─────────────────────────────────────────────────────────
+        // 6. Lưu kết quả vào DB
         ReviewSummary summary = (cached != null) ? cached : new ReviewSummary();
         summary.setProduct(product);
         summary.setSummaryText(result.getSummaryText());
         summary.setPros(result.getPros());
         summary.setCons(result.getCons());
         summary.setLlmModelUsed(llmModel);
-        summary.setReviewCountAtGenerate(product.getReviewCount());
+        summary.setReviewHash(currentHash);
         summary.setGeneratedAt(LocalDateTime.now());
         reviewSummaryRepository.save(summary);
 
@@ -88,12 +84,16 @@ public class SummarizerService {
         return result;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    private String generateHash(List<Review> reviews) {
+        // Hash đơn giản dựa trên số lượng và tổng ID của các bài review
+        long count = reviews.size();
+        long sumIds = reviews.stream().mapToLong(Review::getId).sum();
+        return count + "-" + sumIds;
+    }
 
-    private boolean isCacheValid(ReviewSummary cached, Product product) {
+    private boolean isCacheValid(ReviewSummary cached, String currentHash) {
         if (cached == null || cached.getSummaryText() == null) return false;
-        return cached.getReviewCountAtGenerate() != null
-                && cached.getReviewCountAtGenerate().equals(product.getReviewCount());
+        return currentHash.equals(cached.getReviewHash());
     }
 
     private SummaryDTO toDTO(ReviewSummary summary, boolean isCached) {

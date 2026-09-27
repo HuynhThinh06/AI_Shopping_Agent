@@ -24,4 +24,8 @@ public class ProductImage {
     @Builder.Default
     @Column(name = "is_primary")
     private Boolean isPrimary = false;
+
+    @Builder.Default
+    @Column(name = "display_order")
+    private Integer displayOrder = 0;
 }
