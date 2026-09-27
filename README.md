@@ -33,7 +33,7 @@ Hệ thống **AI Shopping Agent** là một trợ lý tư vấn mua sắm thôn
 │                  PostgreSQL 16                       │
 └─────────────────────────────────────────────────────┘
                          ↕ HTTPS
-              Google Gemini 2.0 Flash API
+              Google Gemini 3.8 Flash API
 ```
 
 ---
@@ -44,7 +44,7 @@ Hệ thống **AI Shopping Agent** là một trợ lý tư vấn mua sắm thôn
 |---|---|
 | **Backend** | Java 21, Spring Boot 4, Spring Data JPA, Spring Validation |
 | **Database** | PostgreSQL 16 |
-| **LLM** | Google Gemini 2.0 Flash API (Structured Output) |
+| **LLM** | Google Gemini 3.8 Flash API  |
 | **Frontend** | React 18, TypeScript, Vite, Ant Design, TanStack Query |
 | **API Docs** | SpringDoc OpenAPI 3 (Swagger UI) |
 | **DevOps** | Docker, Docker Compose |
@@ -191,7 +191,7 @@ psql -U postgres -d shopping_agent -f ../Database_NV.sql
 | Biến | Mô tả | Mặc định |
 |---|---|---|
 | `GEMINI_API_KEY` | API key Google Gemini | *(bắt buộc)* |
-| `GEMINI_MODEL` | Model Gemini sử dụng | `gemini-2.0-flash` |
+| `GEMINI_MODEL` | Model Gemini sử dụng | `gemini-3.8-flash` |
 | `DB_NAME` | Tên database PostgreSQL | `shopping_agent` |
 | `DB_USER` | Username PostgreSQL | `postgres` |
 | `DB_PASSWORD` | Password PostgreSQL | *(bắt buộc)* |
@@ -204,15 +204,3 @@ psql -U postgres -d shopping_agent -f ../Database_NV.sql
 
 ---
 
-## 📡 API Endpoints chính
-
-| Method | Endpoint | Mô tả |
-|---|---|---|
-| `POST` | `/api/search` | Tìm kiếm sản phẩm bằng ngôn ngữ tự nhiên |
-| `GET` | `/api/products/{id}` | Chi tiết sản phẩm |
-| `GET` | `/api/products/{id}/summary` | Tóm tắt review AI |
-| `GET` | `/api/categories` | Danh sách ngành hàng |
-| `GET` | `/api/actuator/health` | Health check |
-| `GET` | `/api/swagger-ui.html` | Swagger UI |
-
----
