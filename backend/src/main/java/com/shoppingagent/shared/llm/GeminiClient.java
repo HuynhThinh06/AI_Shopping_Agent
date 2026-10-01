@@ -199,17 +199,31 @@ public class GeminiClient implements LlmClient {
     }
 
     private String buildSummarizationPrompt(String productName, List<String> reviewContents) {
-        String reviewsText = String.join("\n---\n", reviewContents);
-        return """
-                Bạn là chuyên gia phân tích sản phẩm. Hãy tóm tắt các đánh giá sau đây về sản phẩm "%s".
+        // Giới hạn 30 review × tối đa 300 ký tự/review để tối ưu context window và chi phí token
+        String reviewsText = reviewContents.stream()
+                .limit(30)
+                .map(r -> r.length() > 300 ? r.substring(0, 300) + "..." : r)
+                .collect(java.util.stream.Collectors.joining("\n---\n"));
 
-                Các đánh giá:
+        return """
+                Bạn là trợ lý đánh giá sản phẩm công nghệ khách quan, trung thực.
+                Hãy phân tích các đánh giá thực tế từ người dùng Việt Nam về sản phẩm "%s".
+
+                [DANH SÁCH ĐÁNH GIÁ]:
                 %s
 
-                Trả về JSON theo schema đã quy định:
-                - summaryText: đoạn tóm tắt tổng quan ngắn gọn (2-3 câu)
-                - pros: liệt kê ưu điểm nổi bật (bullet points, mỗi điểm cách nhau bởi \\n)
-                - cons: liệt kê nhược điểm (bullet points, mỗi điểm cách nhau bởi \\n)
+                [YÊU CẦU ĐẦU RA]:
+                Trả về JSON với đúng 3 trường sau — KHÔNG bịa đặt thông tin không có trong review:
+
+                - summaryText: 2–3 câu tóm tắt tổng thể. Nêu rõ sản phẩm phù hợp với ai và có đáng mua không.
+
+                - pros: Liệt kê các điểm được khen nhiều nhất.
+                  Mỗi điểm viết trên một dòng, bắt đầu bằng "• ".
+                  Ví dụ: "• Pin trâu, dùng được cả ngày\\n• Màn hình sắc nét, màu sắc chuẩn"
+
+                - cons: Liệt kê các nhược điểm hoặc lỗi phổ biến.
+                  Mỗi điểm viết trên một dòng, bắt đầu bằng "• ".
+                  Nếu không tìm thấy nhược điểm đáng kể, ghi: "• Chưa ghi nhận phản hồi tiêu cực nổi bật."
                 """.formatted(productName, reviewsText);
     }
 
