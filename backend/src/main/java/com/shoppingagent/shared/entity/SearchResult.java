@@ -27,4 +27,7 @@ public class SearchResult {
 
     @Column(nullable = false, columnDefinition = "float8")
     private Double score;
+
+    @Column(name = "reasoning", columnDefinition = "TEXT")
+    private String reasoning;
 }

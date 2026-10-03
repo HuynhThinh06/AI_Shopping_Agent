@@ -10,14 +10,14 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("CriteriaValidator — Kiểm thử lớp validate và chuẩn hóa ràng buộc nghiệp vụ")
+@DisplayName("CriteriaValidatorService — Kiểm thử lớp validate và chuẩn hóa ràng buộc nghiệp vụ")
 class CriteriaValidatorTest {
 
-    private CriteriaValidator validator;
+    private CriteriaValidatorService validatorService;
 
     @BeforeEach
     void setUp() {
-        validator = new CriteriaValidator();
+        validatorService = new CriteriaValidatorService();
     }
 
     @Test
@@ -27,10 +27,10 @@ class CriteriaValidatorTest {
         criteria.setBudgetMax(0L);
         criteria.setBudgetMin(-1000L);
 
-        ExtractedCriteria result = validator.validate(criteria);
+        validatorService.validateAndNormalize(criteria);
 
-        assertThat(result.getBudgetMax()).isNull();
-        assertThat(result.getBudgetMin()).isNull();
+        assertThat(criteria.getBudgetMax()).isNull();
+        assertThat(criteria.getBudgetMin()).isNull();
     }
 
     @Test
@@ -40,10 +40,10 @@ class CriteriaValidatorTest {
         criteria.setBudgetMin(10L);
         criteria.setBudgetMax(25L);
 
-        ExtractedCriteria result = validator.validate(criteria);
+        validatorService.validateAndNormalize(criteria);
 
-        assertThat(result.getBudgetMin()).isEqualTo(10_000_000L);
-        assertThat(result.getBudgetMax()).isEqualTo(25_000_000L);
+        assertThat(criteria.getBudgetMin()).isEqualTo(10_000_000L);
+        assertThat(criteria.getBudgetMax()).isEqualTo(25_000_000L);
     }
 
     @Test
@@ -53,10 +53,10 @@ class CriteriaValidatorTest {
         criteria.setBudgetMin(20_000_000L);
         criteria.setBudgetMax(15_000_000L);
 
-        ExtractedCriteria result = validator.validate(criteria);
+        validatorService.validateAndNormalize(criteria);
 
-        assertThat(result.getBudgetMin()).isEqualTo(15_000_000L);
-        assertThat(result.getBudgetMax()).isEqualTo(20_000_000L);
+        assertThat(criteria.getBudgetMin()).isEqualTo(15_000_000L);
+        assertThat(criteria.getBudgetMax()).isEqualTo(20_000_000L);
     }
 
     @Test
@@ -65,25 +65,25 @@ class CriteriaValidatorTest {
         ExtractedCriteria criteria = new ExtractedCriteria();
         criteria.setBudgetMax(999_999_999L);
 
-        ExtractedCriteria result = validator.validate(criteria);
+        validatorService.validateAndNormalize(criteria);
 
-        assertThat(result.getBudgetMax()).isEqualTo(500_000_000L);
+        assertThat(criteria.getBudgetMax()).isEqualTo(500_000_000L);
     }
 
     @Test
-    @DisplayName("Chuẩn hóa requiredSpecs: trim khoảng trắng và loại bỏ key/value rỗng")
+    @DisplayName("Chuẩn hóa requiredSpecs: xóa hậu tố đơn vị (GB, TB, mAh...) và loại bỏ key/value rỗng")
     void shouldCleanAndTrimRequiredSpecs() {
         ExtractedCriteria criteria = new ExtractedCriteria();
         Map<String, String> specs = new HashMap<>();
-        specs.put(" RAM ", " 16 ");
+        specs.put(" RAM ", " 16 GB ");
         specs.put("cpu", "");
         specs.put("   ", "validValue");
-        specs.put("storage", " 512 ");
+        specs.put("storage", " 512 TB ");
         criteria.setRequiredSpecs(specs);
 
-        ExtractedCriteria result = validator.validate(criteria);
+        validatorService.validateAndNormalize(criteria);
 
-        assertThat(result.getRequiredSpecs())
+        assertThat(criteria.getRequiredSpecs())
                 .containsEntry("ram", "16")
                 .containsEntry("storage", "512")
                 .doesNotContainKey("cpu")
@@ -96,11 +96,11 @@ class CriteriaValidatorTest {
         ExtractedCriteria criteria = new ExtractedCriteria();
         criteria.setTarget("  STUDENT  ");
 
-        ExtractedCriteria result = validator.validate(criteria);
-        assertThat(result.getTarget()).isEqualTo("student");
+        validatorService.validateAndNormalize(criteria);
+        assertThat(criteria.getTarget()).isEqualTo("student");
 
         criteria.setTarget("   ");
-        result = validator.validate(criteria);
-        assertThat(result.getTarget()).isNull();
+        validatorService.validateAndNormalize(criteria);
+        assertThat(criteria.getTarget()).isNull();
     }
 }

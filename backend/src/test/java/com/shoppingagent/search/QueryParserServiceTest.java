@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -30,13 +29,13 @@ class QueryParserServiceTest {
     private CategoryRepository categoryRepository;
 
     @Mock
-    private CriteriaValidator criteriaValidator;
+    private CriteriaValidatorService criteriaValidatorService;
 
     @InjectMocks
     private QueryParserService queryParserService;
 
     @Test
-    @DisplayName("Lấy danh sách thuộc tính có thể lọc, gọi LLM Client và chuyển qua CriteriaValidator")
+    @DisplayName("Lấy danh sách thuộc tính có thể lọc, gọi LLM Client và chuyển qua CriteriaValidatorService")
     void shouldExtractCriteriaAndValidateProperly() {
         String query = "Laptop sinh viên 15 triệu RAM 8GB";
         String categoryCode = "laptop";
@@ -45,21 +44,15 @@ class QueryParserServiceTest {
         CategoryAttribute attr2 = CategoryAttribute.builder().attributeKey("cpu").isFilterable(true).build();
         when(categoryRepository.findByCategoryCodeAndFilterable(categoryCode)).thenReturn(List.of(attr1, attr2));
 
-        ExtractedCriteria rawFromLlm = new ExtractedCriteria();
-        rawFromLlm.setCategoryCode("laptop");
-        rawFromLlm.setBudgetMax(15L); // LLM có thể trả 15 thay vì 15.000.000
-        rawFromLlm.setTarget("student");
-        rawFromLlm.setRequiredSpecs(Map.of("ram", "8"));
-
-        ExtractedCriteria validated = new ExtractedCriteria();
-        validated.setCategoryCode("laptop");
-        validated.setBudgetMax(15_000_000L);
-        validated.setTarget("student");
-        validated.setRequiredSpecs(Map.of("ram", "8"));
+        ExtractedCriteria criteriaFromLlm = new ExtractedCriteria();
+        criteriaFromLlm.setCategoryCode("laptop");
+        criteriaFromLlm.setBudgetMax(15_000_000L);
+        criteriaFromLlm.setTarget("student");
+        criteriaFromLlm.setRequiredSpecs(Map.of("ram", "8"));
 
         when(llmClient.extractCriteria(eq(query), eq(categoryCode), eq(List.of("ram", "cpu"))))
-                .thenReturn(rawFromLlm);
-        when(criteriaValidator.validate(rawFromLlm)).thenReturn(validated);
+                .thenReturn(criteriaFromLlm);
+        doNothing().when(criteriaValidatorService).validateAndNormalize(criteriaFromLlm);
 
         // Act
         ExtractedCriteria result = queryParserService.parse(query, categoryCode);
@@ -72,6 +65,6 @@ class QueryParserServiceTest {
 
         verify(categoryRepository).findByCategoryCodeAndFilterable(categoryCode);
         verify(llmClient).extractCriteria(eq(query), eq(categoryCode), eq(List.of("ram", "cpu")));
-        verify(criteriaValidator).validate(rawFromLlm);
+        verify(criteriaValidatorService).validateAndNormalize(criteriaFromLlm);
     }
 }

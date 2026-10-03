@@ -29,14 +29,19 @@ public class SeedService {
 
     @Transactional
     public Product seedProduct(String productDataJson, MultipartFile[] images) throws IOException {
-        // 1. Parse JSON to DTO
         ProductSeedRequest request = objectMapper.readValue(productDataJson, ProductSeedRequest.class);
         log.info("Seeding product: {}", request.getName());
 
-        // 2. Resolve Category
+        List<Product> existingProducts = entityManager.createQuery("SELECT p FROM Product p WHERE p.productUrl = :url", Product.class)
+                .setParameter("url", request.getProductUrl())
+                .getResultList();
+        if (!existingProducts.isEmpty()) {
+            log.info("Product already exists, skipping: {}", request.getProductUrl());
+            return existingProducts.get(0);
+        }
+
         Category category = resolveCategory(request.getCategoryCode());
 
-        // 3. Create Product entity
         Product product = Product.builder()
                 .category(category)
                 .sku(request.getSku())
@@ -51,7 +56,6 @@ public class SeedService {
 
         entityManager.persist(product);
 
-        // 4. Upload and Save Images
         if (images != null && images.length > 0) {
             for (int i = 0; i < images.length; i++) {
                 MultipartFile file = images[i];
@@ -60,7 +64,7 @@ public class SeedService {
                     ProductImage productImage = ProductImage.builder()
                             .product(product)
                             .imageUrl(secureUrl)
-                            .isPrimary(i == 0) // First image is primary
+                            .isPrimary(i == 0)
                             .build();
                     entityManager.persist(productImage);
                 }
@@ -80,10 +84,9 @@ public class SeedService {
                 .getResultList();
 
         if (categories.isEmpty()) {
-            // Create a new category if it doesn't exist
             Category category = Category.builder()
                     .code(categoryCode)
-                    .name(categoryCode) // default name
+                    .name(categoryCode) 
                     .isActive(true)
                     .build();
             entityManager.persist(category);

@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,7 +22,7 @@ import java.util.Map;
  * Orchestrator cho luồng tìm kiếm end-to-end:
  *
  *   queryText → [QueryParser] → ExtractedCriteria
- *             → [ProductRepo] → List<Product> ứng viên
+ *             → [ProductRepo / ProductSpecRepo (GIN Index)] → List<Product> ứng viên
  *             → [Ranker]      → List<RankedProduct>
  *             → Lưu SearchQuery + SearchResult vào DB
  *             → SearchResponse
@@ -72,7 +73,7 @@ public class SearchService {
         }
 
         // ── Bước 4: Lấy trọng số xếp hạng từ DB ──────────────────────────────
-        Map<String, Double> weights = categoryRepository.findWeightsByCategoryCode(categoryCode);
+        Map<String, Double> weights = categoryRepository.findWeightsByCategoryCode(categoryCode.toLowerCase());
 
         // ── Bước 5: Xếp hạng ──────────────────────────────────────────────────
         List<RankedProduct> ranked = rankingService.rank(
@@ -104,16 +105,16 @@ public class SearchService {
 
     private SearchQuery saveSearchQuery(SearchRequest request, Long userId,
                                          ExtractedCriteria criteria, String categoryCode) {
-        var category = categoryRepository.findByCode(categoryCode).orElse(null);
+        var category = categoryRepository.findByCode(categoryCode.toLowerCase()).orElse(null);
         com.shoppingagent.shared.entity.User userRef = userId != null ? com.shoppingagent.shared.entity.User.builder().id(userId.intValue()).build() : null;
 
-        java.util.Map<String, Object> criteriaMap = new java.util.HashMap<>();
+        Map<String, Object> criteriaMap = new HashMap<>();
         if (criteria != null) {
-            criteriaMap.put("categoryCode", criteria.getCategoryCode());
-            criteriaMap.put("budgetMin", criteria.getBudgetMin());
-            criteriaMap.put("budgetMax", criteria.getBudgetMax());
-            criteriaMap.put("target", criteria.getTarget());
-            criteriaMap.put("requiredSpecs", criteria.getRequiredSpecs());
+            if (criteria.getCategoryCode() != null) criteriaMap.put("categoryCode", criteria.getCategoryCode());
+            if (criteria.getBudgetMin() != null) criteriaMap.put("budgetMin", criteria.getBudgetMin());
+            if (criteria.getBudgetMax() != null) criteriaMap.put("budgetMax", criteria.getBudgetMax());
+            if (criteria.getTarget() != null) criteriaMap.put("target", criteria.getTarget());
+            if (criteria.getRequiredSpecs() != null) criteriaMap.put("requiredSpecs", criteria.getRequiredSpecs());
         }
 
         SearchQuery query = SearchQuery.builder()

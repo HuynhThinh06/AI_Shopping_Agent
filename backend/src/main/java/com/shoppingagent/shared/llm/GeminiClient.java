@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shoppingagent.review.dto.SummaryDTO;
 import com.shoppingagent.search.dto.ExtractedCriteria;
 import com.shoppingagent.shared.entity.LlmRequestLog;
+import com.shoppingagent.shared.entity.SearchQuery;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,14 +15,13 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Triển khai LlmClient dùng Google Gemini REST API.
  * Sử dụng Structured Output (responseSchema) để đảm bảo JSON output đúng format.
- * Có cơ chế retry tối đa {@code maxRetries} lần và ghi log mỗi lần gọi.
+ * Có cơ chế retry tối đa {@code maxRetries} lần, exponential backoff và ghi log mỗi lần gọi.
  */
 @Slf4j
 @Component
@@ -49,8 +49,7 @@ public class GeminiClient implements LlmClient {
                     Map.entry("budgetMax",      Map.of("type", "number", "nullable", true)),
                     Map.entry("budgetMin",      Map.of("type", "number", "nullable", true)),
                     Map.entry("target",         Map.of("type", "string", "nullable", true)),
-                    Map.entry("requiredSpecs",  Map.of("type", "object",
-                            "additionalProperties", Map.of("type", "string")))
+                    Map.entry("requiredSpecs",  Map.of("type", "object"))
             ),
             "required", List.of("categoryCode", "requiredSpecs")
     );
@@ -112,6 +111,7 @@ public class GeminiClient implements LlmClient {
         String status = "failed";
         long startMs = System.currentTimeMillis();
         int attempt = 0;
+        int totalTokenCount = 0;
 
         for (attempt = 0; attempt <= maxRetries; attempt++) {
             try {
@@ -124,6 +124,12 @@ public class GeminiClient implements LlmClient {
 
                 Map<String, Object> parsed = objectMapper.readValue(raw,
                         new TypeReference<>() {});
+
+                Map<String, Object> usageMetadata = (Map<String, Object>) parsed.get("usageMetadata");
+                if (usageMetadata != null && usageMetadata.get("totalTokenCount") != null) {
+                    totalTokenCount = ((Number) usageMetadata.get("totalTokenCount")).intValue();
+                }
+
                 List<Map<String, Object>> candidates =
                         (List<Map<String, Object>>) parsed.get("candidates");
                 Map<String, Object> content =
@@ -135,18 +141,9 @@ public class GeminiClient implements LlmClient {
                 // Kiểm tra output hợp lệ JSON
                 objectMapper.readTree(responseJson);
 
-                // Trích xuất token usage từ usageMetadata
-                Integer tokensUsed = null;
-                if (parsed.containsKey("usageMetadata") && parsed.get("usageMetadata") instanceof Map<?, ?> usage) {
-                    Object totalTokens = usage.get("totalTokenCount");
-                    if (totalTokens instanceof Number num) {
-                        tokensUsed = num.intValue();
-                    }
-                }
-
                 status = attempt > 0 ? "retried" : "success";
                 int latencyMs = (int) (System.currentTimeMillis() - startMs);
-                saveLog(requestType, prompt, responseJson, status, (short) attempt, latencyMs, tokensUsed, queryId);
+                saveLog(requestType, prompt, responseJson, status, (short) attempt, latencyMs, totalTokenCount, queryId);
                 return responseJson;
 
             } catch (Exception e) {
@@ -154,14 +151,22 @@ public class GeminiClient implements LlmClient {
                 if (attempt == maxRetries) {
                     status = "failed";
                     int latencyMs = (int) (System.currentTimeMillis() - startMs);
-                    saveLog(requestType, prompt, null, status, (short) attempt, latencyMs, null, queryId);
+                    saveLog(requestType, prompt, null, status, (short) attempt, latencyMs, totalTokenCount, queryId);
                     throw new LlmCallException("LLM call failed after " + (maxRetries + 1) + " attempts", e);
+                }
+
+                // Task A4: Exponential Backoff (1s, 2s, 4s...)
+                try {
+                    long waitTime = (long) Math.pow(2, attempt) * 1000L;
+                    Thread.sleep(waitTime);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
                 }
             }
         }
 
         int latencyMs = (int) (System.currentTimeMillis() - startMs);
-        saveLog(requestType, prompt, responseJson, status, (short) attempt, latencyMs, null, queryId);
+        saveLog(requestType, prompt, responseJson, status, (short) attempt, latencyMs, totalTokenCount, queryId);
         return responseJson;
     }
 
@@ -171,26 +176,30 @@ public class GeminiClient implements LlmClient {
                                           String categoryCode,
                                           List<String> filterableAttributes) {
         return """
-                Bạn là trợ lý phân tích yêu cầu mua sắm. Hãy trích xuất thông tin từ câu hỏi của người dùng.
+                Bạn là trợ lý phân tích yêu cầu mua sắm. Nhiệm vụ của bạn là trích xuất thông tin từ câu hỏi của người dùng.
 
                 Ngành hàng: %s
                 Các thuộc tính có thể lọc: %s
 
-                Câu hỏi của người dùng: "%s"
+                QUY TẮC TIẾNG LÓNG (SLANG RULES):
+                - Tiền tệ: "củ" = "chai" = "tr" = "triệu" = 1.000.000 VNĐ. Ví dụ: "15 củ" -> 15000000.
+                - "k" = 1.000 VNĐ. Ví dụ: "10k" -> 10000.
+                - Về Pin: "pin trâu", "pin lâu" -> với điện thoại là pin >= 5000mAh, với laptop là battery >= 60Wh.
+                - Về nhu cầu: "lập trình", "code", "IT" -> RAM >= 16GB. "đồ họa", "game" -> cần có VGA rời.
 
-                [VÍ DỤ]:
-                - "Laptop sinh viên 15 triệu" → {"budgetMax": 15000000, "target": "student", "requiredSpecs": {}}
-                - "Điện thoại chụp ảnh đẹp RAM 8GB dưới 10 triệu" → {"budgetMax": 10000000, "target": null, "requiredSpecs": {"ram": "8"}}
-                - "Laptop gaming i7 RAM 16GB SSD 512" → {"budgetMax": null, "target": "gamer", "requiredSpecs": {"cpu": "i7", "ram": "16", "storage": "512"}}
+                VÍ DỤ MẪU (FEW-SHOTS):
+                - "Laptop sinh viên 15 củ" -> {"categoryCode": "laptop", "budgetMax": 15000000, "target": "student", "requiredSpecs": {}}
+                - "lap 15 củ học IT" -> {"categoryCode": "laptop", "budgetMax": 15000000, "target": "student", "requiredSpecs": {"ram": "16"}}
+                - "đt pin trâu dưới 10 chai" -> {"categoryCode": "phone", "budgetMax": 10000000, "target": null, "requiredSpecs": {"battery": "5000"}}
+                - "Laptop gaming i7 RAM 16GB SSD 512" -> {"categoryCode": "laptop", "budgetMax": null, "target": "gamer", "requiredSpecs": {"cpu": "i7", "ram": "16", "storage": "512"}}
 
-                Trả về JSON theo schema đã quy định. Lưu ý:
-                - budgetMax: ngân sách tối đa bằng VNĐ (null nếu không đề cập)
-                - budgetMin: ngân sách tối thiểu bằng VNĐ (null nếu không đề cập)
-                - target: đối tượng sử dụng (student/gamer/office/designer..., null nếu không rõ)
-                - requiredSpecs: chỉ điền các thuộc tính được đề cập rõ ràng, bỏ qua phần còn lại
-                - Khi người dùng nói "15 triệu" hoặc "15tr", hiểu là 15000000 VNĐ
-                - Khi nói "dưới X" → budgetMax = X; "trên X" → budgetMin = X
-                - Khi nói "tầm X" → budgetMin = X * 0.8, budgetMax = X * 1.2
+                CÂU HỎI THỰC TẾ CỦA NGƯỜI DÙNG: "%s"
+
+                Hãy phân tích và trả về định dạng JSON thuần túy tuân thủ chặt chẽ response_schema đã định nghĩa.
+                - budgetMax: ngân sách tối đa bằng VNĐ (null nếu không đề cập).
+                - budgetMin: ngân sách tối thiểu bằng VNĐ (null nếu không đề cập).
+                - target: đối tượng sử dụng (student/gamer/office/designer..., null nếu không rõ).
+                - requiredSpecs: chỉ điền các thuộc tính được đề cập rõ ràng, bỏ qua phần còn lại.
                 """.formatted(categoryCode, filterableAttributes, queryText);
     }
 
@@ -238,7 +247,7 @@ public class GeminiClient implements LlmClient {
     }
 
     private void saveLog(String requestType, String prompt, String response,
-                          String status, short retryCount, int latencyMs, Integer tokensUsed, Long queryId) {
+                          String status, short retryCount, int latencyMs, int totalTokenCount, Long queryId) {
         try {
             LlmRequestLog.LlmRequestLogBuilder builder = LlmRequestLog.builder()
                     .requestType(requestType)
@@ -247,10 +256,10 @@ public class GeminiClient implements LlmClient {
                     .status(status)
                     .retryCount(retryCount)
                     .latencyMs(latencyMs)
-                    .tokensUsed(tokensUsed);
+                    .tokensUsed(totalTokenCount > 0 ? totalTokenCount : null);
 
             if (queryId != null) {
-                builder.searchQuery(entityManager.getReference(com.shoppingagent.shared.entity.SearchQuery.class, queryId));
+                builder.searchQuery(entityManager.getReference(SearchQuery.class, queryId));
             }
 
             entityManager.persist(builder.build());
