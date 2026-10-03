@@ -2,6 +2,7 @@ package com.shoppingagent.search;
 
 import com.shoppingagent.product.CategoryRepository;
 import com.shoppingagent.product.ProductRepository;
+import com.shoppingagent.product.ProductSpecRepository;
 import com.shoppingagent.search.dto.ExtractedCriteria;
 import com.shoppingagent.search.dto.RankedProduct;
 import com.shoppingagent.search.dto.SearchRequest;
@@ -34,6 +35,7 @@ public class SearchService {
     private final QueryParserService queryParserService;
     private final RankingService rankingService;
     private final ProductRepository productRepository;
+    private final ProductSpecRepository productSpecRepository;
     private final CategoryRepository categoryRepository;
     private final SearchQueryRepository searchQueryRepository;
     private final SearchResultRepository searchResultRepository;
@@ -48,12 +50,26 @@ public class SearchService {
         ExtractedCriteria criteria = queryParserService.parse(request.getQueryText(), categoryCode);
 
         // ── Bước 3: Lấy sản phẩm ứng viên từ DB ──────────────────────────────
-        List<Product> candidates = productRepository.findCandidates(
-                categoryCode,
-                criteria.getBudgetMin(),
-                criteria.getBudgetMax()
-        );
-        log.debug("[Search] Found {} candidate products", candidates.size());
+        List<Product> candidates;
+        if (criteria.getRequiredSpecs() != null && !criteria.getRequiredSpecs().isEmpty()) {
+            // Có specs → dùng native SQL với GIN index để lọc tại DB level
+            candidates = productSpecRepository.findCandidatesWithSpecs(
+                    categoryCode,
+                    criteria.getBudgetMin(),
+                    criteria.getBudgetMax(),
+                    criteria.getRequiredSpecs()
+            );
+            log.debug("[Search] Found {} candidates (GIN-filtered by specs: {})",
+                    candidates.size(), criteria.getRequiredSpecs().keySet());
+        } else {
+            // Không có specs → query cơ bản (chỉ lọc category + price)
+            candidates = productRepository.findCandidates(
+                    categoryCode,
+                    criteria.getBudgetMin(),
+                    criteria.getBudgetMax()
+            );
+            log.debug("[Search] Found {} candidates (no spec filter)", candidates.size());
+        }
 
         // ── Bước 4: Lấy trọng số xếp hạng từ DB ──────────────────────────────
         Map<String, Double> weights = categoryRepository.findWeightsByCategoryCode(categoryCode);
@@ -90,11 +106,22 @@ public class SearchService {
                                          ExtractedCriteria criteria, String categoryCode) {
         var category = categoryRepository.findByCode(categoryCode).orElse(null);
         com.shoppingagent.shared.entity.User userRef = userId != null ? com.shoppingagent.shared.entity.User.builder().id(userId.intValue()).build() : null;
+
+        java.util.Map<String, Object> criteriaMap = new java.util.HashMap<>();
+        if (criteria != null) {
+            criteriaMap.put("categoryCode", criteria.getCategoryCode());
+            criteriaMap.put("budgetMin", criteria.getBudgetMin());
+            criteriaMap.put("budgetMax", criteria.getBudgetMax());
+            criteriaMap.put("target", criteria.getTarget());
+            criteriaMap.put("requiredSpecs", criteria.getRequiredSpecs());
+        }
+
         SearchQuery query = SearchQuery.builder()
                 .user(userRef)
                 .sessionId(request.getSessionId())
                 .queryText(request.getQueryText())
                 .categoryDetected(category)
+                .extractedCriteria(criteriaMap)
                 .isTestQuery(false)
                 .build();
         return searchQueryRepository.save(query);
