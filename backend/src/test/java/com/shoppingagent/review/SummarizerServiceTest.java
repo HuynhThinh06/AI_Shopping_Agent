@@ -54,25 +54,30 @@ class SummarizerServiceTest {
         product = Product.builder()
                 .id(10L)
                 .name("iPhone 15 Pro Max")
-                .reviewCount(5)
+                .reviewCount(2)
                 .build();
     }
 
     @Test
-    @DisplayName("Cache Hit: Trả về cache ngay khi review_count không đổi (không gọi LLM)")
+    @DisplayName("Cache Hit: Trả về cache ngay khi reviewHash không đổi (không gọi LLM)")
     void shouldReturnCachedSummaryWhenReviewCountMatches() {
+        Review r1 = Review.builder().id(1L).content("Review 1").build();
+        Review r2 = Review.builder().id(2L).content("Review 2").build();
+        List<Review> validReviews = List.of(r1, r2);
+
         ReviewSummary cached = ReviewSummary.builder()
                 .product(product)
                 .summaryText("Sản phẩm cao cấp, camera xuất sắc.")
                 .pros("• Màn hình đẹp\n• Camera zoom 5x sắc nét")
                 .cons("• Giá thành cao")
                 .llmModelUsed("gemini-2.0-flash")
-                .reviewCountAtGenerate(5) // Khớp với product.reviewCount = 5
+                .reviewHash("2-3") // 2 reviews, sumIds = 1 + 2 = 3
                 .generatedAt(LocalDateTime.now())
                 .build();
         product.setReviewSummary(cached);
 
         when(productRepository.findById(10L)).thenReturn(Optional.of(product));
+        when(reviewRepository.findValidReviews(10L)).thenReturn(validReviews);
 
         SummaryDTO result = summarizerService.getSummary(10L);
 

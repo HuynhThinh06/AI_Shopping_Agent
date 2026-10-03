@@ -25,6 +25,9 @@ public class ExtractedCriteria {
     /** Ngân sách tối thiểu (VNĐ), null nếu không đề cập */
     private Long budgetMin;
 
+    /** Đối tượng người dùng: student, gamer, office, designer... null nếu không rõ */
+    private String target;
+
     /**
      * Thông số kỹ thuật yêu cầu.
      * Key = attribute_key (vd: "ram"), Value = giá trị yêu cầu (vd: "16" hoặc ">=16")
