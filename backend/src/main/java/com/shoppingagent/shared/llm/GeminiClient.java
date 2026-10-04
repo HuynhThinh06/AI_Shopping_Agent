@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shoppingagent.review.dto.SummaryDTO;
 import com.shoppingagent.search.dto.ExtractedCriteria;
 import com.shoppingagent.shared.entity.LlmRequestLog;
+import com.shoppingagent.shared.entity.SearchQuery;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,14 +15,13 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Triển khai LlmClient dùng Google Gemini REST API.
  * Sử dụng Structured Output (responseSchema) để đảm bảo JSON output đúng format.
- * Có cơ chế retry tối đa {@code maxRetries} lần và ghi log mỗi lần gọi.
+ * Có cơ chế retry tối đa {@code maxRetries} lần, exponential backoff và ghi log mỗi lần gọi.
  */
 @Slf4j
 @Component
@@ -42,20 +42,20 @@ public class GeminiClient implements LlmClient {
     private int maxRetries;
 
     // ─── Schema cho ExtractedCriteria ────────────────────────────────────────
-    // ─── Schema cho ExtractedCriteria ────────────────────────────────────────
     private static final Map<String, Object> CRITERIA_SCHEMA = Map.of(
             "type", "object",
-            "properties", Map.of(
-                    "reasoning",      Map.of("type", "string", "description", "Step by step reasoning before extraction"),
-                    "categoryCode",   Map.of("type", "string"),
-                    "budgetMax",      Map.of("type", "number", "nullable", true),
-                    "budgetMin",      Map.of("type", "number", "nullable", true),
-                    "requiredSpecs",  Map.of("type", "object"),
-                    "weightPrice",    Map.of("type", "number"),
-                    "weightRating",   Map.of("type", "number"),
-                    "weightSpec",     Map.of("type", "number")
+            "properties", Map.ofEntries(
+                    Map.entry("reasoning",      Map.of("type", "string", "description", "Step by step reasoning before extraction")),
+                    Map.entry("categoryCode",   Map.of("type", "string")),
+                    Map.entry("budgetMax",      Map.of("type", "number", "nullable", true)),
+                    Map.entry("budgetMin",      Map.of("type", "number", "nullable", true)),
+                    Map.entry("target",         Map.of("type", "string", "nullable", true)),
+                    Map.entry("requiredSpecs",  Map.of("type", "object")),
+                    Map.entry("weightPrice",    Map.of("type", "number")),
+                    Map.entry("weightRating",   Map.of("type", "number")),
+                    Map.entry("weightSpec",     Map.of("type", "number"))
             ),
-            "required", List.of("reasoning", "categoryCode", "budgetMin", "budgetMax", "requiredSpecs", "weightPrice", "weightRating", "weightSpec")
+            "required", List.of("reasoning", "categoryCode", "requiredSpecs", "weightPrice", "weightRating", "weightSpec")
     );
 
     // ─── Schema cho SummaryResult ─────────────────────────────────────────────
@@ -128,7 +128,7 @@ public class GeminiClient implements LlmClient {
 
                 Map<String, Object> parsed = objectMapper.readValue(raw,
                         new TypeReference<>() {});
-                
+
                 Map<String, Object> usageMetadata = (Map<String, Object>) parsed.get("usageMetadata");
                 if (usageMetadata != null && usageMetadata.get("totalTokenCount") != null) {
                     totalTokenCount = ((Number) usageMetadata.get("totalTokenCount")).intValue();
@@ -144,21 +144,24 @@ public class GeminiClient implements LlmClient {
 
                 // Kiểm tra output hợp lệ JSON
                 objectMapper.readTree(responseJson);
+
                 status = attempt > 0 ? "retried" : "success";
-                break;
+                int latencyMs = (int) (System.currentTimeMillis() - startMs);
+                saveLog(requestType, prompt, responseJson, status, (short) attempt, latencyMs, totalTokenCount, queryId);
+                return responseJson;
 
             } catch (Exception e) {
                 log.warn("[GeminiClient] attempt {}/{} failed: {}", attempt + 1, maxRetries + 1, e.getMessage());
                 if (attempt == maxRetries) {
                     status = "failed";
-                    saveLog(requestType, prompt, null, status, (short) attempt,
-                            (int)(System.currentTimeMillis() - startMs), totalTokenCount, queryId);
+                    int latencyMs = (int) (System.currentTimeMillis() - startMs);
+                    saveLog(requestType, prompt, null, status, (short) attempt, latencyMs, totalTokenCount, queryId);
                     throw new LlmCallException("LLM call failed after " + (maxRetries + 1) + " attempts", e);
                 }
-                
+
                 // Task A4: Exponential Backoff (1s, 2s, 4s...)
                 try {
-                    long waitTime = (long) Math.pow(2, attempt) * 1000;
+                    long waitTime = (long) Math.pow(2, attempt) * 1000L;
                     Thread.sleep(waitTime);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
@@ -166,7 +169,7 @@ public class GeminiClient implements LlmClient {
             }
         }
 
-        int latencyMs = (int)(System.currentTimeMillis() - startMs);
+        int latencyMs = (int) (System.currentTimeMillis() - startMs);
         saveLog(requestType, prompt, responseJson, status, (short) attempt, latencyMs, totalTokenCount, queryId);
         return responseJson;
     }
@@ -181,7 +184,7 @@ public class GeminiClient implements LlmClient {
                                          String categoryCode,
                                          List<String> filterableAttributes) {
         return """
-                Bạn là trợ lý phân tích yêu cầu mua sắm. Bạn hãy SUY LUẬN TỪNG BƯỚC (Chain-of-Thought) để hiểu sâu nhu cầu người dùng.
+                Bạn là trợ lý phân tích yêu cầu mua sắm. Bạn hãy SUY LUẬN TỪNG BƯỚC (Chain-of-Thought) để hiểu sâu nhu cầu và trích xuất thông tin.
 
                 Ngành hàng: %s
                 Các thuộc tính có thể lọc: %s
@@ -194,33 +197,52 @@ public class GeminiClient implements LlmClient {
                 - Nhu cầu "pin trâu": ép battery >= 60Wh (laptop) hoặc >= 5000mAh (điện thoại).
 
                 QUY TẮC PHÂN BỔ TRỌNG SỐ (WEIGHTS) TỔNG 1.0:
-                - Nếu khách nhấn mạnh "rẻ", "giá rẻ", "ngân sách hẹp": weightPrice=0.7, weightRating=0.1, weightSpec=0.2
-                - Nếu khách nhấn mạnh "chơi game ngon", "cấu hình khủng", "tiền không thành vấn đề": weightPrice=0.1, weightRating=0.2, weightSpec=0.7
-                - Nếu khách ưu tiên "bền", "uy tín", "đánh giá tốt": weightPrice=0.2, weightRating=0.6, weightSpec=0.2
+                - Nhấn mạnh "rẻ", "giá rẻ": weightPrice=0.7, weightRating=0.1, weightSpec=0.2
+                - Nhấn mạnh "cấu hình khủng", "không thành vấn đề": weightPrice=0.1, weightRating=0.2, weightSpec=0.7
+                - Nhấn mạnh "bền", "uy tín": weightPrice=0.2, weightRating=0.6, weightSpec=0.2
                 - Mặc định: weightPrice=0.35, weightRating=0.20, weightSpec=0.45
 
-                VÍ DỤ MẪU:
-                Input: "lap 15 củ học IT" -> Output: {"categoryCode": "LAPTOP", "budgetMax": 15000000, "requiredSpecs": {"ram": ">=16", "use_case": "IT"}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
-                Input: "điện thoại tầm trung chơi game mượt" -> Output: {"categoryCode": "PHONE", "requiredSpecs": {"use_case": "game"}, "weightPrice": 0.2, "weightRating": 0.2, "weightSpec": 0.6}
-                
+                VÍ DỤ MẪU (FEW-SHOTS):
+                - "Laptop sinh viên 15 củ" -> {"categoryCode": "laptop", "budgetMax": 15000000, "target": "student", "requiredSpecs": {}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
+                - "lap 15 củ học IT" -> {"categoryCode": "laptop", "budgetMax": 15000000, "target": "student", "requiredSpecs": {"ram": "16"}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
+                - "đt pin trâu dưới 10 chai" -> {"categoryCode": "phone", "budgetMax": 10000000, "target": null, "requiredSpecs": {"battery": "5000"}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
+
                 CÂU HỎI THỰC TẾ: "%s"
 
-                Hãy phân tích kỹ, tự động bổ sung các spec ngầm định (ví dụ IT thì phải thêm RAM>=16) và trả về định dạng JSON thuần túy tuân thủ chặt chẽ response_schema.
+                Hãy phân tích kỹ và trả về định dạng JSON thuần túy.
+                - budgetMax: ngân sách tối đa bằng VNĐ (null nếu không đề cập).
+                - budgetMin: ngân sách tối thiểu bằng VNĐ (null nếu không đề cập).
+                - target: đối tượng sử dụng (student/gamer/office/designer..., null nếu không rõ).
+                - requiredSpecs: điền các thuộc tính được đề cập, bổ sung spec ngầm định (IT->RAM>=16).
                 """.formatted(categoryCode, filterableAttributes, queryText);
     }
 
     private String buildSummarizationPrompt(String productName, List<String> reviewContents) {
-        String reviewsText = String.join("\n---\n", reviewContents);
-        return """
-                Bạn là chuyên gia phân tích sản phẩm. Hãy tóm tắt các đánh giá sau đây về sản phẩm "%s".
+        // Giới hạn 30 review × tối đa 300 ký tự/review để tối ưu context window và chi phí token
+        String reviewsText = reviewContents.stream()
+                .limit(30)
+                .map(r -> r.length() > 300 ? r.substring(0, 300) + "..." : r)
+                .collect(java.util.stream.Collectors.joining("\n---\n"));
 
-                Các đánh giá:
+        return """
+                Bạn là trợ lý đánh giá sản phẩm công nghệ khách quan, trung thực.
+                Hãy phân tích các đánh giá thực tế từ người dùng Việt Nam về sản phẩm "%s".
+
+                [DANH SÁCH ĐÁNH GIÁ]:
                 %s
 
-                Trả về JSON theo schema đã quy định:
-                - summaryText: đoạn tóm tắt tổng quan ngắn gọn (2-3 câu)
-                - pros: liệt kê ưu điểm nổi bật (bullet points, mỗi điểm cách nhau bởi \\n)
-                - cons: liệt kê nhược điểm (bullet points, mỗi điểm cách nhau bởi \\n)
+                [YÊU CẦU ĐẦU RA]:
+                Trả về JSON với đúng 3 trường sau — KHÔNG bịa đặt thông tin không có trong review:
+
+                - summaryText: 2–3 câu tóm tắt tổng thể. Nêu rõ sản phẩm phù hợp với ai và có đáng mua không.
+
+                - pros: Liệt kê các điểm được khen nhiều nhất.
+                  Mỗi điểm viết trên một dòng, bắt đầu bằng "• ".
+                  Ví dụ: "• Pin trâu, dùng được cả ngày\\n• Màn hình sắc nét, màu sắc chuẩn"
+
+                - cons: Liệt kê các nhược điểm hoặc lỗi phổ biến.
+                  Mỗi điểm viết trên một dòng, bắt đầu bằng "• ".
+                  Nếu không tìm thấy nhược điểm đáng kể, ghi: "• Chưa ghi nhận phản hồi tiêu cực nổi bật."
                 """.formatted(productName, reviewsText);
     }
 
@@ -243,16 +265,20 @@ public class GeminiClient implements LlmClient {
     private void saveLog(String requestType, String prompt, String response,
                           String status, short retryCount, int latencyMs, int totalTokenCount, Long queryId) {
         try {
-            LlmRequestLog log = LlmRequestLog.builder()
+            LlmRequestLog.LlmRequestLogBuilder builder = LlmRequestLog.builder()
                     .requestType(requestType)
                     .promptText(prompt)
                     .responseText(response)
                     .status(status)
                     .retryCount(retryCount)
                     .latencyMs(latencyMs)
-                    .tokensUsed(totalTokenCount)
-                    .build();
-            entityManager.persist(log);
+                    .tokensUsed(totalTokenCount > 0 ? totalTokenCount : null);
+
+            if (queryId != null) {
+                builder.searchQuery(entityManager.getReference(SearchQuery.class, queryId));
+            }
+
+            entityManager.persist(builder.build());
         } catch (Exception e) {
             // Log lỗi không được phép làm fail luồng chính
             GeminiClient.log.error("Failed to persist LLM log", e);

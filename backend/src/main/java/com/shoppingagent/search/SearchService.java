@@ -2,6 +2,7 @@ package com.shoppingagent.search;
 
 import com.shoppingagent.product.CategoryRepository;
 import com.shoppingagent.product.ProductRepository;
+import com.shoppingagent.product.ProductSpecRepository;
 import com.shoppingagent.search.dto.ExtractedCriteria;
 import com.shoppingagent.search.dto.RankedProduct;
 import com.shoppingagent.search.dto.SearchRequest;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,7 +22,7 @@ import java.util.Map;
  * Orchestrator cho luồng tìm kiếm end-to-end:
  *
  *   queryText → [QueryParser] → ExtractedCriteria
- *             → [ProductRepo] → List<Product> ứng viên
+ *             → [ProductRepo / ProductSpecRepo (GIN Index)] → List<Product> ứng viên
  *             → [Ranker]      → List<RankedProduct>
  *             → Lưu SearchQuery + SearchResult vào DB
  *             → SearchResponse
@@ -35,6 +37,7 @@ public class SearchService {
     private final RankingService rankingService;
     private final LLMRerankingService llmRerankingService;
     private final ProductRepository productRepository;
+    private final ProductSpecRepository productSpecRepository;
     private final CategoryRepository categoryRepository;
     private final SearchQueryRepository searchQueryRepository;
     private final SearchResultRepository searchResultRepository;
@@ -49,15 +52,29 @@ public class SearchService {
         ExtractedCriteria criteria = queryParserService.parse(request.getQueryText(), categoryCode);
 
         // ── Bước 3: Lấy sản phẩm ứng viên từ DB ──────────────────────────────
-        List<Product> candidates = productRepository.findCandidates(
-                categoryCode,
-                criteria.getBudgetMin(),
-                criteria.getBudgetMax()
-        );
-        log.debug("[Search] Found {} candidate products", candidates.size());
+        List<Product> candidates;
+        if (criteria.getRequiredSpecs() != null && !criteria.getRequiredSpecs().isEmpty()) {
+            // Có specs → dùng native SQL với GIN index để lọc tại DB level
+            candidates = productSpecRepository.findCandidatesWithSpecs(
+                    categoryCode,
+                    criteria.getBudgetMin(),
+                    criteria.getBudgetMax(),
+                    criteria.getRequiredSpecs()
+            );
+            log.debug("[Search] Found {} candidates (GIN-filtered by specs: {})",
+                    candidates.size(), criteria.getRequiredSpecs().keySet());
+        } else {
+            // Không có specs → query cơ bản (chỉ lọc category + price)
+            candidates = productRepository.findCandidates(
+                    categoryCode,
+                    criteria.getBudgetMin(),
+                    criteria.getBudgetMax()
+            );
+            log.debug("[Search] Found {} candidates (no spec filter)", candidates.size());
+        }
 
         // ── Bước 4: Lấy trọng số xếp hạng từ DB ──────────────────────────────
-        Map<String, Double> weights = categoryRepository.findWeightsByCategoryCode(categoryCode);
+        Map<String, Double> weights = categoryRepository.findWeightsByCategoryCode(categoryCode.toLowerCase());
 
         // ── Bước 5: Xếp hạng ──────────────────────────────────────────────────
         List<RankedProduct> baseRanked = rankingService.rank(
@@ -84,20 +101,24 @@ public class SearchService {
         if (lower.contains("điện thoại") || lower.contains("phone")
                 || lower.contains("iphone") || lower.contains("samsung")
                 || lower.contains("android")) {
-            return "PHONE";
+            return "phone";
         }
-        return "LAPTOP"; // mặc định
+        return "laptop"; // mặc định
     }
 
     private SearchQuery saveSearchQuery(SearchRequest request, Long userId,
                                          ExtractedCriteria criteria, String categoryCode) {
-        var category = categoryRepository.findByCode(categoryCode).orElse(null);
+        var category = categoryRepository.findByCode(categoryCode.toLowerCase()).orElse(null);
         com.shoppingagent.shared.entity.User userRef = userId != null ? com.shoppingagent.shared.entity.User.builder().id(userId.intValue()).build() : null;
-        
-        Map<String, Object> criteriaMap = new java.util.HashMap<>();
-        if (criteria.getBudgetMin() != null) criteriaMap.put("budgetMin", criteria.getBudgetMin());
-        if (criteria.getBudgetMax() != null) criteriaMap.put("budgetMax", criteria.getBudgetMax());
-        if (criteria.getRequiredSpecs() != null) criteriaMap.put("requiredSpecs", criteria.getRequiredSpecs());
+
+        Map<String, Object> criteriaMap = new HashMap<>();
+        if (criteria != null) {
+            if (criteria.getCategoryCode() != null) criteriaMap.put("categoryCode", criteria.getCategoryCode());
+            if (criteria.getBudgetMin() != null) criteriaMap.put("budgetMin", criteria.getBudgetMin());
+            if (criteria.getBudgetMax() != null) criteriaMap.put("budgetMax", criteria.getBudgetMax());
+            if (criteria.getTarget() != null) criteriaMap.put("target", criteria.getTarget());
+            if (criteria.getRequiredSpecs() != null) criteriaMap.put("requiredSpecs", criteria.getRequiredSpecs());
+        }
 
         SearchQuery query = SearchQuery.builder()
                 .user(userRef)

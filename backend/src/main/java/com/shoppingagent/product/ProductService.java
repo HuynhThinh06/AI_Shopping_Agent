@@ -8,6 +8,10 @@ import com.shoppingagent.shared.entity.ProductImage;
 import com.shoppingagent.shared.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,6 +35,35 @@ public class ProductService {
         Product p = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
         return toDetailDTO(p);
+    }
+
+    /**
+     * [MỚI - B7] Tìm kiếm sản phẩm với filter tùy chọn + phân trang.
+     *
+     * Tất cả tham số filter đều nullable:
+     *   - categoryCode null → không lọc theo ngành hàng
+     *   - minPrice / maxPrice null → không giới hạn giá
+     *   - keyword null → không lọc theo tên/hãng
+     *
+     * Mặc định sắp xếp: avg_rating giảm dần (sản phẩm được đánh giá cao lên trước).
+     *
+     * @param page  Số trang, bắt đầu từ 0
+     * @param size  Số sản phẩm mỗi trang (Controller giới hạn tối đa 50)
+     */
+    public Page<ProductDetailDTO> searchProducts(String categoryCode,
+                                                  Long   minPrice,
+                                                  Long   maxPrice,
+                                                  String keyword,
+                                                  int    page,
+                                                  int    size) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("avgRating").descending()
+        );
+        return productRepository
+                .searchProducts(categoryCode, minPrice, maxPrice, keyword, pageable)
+                .map(this::toDetailDTO);
     }
 
     @Transactional
