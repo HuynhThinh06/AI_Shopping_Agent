@@ -46,12 +46,16 @@ public class GeminiClient implements LlmClient {
     private static final Map<String, Object> CRITERIA_SCHEMA = Map.of(
             "type", "object",
             "properties", Map.of(
+                    "reasoning",      Map.of("type", "string", "description", "Step by step reasoning before extraction"),
                     "categoryCode",   Map.of("type", "string"),
                     "budgetMax",      Map.of("type", "number", "nullable", true),
                     "budgetMin",      Map.of("type", "number", "nullable", true),
-                    "requiredSpecs",  Map.of("type", "object") // Đã xóa additionalProperties
+                    "requiredSpecs",  Map.of("type", "object"),
+                    "weightPrice",    Map.of("type", "number"),
+                    "weightRating",   Map.of("type", "number"),
+                    "weightSpec",     Map.of("type", "number")
             ),
-            "required", List.of("categoryCode", "budgetMin", "budgetMax", "requiredSpecs")
+            "required", List.of("reasoning", "categoryCode", "budgetMin", "budgetMax", "requiredSpecs", "weightPrice", "weightRating", "weightSpec")
     );
 
     // ─── Schema cho SummaryResult ─────────────────────────────────────────────
@@ -72,7 +76,7 @@ public class GeminiClient implements LlmClient {
                                               String categoryCode,
                                               List<String> filterableAttributes) {
         String prompt = buildExtractionPrompt(queryText, categoryCode, filterableAttributes);
-        String json = callWithRetry(prompt, CRITERIA_SCHEMA, "extract_query", null);
+        String json = callWithRetry(prompt, null, "extract_query", null);
         try {
             ExtractedCriteria criteria = objectMapper.readValue(json, ExtractedCriteria.class);
             // Đảm bảo categoryCode luôn đúng (LLM có thể trả sai)
@@ -169,32 +173,39 @@ public class GeminiClient implements LlmClient {
 
     // ─── Prompt builders ──────────────────────────────────────────────────────
 
+        public String callWithCustomSchema(String prompt, Map<String, Object> schema) {
+        return callWithRetry(prompt, schema, "RERANK", null);
+    }
+
     private String buildExtractionPrompt(String queryText,
-                                          String categoryCode,
-                                          List<String> filterableAttributes) {
+                                         String categoryCode,
+                                         List<String> filterableAttributes) {
         return """
-                Bạn là trợ lý phân tích yêu cầu mua sắm của Thế Giới Di Động. Nhiệm vụ của bạn là trích xuất thông tin từ câu hỏi của người dùng.
+                Bạn là trợ lý phân tích yêu cầu mua sắm. Bạn hãy SUY LUẬN TỪNG BƯỚC (Chain-of-Thought) để hiểu sâu nhu cầu người dùng.
 
                 Ngành hàng: %s
                 Các thuộc tính có thể lọc: %s
 
-                QUY TẮC TIẾNG LÓNG (SLANG RULES):
-                - Tiền tệ: "củ" = "chai" = "tr" = "triệu" = 1.000.000 VNĐ. Ví dụ: "15 củ" -> 15000000.
-                - "k" = 1.000 VNĐ. Ví dụ: "10k" -> 10000.
-                - Về Pin: "pin trâu", "pin lâu" -> với điện thoại là pin >= 5000mAh, với laptop là battery >= 60Wh.
-                - Về nhu cầu: "lập trình", "code", "IT" -> RAM >= 16GB. "đồ họa", "game" -> cần có VGA rời.
+                QUY TẮC TIẾNG LÓNG & KỸ THUẬT:
+                - Tiền tệ: "củ" = "chai" = "tr" = 1.000.000 VNĐ.
+                - Nhu cầu "lập trình", "code", "IT": bắt buộc phải ép RAM >= 16GB, CPU phải từ Core i5 hoặc Ryzen 5 trở lên.
+                - Nhu cầu "chơi game", "đồ họa": ép phải có Card rời (VGA), RAM >= 16GB.
+                - Nhu cầu "văn phòng", "mang đi cafe": ép trọng lượng (weight) <= 1.5kg.
+                - Nhu cầu "pin trâu": ép battery >= 60Wh (laptop) hoặc >= 5000mAh (điện thoại).
 
-                VÍ DỤ MẪU (FEW-SHOTS):
-                Input: "lap 15 củ học IT" -> Output: {"categoryCode": "LAPTOP", "budgetMax": 15000000, "requiredSpecs": {"ram": "16", "use_case": "IT"}}
-                Input: "đt pin trâu dưới 10 chai" -> Output: {"categoryCode": "PHONE", "budgetMax": 10000000, "requiredSpecs": {"battery": "5000"}}
-                Input: "macbook m3 tầm 30 đến 40 củ" -> Output: {"categoryCode": "LAPTOP", "budgetMin": 30000000, "budgetMax": 40000000, "requiredSpecs": {"brand": "Apple", "cpu": "M3"}}
+                QUY TẮC PHÂN BỔ TRỌNG SỐ (WEIGHTS) TỔNG 1.0:
+                - Nếu khách nhấn mạnh "rẻ", "giá rẻ", "ngân sách hẹp": weightPrice=0.7, weightRating=0.1, weightSpec=0.2
+                - Nếu khách nhấn mạnh "chơi game ngon", "cấu hình khủng", "tiền không thành vấn đề": weightPrice=0.1, weightRating=0.2, weightSpec=0.7
+                - Nếu khách ưu tiên "bền", "uy tín", "đánh giá tốt": weightPrice=0.2, weightRating=0.6, weightSpec=0.2
+                - Mặc định: weightPrice=0.35, weightRating=0.20, weightSpec=0.45
 
-                CÂU HỎI THỰC TẾ CỦA NGƯỜI DÙNG: "%s"
+                VÍ DỤ MẪU:
+                Input: "lap 15 củ học IT" -> Output: {"categoryCode": "LAPTOP", "budgetMax": 15000000, "requiredSpecs": {"ram": ">=16", "use_case": "IT"}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
+                Input: "điện thoại tầm trung chơi game mượt" -> Output: {"categoryCode": "PHONE", "requiredSpecs": {"use_case": "game"}, "weightPrice": 0.2, "weightRating": 0.2, "weightSpec": 0.6}
+                
+                CÂU HỎI THỰC TẾ: "%s"
 
-                Hãy phân tích và trả về định dạng JSON thuần túy tuân thủ chặt chẽ response_schema đã định nghĩa.
-                - budgetMax: ngân sách tối đa bằng VNĐ (null nếu không đề cập).
-                - budgetMin: ngân sách tối thiểu bằng VNĐ (null nếu không đề cập).
-                - requiredSpecs: chỉ điền các thuộc tính được đề cập rõ ràng, bỏ qua phần còn lại.
+                Hãy phân tích kỹ, tự động bổ sung các spec ngầm định (ví dụ IT thì phải thêm RAM>=16) và trả về định dạng JSON thuần túy tuân thủ chặt chẽ response_schema.
                 """.formatted(categoryCode, filterableAttributes, queryText);
     }
 
@@ -216,14 +227,16 @@ public class GeminiClient implements LlmClient {
     // ─── Helper ───────────────────────────────────────────────────────────────
 
     private Map<String, Object> buildRequestBody(String prompt, Map<String, Object> schema) {
+        Map<String, Object> config = new java.util.HashMap<>();
+        config.put("response_mime_type", "application/json");
+        if (schema != null) {
+            config.put("response_schema", schema);
+        }
         return Map.of(
                 "contents", List.of(
                         Map.of("parts", List.of(Map.of("text", prompt)))
                 ),
-                "generationConfig", Map.of(
-                        "response_mime_type", "application/json",
-                        "response_schema", schema
-                )
+                "generationConfig", config
         );
     }
 

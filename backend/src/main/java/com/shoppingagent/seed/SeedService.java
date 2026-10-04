@@ -116,6 +116,42 @@ public class SeedService {
         return categories.get(0);
     }
 
+    public List<com.shoppingagent.seed.dto.ProductSimpleDTO> getAllProducts() {
+        return entityManager.createQuery("SELECT new com.shoppingagent.seed.dto.ProductSimpleDTO(p.id, p.productUrl) FROM Product p", com.shoppingagent.seed.dto.ProductSimpleDTO.class)
+                .getResultList();
+    }
+
+    @Transactional
+    public void seedReviewsForProduct(Long productId, List<ReviewSeedRequest> reviews) {
+        Product product = entityManager.find(Product.class, productId);
+        if (product == null) {
+            throw new IllegalArgumentException("Product not found with ID: " + productId);
+        }
+
+        User defaultCrawlerUser = resolveDefaultCrawlerUser();
+        for (ReviewSeedRequest revReq : reviews) {
+            Review review = Review.builder()
+                    .product(product)
+                    .user(defaultCrawlerUser)
+                    .reviewerName(revReq.getReviewerName())
+                    .content(revReq.getContent())
+                    .rating(revReq.getRating())
+                    .isSpam(false)
+                    .isActive(true)
+                    .build();
+            entityManager.persist(review);
+        }
+        
+        // Update review count on product
+        Long count = entityManager.createQuery("SELECT COUNT(r) FROM Review r WHERE r.product.id = :pid", Long.class)
+                .setParameter("pid", productId)
+                .getSingleResult();
+        product.setReviewCount(count.intValue());
+        entityManager.merge(product);
+        
+        log.info("Seeded {} reviews for product: {}", reviews.size(), product.getName());
+    }
+
     private User resolveDefaultCrawlerUser() {
         List<User> users = entityManager.createQuery("SELECT u FROM User u WHERE u.username = :username", User.class)
                 .setParameter("username", "crawler")

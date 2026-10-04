@@ -33,6 +33,7 @@ public class SearchService {
 
     private final QueryParserService queryParserService;
     private final RankingService rankingService;
+    private final LLMRerankingService llmRerankingService;
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final SearchQueryRepository searchQueryRepository;
@@ -59,8 +60,10 @@ public class SearchService {
         Map<String, Double> weights = categoryRepository.findWeightsByCategoryCode(categoryCode);
 
         // ── Bước 5: Xếp hạng ──────────────────────────────────────────────────
-        List<RankedProduct> ranked = rankingService.rank(
-                candidates, criteria, weights, request.getTopK());
+        List<RankedProduct> baseRanked = rankingService.rank(
+                candidates, criteria, weights, request.getTopK() + 20);
+        List<RankedProduct> ranked = llmRerankingService.rerank(
+                request.getQueryText(), baseRanked, request.getTopK());
 
         // ── Bước 6: Lưu SearchQuery + SearchResult vào DB ─────────────────────
         SearchQuery savedQuery = saveSearchQuery(request, userId, criteria, categoryCode);

@@ -31,7 +31,7 @@ public class SummarizerService {
     private final ReviewSummaryRepository reviewSummaryRepository;
     private final ReviewFilterService reviewFilterService;
 
-    @Value("${llm.gemini.model:gemini-3.8-flash}")
+    @Value("${llm.gemini.model:gemini-3.5-flash-lite}")
     private String llmModel;
 
     @Transactional

@@ -30,4 +30,9 @@ public class ExtractedCriteria {
      * Key = attribute_key (vd: "ram"), Value = giá trị yêu cầu (vd: "16" hoặc ">=16")
      */
     private Map<String, String> requiredSpecs = new HashMap<>();
+
+    private Double weightPrice;
+    private Double weightRating;
+    private Double weightSpec;
 }
+
