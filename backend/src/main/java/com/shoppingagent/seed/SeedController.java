@@ -45,4 +45,27 @@ public class SeedController {
             ));
         }
     }
+    @GetMapping("/products")
+    public ResponseEntity<?> getAllProducts() {
+        return ResponseEntity.ok(seedService.getAllProducts());
+    }
+
+    @PostMapping("/products/{id}/reviews")
+    public ResponseEntity<?> seedReviews(
+            @PathVariable Long id,
+            @RequestBody java.util.List<com.shoppingagent.seed.dto.ReviewSeedRequest> reviews) {
+        try {
+            seedService.seedReviewsForProduct(id, reviews);
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Seeded " + reviews.size() + " reviews successfully"
+            ));
+        } catch (Exception e) {
+            log.error("Failed to seed reviews for product {}", id, e);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
 }

@@ -50,9 +50,9 @@ public class RankingService {
                                     int topK) {
         if (products.isEmpty()) return Collections.emptyList();
 
-        double wRating = weights.getOrDefault("rating",    DEFAULT_W_RATING);
-        double wPrice  = weights.getOrDefault("price",     DEFAULT_W_PRICE);
-        double wSpec   = weights.getOrDefault("spec_match",DEFAULT_W_SPEC);
+        double wRating = criteria.getWeightRating() != null ? criteria.getWeightRating() : weights.getOrDefault("rating",    DEFAULT_W_RATING);
+        double wPrice  = criteria.getWeightPrice() != null ? criteria.getWeightPrice() : weights.getOrDefault("price",     DEFAULT_W_PRICE);
+        double wSpec   = criteria.getWeightSpec() != null ? criteria.getWeightSpec() : weights.getOrDefault("spec_match",DEFAULT_W_SPEC);
 
         // ── Min-Max normalization values ──────────────────────────────────────
         double maxRating = products.stream()
