@@ -1,14 +1,12 @@
 # ==========================================
-# CD — Build & push image lên GHCR, deploy lên VPS qua SSH
+# CD — Build & push image lên GHCR (GitHub Packages)
 #
 # Kích hoạt:
 #   1. Tự động: sau khi workflow "CI" chạy THÀNH CÔNG trên nhánh main (do push/merge).
 #   2. Thủ công: Actions → CD → Run workflow.
-#      - Để trống image_tag  → build từ commit hiện tại của main rồi deploy.
-#      - Nhập image_tag cũ (vd: sha-abc1234) → ROLLBACK, chỉ deploy lại image đó.
 #
-# Secrets cần có: VPS_HOST, VPS_USER, VPS_SSH_KEY, (tuỳ chọn) VPS_PORT
-# Variables tuỳ chọn: APP_URL (mặc định http://<VPS_HOST>), DEPLOY_PATH (mặc định ~/ai-shopping-agent)
+# Image sẽ được publish lên GHCR với tag sha-<commit> và latest.
+# Việc triển khai chạy ứng dụng (Deployment) được tự động hóa qua Render (Backend) và Vercel (Frontend).
 # ==========================================
 name: CD
 
@@ -106,81 +104,3 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,scope=${{ matrix.service }},mode=max
 
-  # ─── Deploy lên VPS ─────────────────────────────────────────
-  deploy:
-    name: Deploy to VPS
-    runs-on: ubuntu-latest
-    needs: [prepare, build-and-push]
-    # Chạy khi build thành công, hoặc khi build bị bỏ qua (rollback)
-    if: >-
-      always() && needs.prepare.result == 'success' &&
-      (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped')
-    environment:
-      name: production
-      url: ${{ vars.APP_URL }}
-    permissions:
-      contents: read
-      packages: read
-    env:
-      # Đường dẫn tương đối tính từ thư mục home của VPS_USER (hoặc đường dẫn tuyệt đối)
-      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || 'ai-shopping-agent' }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.prepare.outputs.sha }}
-          sparse-checkout: docker-compose.prod.yml
-          sparse-checkout-cone-mode: false
-
-      - name: Copy compose file to VPS
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT || 22 }}
-          source: docker-compose.prod.yml
-          target: ${{ env.DEPLOY_PATH }}
-
-      - name: Pull & restart containers
-        uses: appleboy/ssh-action@v1.2.5
-        env:
-          GHCR_USER: ${{ github.actor }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
-          IMAGE_REGISTRY: ${{ env.REGISTRY }}/${{ github.repository_owner }}
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT || 22 }}
-          envs: GHCR_USER,GHCR_TOKEN,IMAGE_TAG,IMAGE_REGISTRY,DEPLOY_PATH
-          script: |
-            set -e
-            cd "$DEPLOY_PATH"
-            test -f .env || { echo "❌ Thiếu file .env trên VPS ($PWD/.env)"; exit 1; }
-            export IMAGE_TAG
-            export IMAGE_REGISTRY="$(echo "$IMAGE_REGISTRY" | tr '[:upper:]' '[:lower:]')"
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
-            docker logout ghcr.io
-            echo "$IMAGE_TAG" > .deployed_tag
-            docker image prune -f
-            docker compose -f docker-compose.prod.yml ps
-
-      - name: Health check
-        env:
-          APP_URL: ${{ vars.APP_URL || format('http://{0}', secrets.VPS_HOST) }}
-        run: |
-          URL="${APP_URL%/}/api/actuator/health"
-          for i in $(seq 1 20); do
-            if curl -fsS --max-time 10 "$URL" | grep -q '"status":"UP"'; then
-              echo "✅ Ứng dụng UP sau $i lần thử"
-              echo "✅ Deployed **${{ needs.prepare.outputs.image_tag }}** — $APP_URL" >> "$GITHUB_STEP_SUMMARY"
-              exit 0
-            fi
-            echo "⏳ Lần $i: chưa sẵn sàng, chờ 15s..."
-            sleep 15
-          done
-          echo "❌ Health check thất bại: $URL"
-          exit 1
