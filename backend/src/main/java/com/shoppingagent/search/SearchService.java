@@ -77,8 +77,9 @@ public class SearchService {
         Map<String, Double> weights = categoryRepository.findWeightsByCategoryCode(categoryCode.toLowerCase());
 
         // ── Bước 5: Xếp hạng ──────────────────────────────────────────────────
+        // Giới hạn candidate cho LLM Reranking (topK + 5, thường là 15) để giảm độ trễ và tiết kiệm token
         List<RankedProduct> baseRanked = rankingService.rank(
-                candidates, criteria, weights, request.getTopK() + 20);
+                candidates, criteria, weights, request.getTopK() + 5);
         List<RankedProduct> ranked = llmRerankingService.rerank(
                 request.getQueryText(), baseRanked, request.getTopK());
 

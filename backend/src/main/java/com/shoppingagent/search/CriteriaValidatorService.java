@@ -23,6 +23,30 @@ public class CriteriaValidatorService {
         normalizeBudgets(criteria);
         normalizeSpecs(criteria);
         normalizeTarget(criteria);
+        normalizeWeights(criteria);
+    }
+
+    private void normalizeWeights(ExtractedCriteria criteria) {
+        Double p = criteria.getWeightPrice();
+        Double r = criteria.getWeightRating();
+        Double s = criteria.getWeightSpec();
+
+        if (p == null) p = 0.35;
+        if (r == null) r = 0.20;
+        if (s == null) s = 0.45;
+
+        double sum = p + r + s;
+        if (sum > 0 && Math.abs(sum - 1.0) > 0.001) {
+            criteria.setWeightPrice(Math.round((p / sum) * 100.0) / 100.0);
+            criteria.setWeightRating(Math.round((r / sum) * 100.0) / 100.0);
+            criteria.setWeightSpec(Math.round((s / sum) * 100.0) / 100.0);
+            log.info("Normalized weights to sum 1.0: price={}, rating={}, spec={}", 
+                criteria.getWeightPrice(), criteria.getWeightRating(), criteria.getWeightSpec());
+        } else if (sum == 0) {
+            criteria.setWeightPrice(0.35);
+            criteria.setWeightRating(0.20);
+            criteria.setWeightSpec(0.45);
+        }
     }
 
     private void normalizeBudgets(ExtractedCriteria criteria) {

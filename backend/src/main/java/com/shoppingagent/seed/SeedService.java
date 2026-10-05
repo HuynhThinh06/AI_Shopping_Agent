@@ -142,11 +142,19 @@ public class SeedService {
             entityManager.persist(review);
         }
         
-        // Update review count on product
+        // Update review count and avgRating on product
         Long count = entityManager.createQuery("SELECT COUNT(r) FROM Review r WHERE r.product.id = :pid", Long.class)
                 .setParameter("pid", productId)
                 .getSingleResult();
+        
+        Double avg = entityManager.createQuery("SELECT AVG(r.rating) FROM Review r WHERE r.product.id = :pid", Double.class)
+                .setParameter("pid", productId)
+                .getSingleResult();
+                
         product.setReviewCount(count.intValue());
+        if (avg != null) {
+            product.setAvgRating(java.math.BigDecimal.valueOf(avg).setScale(1, java.math.RoundingMode.HALF_UP));
+        }
         entityManager.merge(product);
         
         log.info("Seeded {} reviews for product: {}", reviews.size(), product.getName());

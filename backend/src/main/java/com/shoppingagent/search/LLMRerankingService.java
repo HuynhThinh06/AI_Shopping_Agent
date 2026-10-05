@@ -30,7 +30,7 @@ public class LLMRerankingService {
         }
 
         // Limit the candidates to send to LLM to max 30 to save tokens and context
-        List<RankedProduct> candidatesToSend = topCandidates.stream().limit(30).collect(Collectors.toList());
+        List<RankedProduct> candidatesToSend = topCandidates.stream().limit(15).collect(Collectors.toList());
 
         // Construct the prompt with candidates info
         StringBuilder promptBuilder = new StringBuilder();
@@ -69,10 +69,10 @@ public class LLMRerankingService {
             // Wait, GeminiClient currently doesn't expose a generic JSON method. Let's add one to GeminiClient.
             String rawJson = geminiClient.callWithCustomSchema(promptBuilder.toString(), schema);
             
-            // Parse response
+            // Parse response - using Number to safely avoid ClassCastException
             Map<String, Object> result = objectMapper.readValue(rawJson, new TypeReference<>() {});
-            List<Integer> rankedIdsInt = (List<Integer>) result.get("rankedProductIds");
-            List<Long> rankedIds = rankedIdsInt == null ? null : rankedIdsInt.stream().map(Integer::longValue).collect(Collectors.toList());
+            List<Number> rankedIdsRaw = (List<Number>) result.get("rankedProductIds");
+            List<Long> rankedIds = rankedIdsRaw == null ? null : rankedIdsRaw.stream().map(Number::longValue).collect(Collectors.toList());
 
             if (rankedIds == null || rankedIds.isEmpty()) {
                 return candidatesToSend.stream().limit(finalTopK).collect(Collectors.toList());
@@ -94,6 +94,11 @@ public class LLMRerankingService {
                 if (!finalRanked.contains(rp)) {
                     finalRanked.add(rp);
                 }
+            }
+            
+            // Re-assign rankPosition (1 -> N)
+            for (int i = 0; i < finalRanked.size(); i++) {
+                finalRanked.get(i).setRankPosition(i + 1);
             }
 
             return finalRanked;
