@@ -141,6 +141,20 @@ public class GeminiClient implements LlmClient {
                 List<Map<String, Object>> parts =
                         (List<Map<String, Object>>) content.get("parts");
                 responseJson = (String) parts.get(0).get("text");
+                
+                // Strip markdown code blocks if AI wrapped it
+                if (responseJson != null) {
+                    responseJson = responseJson.trim();
+                    if (responseJson.startsWith("`json")) {
+                        responseJson = responseJson.substring(7);
+                    } else if (responseJson.startsWith("`")) {
+                        responseJson = responseJson.substring(3);
+                    }
+                    if (responseJson.endsWith("`")) {
+                        responseJson = responseJson.substring(0, responseJson.length() - 3);
+                    }
+                    responseJson = responseJson.trim();
+                }
 
                 // Kiểm tra output hợp lệ JSON
                 objectMapper.readTree(responseJson);

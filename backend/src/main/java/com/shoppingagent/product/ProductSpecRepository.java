@@ -52,7 +52,7 @@ public class ProductSpecRepository {
         StringBuilder sql = new StringBuilder("""
             SELECT p.* FROM products p
             JOIN categories c ON p.category_id = c.id
-            WHERE c.code = :categoryCode
+            WHERE LOWER(c.code) = LOWER(:categoryCode)
               AND p.is_active = TRUE
             """);
 
@@ -108,21 +108,32 @@ public class ProductSpecRepository {
                     // Ví dụ sinh ra:
                     //   AND jsonb_exists(p.specs, 'ram')
                     //   AND (p.specs->>'ram')::numeric >= 16
-                    sql.append(" AND jsonb_exists(p.specs, :").append(keyParam).append(")")
-                       .append(" AND (p.specs->>:").append(keyParam)
-                       .append(")::numeric ").append(operator).append(" :").append(valParam);
-                    params.put(keyParam, specKey);
+                    String kl = keyParam + "L";
+                    String ku = keyParam + "U";
+                    String kc = keyParam + "C";
+                    
+                    sql.append(" AND (jsonb_exists(p.specs, :").append(kl).append(") OR ")
+                       .append("jsonb_exists(p.specs, :").append(ku).append(") OR ")
+                       .append("jsonb_exists(p.specs, :").append(kc).append("))")
+                       .append(" AND (COALESCE(p.specs->>:").append(kl).append(", p.specs->>:").append(ku).append(", p.specs->>:").append(kc)
+                       .append("))::numeric ").append(operator).append(" :").append(valParam);
+                       
+                    params.put(kl, specKey.toLowerCase());
+                    params.put(ku, specKey.toUpperCase());
+                    params.put(kc, specKey.substring(0, 1).toUpperCase() + specKey.substring(1).toLowerCase());
                     params.put(valParam, numericVal);
 
                 } catch (NumberFormatException e) {
-                    // ── Text spec ────────────────────────────────────────────
-                    // Tìm chuỗi con, case-insensitive
-                    //
-                    // Ví dụ sinh ra:
-                    //   AND LOWER(p.specs->>'cpu') LIKE '%i7%'
-                    sql.append(" AND LOWER(p.specs->>:").append(keyParam)
-                       .append(") LIKE :").append(valParam);
-                    params.put(keyParam, specKey);
+                    String kl = keyParam + "L";
+                    String ku = keyParam + "U";
+                    String kc = keyParam + "C";
+                    
+                    sql.append(" AND LOWER(COALESCE(p.specs->>:").append(kl).append(", p.specs->>:").append(ku).append(", p.specs->>:").append(kc)
+                       .append(", '')) LIKE :").append(valParam);
+                       
+                    params.put(kl, specKey.toLowerCase());
+                    params.put(ku, specKey.toUpperCase());
+                    params.put(kc, specKey.substring(0, 1).toUpperCase() + specKey.substring(1).toLowerCase());
                     params.put(valParam, "%" + cleanValue.toLowerCase() + "%");
                 }
                 idx++;

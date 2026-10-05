@@ -20,7 +20,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("""
             SELECT p FROM Product p
             JOIN p.category c
-            WHERE c.code = :categoryCode
+            WHERE LOWER(c.code) = LOWER(:categoryCode)
               AND p.isActive = TRUE
               AND (:budgetMin IS NULL OR p.price >= :budgetMin)
               AND (:budgetMax IS NULL OR p.price <= :budgetMax)
