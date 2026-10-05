@@ -35,7 +35,7 @@ public class GeminiClient implements LlmClient {
     @Value("${llm.gemini.api-key}")
     private String apiKey;
 
-    @Value("${llm.gemini.model:gemini-2.0-flash}")
+    @Value("${llm.gemini.model:gemini-3.5-flash-lite}")
     private String model;
 
     @Value("${llm.gemini.max-retries:2}")

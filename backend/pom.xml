@@ -145,6 +145,37 @@
 					</execution>
 				</executions>
 			</plugin>
+			<!-- JaCoCo: đo code coverage, sinh báo cáo ở target/site/jacoco khi chạy `mvnw verify`.
+			     Giai đoạn 1: chỉ báo cáo, chưa đặt ngưỡng fail build. -->
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.14</version>
+				<configuration>
+					<excludes>
+						<exclude>com/shoppingagent/ShoppingAgentApplication.class</exclude>
+						<exclude>com/shoppingagent/**/dto/**</exclude>
+						<exclude>com/shoppingagent/shared/entity/**</exclude>
+						<exclude>com/shoppingagent/shared/config/**</exclude>
+						<exclude>com/shoppingagent/seed/**</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 

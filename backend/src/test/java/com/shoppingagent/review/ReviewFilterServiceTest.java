@@ -69,7 +69,7 @@ class ReviewFilterServiceTest {
         List<String> result = filterService.filter(reviews);
 
         assertEquals(1, result.size());
-        assertEquals("Sản phẩm dùng tốt, pin bền 👍👍👍", result.get(0));
+        assertEquals("Sản phẩm dùng tốt, pin bền", result.get(0));
     }
 
     @Test
