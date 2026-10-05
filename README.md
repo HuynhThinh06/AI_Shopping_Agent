@@ -195,7 +195,7 @@ psql -U postgres -d shopping_agent -f ../Database_NV.sql
 | Biến | Mô tả | Mặc định |
 |---|---|---|
 | `GEMINI_API_KEY` | API key Google Gemini | *(bắt buộc)* |
-| `GEMINI_MODEL` | Model Gemini sử dụng | `gemini-3.8-flash` |
+| `GEMINI_MODEL` | Model Gemini sử dụng | `gemini-3.5-flash-lite` |
 | `DB_NAME` | Tên database PostgreSQL | `shopping_agent` |
 | `DB_USER` | Username PostgreSQL | `postgres` |
 | `DB_PASSWORD` | Password PostgreSQL | *(bắt buộc)* |
