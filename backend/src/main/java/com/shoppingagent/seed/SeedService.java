@@ -3,9 +3,12 @@ package com.shoppingagent.seed;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shoppingagent.seed.dto.ProductSeedRequest;
+import com.shoppingagent.seed.dto.ReviewSeedRequest;
 import com.shoppingagent.shared.entity.Category;
 import com.shoppingagent.shared.entity.Product;
 import com.shoppingagent.shared.entity.ProductImage;
+import com.shoppingagent.shared.entity.Review;
+import com.shoppingagent.shared.entity.User;
 import com.shoppingagent.shared.service.CloudinaryService;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +19,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Service
@@ -71,6 +73,24 @@ public class SeedService {
             }
         }
 
+        // Seeding reviews nếu có
+        if (request.getReviews() != null && !request.getReviews().isEmpty()) {
+            User defaultCrawlerUser = resolveDefaultCrawlerUser();
+            for (ReviewSeedRequest revReq : request.getReviews()) {
+                Review review = Review.builder()
+                        .product(product)
+                        .user(defaultCrawlerUser)
+                        .reviewerName(revReq.getReviewerName())
+                        .content(revReq.getContent())
+                        .rating(revReq.getRating())
+                        .isSpam(false)
+                        .isActive(true)
+                        .build();
+                entityManager.persist(review);
+            }
+            log.info("Seeded {} reviews for product: {}", request.getReviews().size(), request.getName());
+        }
+
         return product;
     }
 
@@ -94,5 +114,60 @@ public class SeedService {
         }
 
         return categories.get(0);
+    }
+
+    public List<com.shoppingagent.seed.dto.ProductSimpleDTO> getAllProducts() {
+        return entityManager.createQuery("SELECT new com.shoppingagent.seed.dto.ProductSimpleDTO(p.id, p.productUrl) FROM Product p", com.shoppingagent.seed.dto.ProductSimpleDTO.class)
+                .getResultList();
+    }
+
+    @Transactional
+    public void seedReviewsForProduct(Long productId, List<ReviewSeedRequest> reviews) {
+        Product product = entityManager.find(Product.class, productId);
+        if (product == null) {
+            throw new IllegalArgumentException("Product not found with ID: " + productId);
+        }
+
+        User defaultCrawlerUser = resolveDefaultCrawlerUser();
+        for (ReviewSeedRequest revReq : reviews) {
+            Review review = Review.builder()
+                    .product(product)
+                    .user(defaultCrawlerUser)
+                    .reviewerName(revReq.getReviewerName())
+                    .content(revReq.getContent())
+                    .rating(revReq.getRating())
+                    .isSpam(false)
+                    .isActive(true)
+                    .build();
+            entityManager.persist(review);
+        }
+        
+        // Update review count on product
+        Long count = entityManager.createQuery("SELECT COUNT(r) FROM Review r WHERE r.product.id = :pid", Long.class)
+                .setParameter("pid", productId)
+                .getSingleResult();
+        product.setReviewCount(count.intValue());
+        entityManager.merge(product);
+        
+        log.info("Seeded {} reviews for product: {}", reviews.size(), product.getName());
+    }
+
+    private User resolveDefaultCrawlerUser() {
+        List<User> users = entityManager.createQuery("SELECT u FROM User u WHERE u.username = :username", User.class)
+                .setParameter("username", "crawler")
+                .getResultList();
+        if (!users.isEmpty()) {
+            return users.get(0);
+        }
+        User crawler = User.builder()
+                .username("crawler")
+                .email("crawler@system.local")
+                .passwordHash("N/A")
+                .displayName("System Crawler")
+                .role("admin")
+                .isActive(true)
+                .build();
+        entityManager.persist(crawler);
+        return crawler;
     }
 }

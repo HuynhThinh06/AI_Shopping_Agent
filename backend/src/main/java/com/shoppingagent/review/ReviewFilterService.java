@@ -55,6 +55,9 @@ public class ReviewFilterService {
         List<String> filtered = reviews.stream()
                 .map(Review::getContent)
                 .filter(this::isValid)
+                .map(this::removeEmojis)
+                .map(String::trim)
+                .filter(c -> c.length() >= MIN_LENGTH) // Kiểm tra lại sau khi xóa emoji
                 .distinct()     // loại trùng nội dung hoàn toàn
                 .toList();
 
@@ -64,6 +67,13 @@ public class ReviewFilterService {
     }
 
     // ── Private helpers ─────────────────────────────────────────────────────────
+
+    private String removeEmojis(String text) {
+        if (text == null) return null;
+        // Giữ lại: Chữ cái (\p{L}), Số (\p{N}), Dấu câu (\p{P}), Khoảng trắng (\p{Z}), 
+        // Tiền tệ (\p{Sc}), Ký hiệu toán học (\p{Sm}). Xóa mọi biểu tượng khác (bao gồm Emoji).
+        return text.replaceAll("[^\\p{L}\\p{N}\\p{P}\\p{Z}\\p{Sc}\\p{Sm}]", "");
+    }
 
     private boolean isValid(String content) {
         if (content == null) return false;
