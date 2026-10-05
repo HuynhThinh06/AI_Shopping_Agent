@@ -1,0 +1,44 @@
+# ==========================================
+# AI Shopping Agent — Production compose (dùng trên VPS)
+# Image được build & push bởi GitHub Actions (cd.yml) lên GHCR.
+# Biến môi trường ứng dụng đọc từ file .env nằm cùng thư mục trên VPS.
+#
+# Sử dụng:
+#   IMAGE_TAG=sha-abc1234 docker compose -f docker-compose.prod.yml up -d
+# ==========================================
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io/huynhthinh06}/ai-shopping-agent-backend:${IMAGE_TAG:-latest}
+    container_name: shopping_agent_backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 8080
+    # Không publish port 8080 ra ngoài — chỉ truy cập qua nginx (/api)
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    logging: *default-logging
+
+  frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io/huynhthinh06}/ai-shopping-agent-frontend:${IMAGE_TAG:-latest}
+    container_name: shopping_agent_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    logging: *default-logging
