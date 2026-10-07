@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lịch Sử Tìm Kiếm & Tư Vấn AI — AI Shopping Agent</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            warm: {
+              bg: '#FAF8F5',
+              surface: '#FFFFFF',
+              'surface-card': '#FFFFFF',
+              border: '#292524',
+              'border-subtle': '#F3EFE6',
+              primary: '#F59E0B',
+              'primary-hover': '#D97706',
+              'primary-light': '#FEF3C7',
+              'primary-text': '#78350F',
+              secondary: '#FEF3C7',
+              'secondary-hover': '#FDE68A',
+              'secondary-text': '#92400E',
+              accent: '#FBBF24',
+              text: '#292524',
+              muted: '#78716C',
+              hint: '#A8A29E',
+              'pastel-peach': '#FFEDD5',
+              'pastel-sky': '#E0F2FE',
+              'pastel-mint': '#DCFCE7',
+              'pastel-lavender': '#F3E8FF',
+              'pastel-amber': '#FEF3C7',
+            }
+          },
+          boxShadow: {
+            'brutal-xs': '1.5px 1.5px 0px #292524',
+            'brutal-sm': '2px 2px 0px #292524',
+            'brutal': '4px 4px 0px #292524',
+            'brutal-md': '5px 5px 0px #292524',
+            'brutal-lg': '6px 6px 0px #292524',
+          },
+          borderRadius: {
+            'xl': '12px',
+            '2xl': '18px',
+            '3xl': '24px',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <link rel="stylesheet" href="tokens.css">
+  
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #FAF8F5; }
+    ::-webkit-scrollbar-thumb { background: #D7CDB7; border: 1px solid #292524; border-radius: 9999px; }
+    
+    .brutal-card-hover {
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+    .brutal-card-hover:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 5px 5px 0px #292524;
+    }
+    .brutal-button-action {
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .brutal-button-action:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0px 0px 0px #292524;
+    }
+  </style>
+</head>
+<body class="bg-warm-bg text-warm-text font-sans antialiased min-h-screen flex flex-col selection:bg-warm-primary selection:text-white">
+
+  <!-- =========================================================================
+       TOP FLOATING NAVBAR (DÀNH CHO THÀNH VIÊN ĐÃ ĐĂNG NHẬP)
+       ========================================================================= -->
+  <div class="sticky top-3 z-40 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
+    <header class="bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl shadow-brutal px-4 sm:px-6 py-3 flex items-center justify-between gap-4 transition-all">
+      
+      <!-- Brand Logo -->
+      <a href="index.html" class="flex items-center gap-3 group focus:outline-none shrink-0" aria-label="Trang chủ AI Shopping Agent">
+        <div class="w-11 h-11 rounded-2xl border-2 border-warm-text shadow-brutal-xs overflow-hidden group-hover:-translate-y-0.5 transition-all shrink-0">
+          <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
+            <defs>
+              <linearGradient id="logoWarmGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FBBF24" />
+                <stop offset="100%" stop-color="#F59E0B" />
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" fill="url(#logoWarmGrad)" />
+            <circle cx="73" cy="22" r="7.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <circle cx="23" cy="69" r="6.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
+            <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" fill="none" />
+          </svg>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-lg sm:text-xl font-extrabold text-warm-text tracking-tight flex items-center gap-1.5 leading-none">
+            ShoppingAgent
+            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded-full border border-warm-text bg-warm-secondary text-warm-secondary-text">AI</span>
+          </span>
+          <span class="text-[11px] font-medium text-warm-muted mt-0.5">Trợ lý Mua sắm Thông minh</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Links (4 mục trên 1 hàng: Có thêm So sánh cho Thành viên) -->
+      <nav class="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-bold text-warm-text whitespace-nowrap shrink-0" aria-label="Menu chính">
+        <a href="search-results.html" class="hover:text-warm-primary transition-colors text-sm font-bold text-warm-text whitespace-nowrap shrink-0">Tìm kiếm AI</a>
+        <a href="category.html?type=laptop" class="hover:text-warm-primary transition-colors text-sm font-bold text-warm-text whitespace-nowrap shrink-0">Laptop</a>
+        <a href="category.html?type=phone" class="hover:text-warm-primary transition-colors text-sm font-bold text-warm-text whitespace-nowrap shrink-0">Điện thoại</a>
+        <a href="compare.html" class="hover:text-warm-primary transition-colors text-sm font-bold text-warm-text whitespace-nowrap shrink-0 flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-warm-primary" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+          </svg>
+          <span>So sánh</span>
+        </a>
+      </nav>
+
+      <!-- Right User Controls: Quick Ask AI + Wishlist Icon + User Avatar Menu -->
+      <div class="flex items-center gap-2.5 sm:gap-3 shrink-0 whitespace-nowrap">
+        
+        <!-- Nút Hỏi AI Nhanh -->
+        <a 
+          href="index.html#search-section" 
+          class="hidden sm:inline-flex brutal-button-action items-center gap-1.5 px-3.5 py-2 rounded-xl bg-warm-pastel-amber hover:bg-warm-secondary text-warm-secondary-text font-bold text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs cursor-pointer shrink-0"
+        >
+          <svg class="w-4 h-4 text-warm-primary" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+          </svg>
+          <span>Hỏi AI mới</span>
+        </a>
+
+        <!-- Nút Yêu thích với Badge -->
+        <a 
+          href="favorites.html" 
+          class="p-2 sm:px-3 sm:py-2 rounded-xl bg-warm-surface hover:bg-warm-pastel-peach text-warm-text font-bold text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs flex items-center gap-1.5 transition-all shrink-0"
+          title="Sản phẩm đã lưu"
+        >
+          <svg class="w-4 h-4 text-red-500 fill-red-500" viewBox="0 0 24 24">
+            <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+          </svg>
+          <span class="inline-flex items-center justify-center w-5 h-5 text-[11px] font-black rounded-full bg-red-500 text-white">5</span>
+        </a>
+
+        <!-- User Profile Pill & Dropdown -->
+        <div class="relative group">
+          <button 
+            type="button" 
+            class="flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text shadow-brutal-xs hover:bg-warm-secondary transition-all cursor-pointer shrink-0"
+            aria-expanded="false"
+          >
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-warm-primary border border-warm-text overflow-hidden flex items-center justify-center text-white font-extrabold text-xs shadow-inner">
+              TA
+            </div>
+            <div class="hidden md:flex flex-col text-left leading-tight">
+              <span class="text-xs font-bold text-warm-text">Tuấn Anh</span>
+              <span class="text-[10px] text-warm-muted font-medium">Thành viên VIP</span>
+            </div>
+            <svg class="w-3.5 h-3.5 text-warm-muted transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <div class="absolute right-0 mt-2 w-56 bg-warm-surface border-2 border-warm-text rounded-2xl shadow-brutal p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50">
+            <div class="px-3 py-2 border-b border-warm-border-subtle mb-1">
+              <div class="text-xs font-extrabold text-warm-text">Trần Tuấn Anh</div>
+              <div class="text-[11px] text-warm-muted font-mono truncate">tuananh.dev@gmail.com</div>
+            </div>
+            <a href="history.html" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold bg-warm-secondary text-warm-secondary-text border border-warm-text shadow-brutal-xs my-1">
+              <svg class="w-4 h-4 text-warm-primary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Lịch sử tư vấn AI</span>
+            </a>
+            <a href="favorites.html" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text transition-colors">
+              <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+              </svg>
+              <span>Sản phẩm yêu thích (5)</span>
+            </a>
+            <a href="my-reviews.html" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text transition-colors">
+              <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+              </svg>
+              <span>Đánh giá của tôi (3)</span>
+            </a>
+            <a href="settings.html" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text transition-colors">
+              <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.27.1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.27-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>Hồ sơ & Tùy chọn AI</span>
+            </a>
+            <div class="border-t border-warm-border-subtle my-1"></div>
+            <a href="index.html" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 transition-colors">
+              <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H3" />
+              </svg>
+              <span>Đăng xuất</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+    </header>
+  </div>
+
+  <!-- =========================================================================
+       MAIN CONTENT: UNIFIED PROFILE SHELL (SIDEBAR + MAIN CONTENT)
+       ========================================================================= -->
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+    
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-xs font-bold text-warm-muted mb-6" aria-label="Breadcrumb">
+      <a href="index.html" class="hover:text-warm-text transition-colors">Trang chủ</a>
+      <span>/</span>
+      <span class="text-warm-muted">Tài khoản</span>
+      <span>/</span>
+      <span class="text-warm-text bg-warm-secondary px-2 py-0.5 rounded-md border border-warm-text text-warm-secondary-text">Lịch sử tư vấn</span>
+    </nav>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- =====================================================================
+           LEFT COLUMN: PROFILE SIDEBAR NAVIGATION
+           ===================================================================== -->
+      <aside class="lg:col-span-4 xl:col-span-3 space-y-6">
+        
+        <!-- User Info Card -->
+        <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 shadow-brutal text-center relative overflow-hidden">
+          <div class="absolute top-0 left-0 right-0 h-14 bg-gradient-to-r from-warm-pastel-amber via-warm-primary-light to-warm-pastel-peach border-b-2 border-warm-text"></div>
+          
+          <div class="relative pt-4">
+            <div class="w-18 h-18 sm:w-20 sm:h-20 mx-auto rounded-2xl bg-warm-primary border-2 border-warm-text shadow-brutal-sm flex items-center justify-center text-white font-extrabold text-2xl mb-3 overflow-hidden">
+              <span class="drop-shadow-sm">TA</span>
+            </div>
+            <h2 class="text-lg font-extrabold text-warm-text">Trần Tuấn Anh</h2>
+            <p class="text-xs text-warm-muted font-medium mt-0.5">Software Developer • Hà Nội</p>
+            
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-warm-text bg-warm-secondary text-warm-secondary-text text-[11px] font-black mt-3 shadow-brutal-xs">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Thành viên hoạt động tích cực</span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mt-5 pt-4 border-t-2 border-warm-border-subtle text-center">
+              <div class="p-2 rounded-xl bg-warm-bg border border-warm-border-subtle">
+                <div class="text-base font-extrabold text-warm-text">8</div>
+                <div class="text-[10px] font-bold text-warm-muted uppercase">Lượt hỏi</div>
+              </div>
+              <div class="p-2 rounded-xl bg-warm-bg border border-warm-border-subtle">
+                <div class="text-base font-extrabold text-warm-text">5</div>
+                <div class="text-[10px] font-bold text-warm-muted uppercase">Đã lưu</div>
+              </div>
+              <div class="p-2 rounded-xl bg-warm-bg border border-warm-border-subtle">
+                <div class="text-base font-extrabold text-warm-text">3</div>
+                <div class="text-[10px] font-bold text-warm-muted uppercase">Review</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar Navigation Links -->
+        <nav class="bg-warm-surface border-2 border-warm-text rounded-2xl p-3 shadow-brutal space-y-1.5" aria-label="Menu hồ sơ">
+          
+          <!-- Tab 1: Lịch sử tìm kiếm (Active) -->
+          <a href="history.html" class="flex items-center justify-between px-3.5 py-3 rounded-xl bg-warm-primary text-warm-primary-text font-black text-sm border-2 border-warm-text shadow-brutal-xs transition-transform -translate-y-0.5">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-white border border-warm-text flex items-center justify-center text-warm-text shadow-inner">
+                <svg class="w-4 h-4 text-warm-primary-text" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span>Lịch sử tư vấn AI</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-xs font-extrabold bg-white border border-warm-text text-warm-text">8</span>
+          </a>
+
+          <!-- Tab 2: Sản phẩm đã lưu -->
+          <a href="favorites.html" class="flex items-center justify-between px-3.5 py-3 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-sm transition-colors group">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-warm-bg group-hover:bg-white border border-warm-text flex items-center justify-center text-warm-muted group-hover:text-red-500 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                </svg>
+              </div>
+              <span>Sản phẩm yêu thích</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-warm-bg group-hover:bg-warm-primary-light border border-warm-text text-warm-text">5</span>
+          </a>
+
+          <!-- Tab 3: Đánh giá của tôi -->
+          <a href="my-reviews.html" class="flex items-center justify-between px-3.5 py-3 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-sm transition-colors group">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-warm-bg group-hover:bg-white border border-warm-text flex items-center justify-center text-warm-muted group-hover:text-amber-500 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                </svg>
+              </div>
+              <span>Đánh giá của tôi</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-warm-bg group-hover:bg-warm-primary-light border border-warm-text text-warm-text">3</span>
+          </a>
+
+          <!-- Tab 4: Hồ sơ & Preferences -->
+          <a href="settings.html" class="flex items-center justify-between px-3.5 py-3 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-sm transition-colors group">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-warm-bg group-hover:bg-white border border-warm-text flex items-center justify-center text-warm-muted group-hover:text-warm-primary transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.6 6.6 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <span>Hồ sơ & Tùy chọn AI</span>
+            </div>
+            <span class="w-2.5 h-2.5 rounded-full bg-warm-primary"></span>
+          </a>
+
+        </nav>
+
+        <!-- AI Personalization Status Banner -->
+        <div class="bg-warm-secondary border-2 border-warm-text rounded-2xl p-4 shadow-brutal-sm">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-6 h-6 rounded-lg bg-warm-primary border border-warm-text flex items-center justify-center text-white">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+              </svg>
+            </div>
+            <span class="text-xs font-black text-warm-secondary-text uppercase tracking-wide">AI Personalization</span>
+          </div>
+          <p class="text-xs font-semibold text-warm-text leading-relaxed">
+            Hồ sơ đang ưu tiên: <strong>Developer • RAM ≥ 32GB • Trọng số Cấu hình 50%</strong>.
+          </p>
+          <a href="settings.html#preferences" class="inline-flex items-center gap-1 text-[11px] font-black text-warm-primary-text hover:underline mt-2">
+            <span>Tùy chỉnh lại trọng số</span>
+            <span>&rarr;</span>
+          </a>
+        </div>
+
+      </aside>
+
+      <!-- =====================================================================
+           RIGHT COLUMN: HISTORY TIMELINE & QUERY CARDS (SCR-06)
+           ===================================================================== -->
+      <section class="lg:col-span-8 xl:col-span-9 space-y-6">
+        
+        <!-- Header Banner & Action Bar -->
+        <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-6 shadow-brutal flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h1 class="text-2xl font-black text-warm-text tracking-tight">Lịch Sử Tìm Kiếm & Tư Vấn AI</h1>
+              <span class="px-2.5 py-0.5 rounded-full border border-warm-text bg-warm-secondary text-warm-secondary-text text-xs font-black">
+                8 phiên hỏi
+              </span>
+            </div>
+            <p class="text-sm text-warm-muted font-medium mt-1">
+              Xem lại các câu hỏi tự nhiên bạn đã thực hiện, tiêu chí Gemini đã bóc tách và phản hồi độ hữu ích.
+            </p>
+          </div>
+
+          <!-- Quick Actions: Filter & Clear -->
+          <div class="flex items-center gap-2 w-full md:w-auto">
+            <button 
+              type="button" 
+              onclick="confirmClearHistory()" 
+              class="brutal-button-action px-3.5 py-2 rounded-xl bg-warm-surface hover:bg-red-50 text-warm-muted hover:text-red-600 font-bold text-xs border-2 border-warm-text shadow-brutal-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+              <span>Xóa toàn bộ</span>
+            </button>
+
+            <a 
+              href="index.html#search-section" 
+              class="brutal-button-action px-4 py-2 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              <span>Hỏi câu mới</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Filter Chips Bar -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1">
+          <span class="text-xs font-bold text-warm-muted shrink-0">Lọc theo:</span>
+          <button class="px-3 py-1 rounded-xl bg-warm-text text-white text-xs font-black border-2 border-warm-text shadow-brutal-xs shrink-0">Tất cả (8)</button>
+          <button class="px-3 py-1 rounded-xl bg-warm-surface hover:bg-warm-secondary text-warm-text text-xs font-bold border-2 border-warm-text shadow-brutal-xs shrink-0 transition-colors">Laptop (5)</button>
+          <button class="px-3 py-1 rounded-xl bg-warm-surface hover:bg-warm-secondary text-warm-text text-xs font-bold border-2 border-warm-text shadow-brutal-xs shrink-0 transition-colors">Điện thoại (3)</button>
+          <button class="px-3 py-1 rounded-xl bg-warm-surface hover:bg-warm-secondary text-warm-text text-xs font-bold border-2 border-warm-text shadow-brutal-xs shrink-0 transition-colors">Đã đánh giá hữu ích (6)</button>
+        </div>
+
+        <!-- ===================================================================
+             TIMELINE CARD 1: LẬP TRÌNH DOCKER (RECENT - TODAY)
+             =================================================================== -->
+        <article class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 sm:p-6 shadow-brutal brutal-card-hover relative transition-all">
+          
+          <!-- Query Header & Timestamp -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b-2 border-warm-border-subtle">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-warm-pastel-amber border border-warm-text text-warm-secondary-text uppercase">
+                Laptop
+              </span>
+              <span class="text-xs font-mono text-warm-muted font-semibold">Hôm nay, 14:32</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span class="text-[11px] font-bold text-emerald-700">Gemini 3.8 Flash (0.42s)</span>
+            </div>
+
+            <!-- Card Actions -->
+            <div class="flex items-center gap-2">
+              <a 
+                href="search-results.html?q=laptop+lap+trinh+backend+docker+ram+32gb" 
+                class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-secondary hover:bg-warm-secondary-hover text-warm-secondary-text font-black text-xs border border-warm-text shadow-brutal-xs flex items-center gap-1"
+                title="Chạy lại truy vấn này trên công cụ tìm kiếm"
+              >
+                <svg class="w-3.5 h-3.5 text-warm-primary" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                <span>Chạy lại</span>
+              </a>
+              <button 
+                type="button" 
+                onclick="deleteHistoryItem(this)" 
+                class="p-1.5 rounded-xl text-warm-muted hover:text-red-600 hover:bg-red-50 transition-colors"
+                title="Xóa phiên này"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Prompt Question (Natural Language) -->
+          <div class="mt-4">
+            <div class="text-xs font-bold text-warm-muted uppercase tracking-wider mb-1">Câu hỏi của bạn:</div>
+            <div class="text-base sm:text-lg font-extrabold text-warm-text bg-warm-bg border border-warm-border-subtle rounded-xl p-3.5 leading-snug">
+              "Tìm laptop lập trình backend Docker, RAM 32GB, màn hình 14-16 inch sắc nét, pin trên 6 tiếng, ngân sách dưới 30 triệu"
+            </div>
+          </div>
+
+          <!-- Extracted Criteria (Bóc tách từ LLM) -->
+          <div class="mt-4 pt-3 border-t border-warm-border-subtle">
+            <div class="text-xs font-bold text-warm-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-warm-primary" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Tiêu chí AI đã bóc tách & cân trọng số:</span>
+            </div>
+            <div class="flex flex-wrap gap-2 text-xs font-mono">
+              <span class="px-2.5 py-1 rounded-lg bg-warm-pastel-amber border border-warm-text font-bold text-warm-secondary-text">
+                Ngân sách: ≤ 30.000.000đ (w=0.25)
+              </span>
+              <span class="px-2.5 py-1 rounded-lg bg-warm-pastel-sky border border-warm-text font-bold text-sky-900">
+                RAM: 32 GB LPDDR5/DDR5 (w=0.45)
+              </span>
+              <span class="px-2.5 py-1 rounded-lg bg-warm-pastel-mint border border-warm-text font-bold text-emerald-900">
+                Pin: > 6.0 giờ (w=0.15)
+              </span>
+              <span class="px-2.5 py-1 rounded-lg bg-warm-pastel-lavender border border-warm-text font-bold text-purple-900">
+                Nhu cầu: Docker / Backend / Compile
+              </span>
+            </div>
+          </div>
+
+          <!-- Top Recommended Preview (3 Sản phẩm đề xuất) -->
+          <div class="mt-5 pt-3 border-t border-warm-border-subtle">
+            <div class="text-xs font-bold text-warm-muted uppercase tracking-wider mb-3">Top 3 máy được đề xuất:</div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              
+              <!-- Prod 1 -->
+              <a href="product-detail.html" class="flex items-center gap-3 p-2.5 rounded-xl border border-warm-text bg-warm-bg hover:bg-warm-secondary transition-all">
+                <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=150&q=80" alt="Asus Vivobook Pro 15" class="w-12 h-12 rounded-lg object-cover border border-warm-text shrink-0">
+                <div class="min-w-0">
+                  <div class="text-xs font-black text-warm-text truncate">Asus Vivobook Pro 15</div>
+                  <div class="text-[11px] font-bold text-emerald-700">Match 94% • 27.990.000đ</div>
+                </div>
+              </a>
+
+              <!-- Prod 2 -->
+              <a href="product-detail.html" class="flex items-center gap-3 p-2.5 rounded-xl border border-warm-text bg-warm-bg hover:bg-warm-secondary transition-all">
+                <img src="https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&w=150&q=80" alt="Lenovo ThinkPad E16" class="w-12 h-12 rounded-lg object-cover border border-warm-text shrink-0">
+                <div class="min-w-0">
+                  <div class="text-xs font-black text-warm-text truncate">Lenovo ThinkPad E16 Gen 2</div>
+                  <div class="text-[11px] font-bold text-emerald-700">Match 91% • 29.490.000đ</div>
+                </div>
+              </a>
+
+              <!-- Prod 3 -->
+              <a href="product-detail.html" class="flex items-center gap-3 p-2.5 rounded-xl border border-warm-text bg-warm-bg hover:bg-warm-secondary transition-all">
+                <img src="https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&w=150&q=80" alt="Acer Swift Go 14" class="w-12 h-12 rounded-lg object-cover border border-warm-text shrink-0">
+                <div class="min-w-0">
+                  <div class="text-xs font-black text-warm-text truncate">Acer Swift Go 14 AI</div>
+                  <div class="text-[11px] font-bold text-emerald-700">Match 88% • 24.990.000đ</div>
+                </div>
+              </a>
+
+            </div>
+          </div>
+
+          <!-- Bottom: Helpfulness Feedback -->
+          <div class="mt-5 pt-3 border-t-2 border-warm-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2 text-warm-muted font-medium">
+              <span>Đánh giá kết quả của AI:</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
+                👍 Rất chính xác (Bạn đã bấm thích)
+              </span>
+            </div>
+            
+            <a href="compare.html" class="text-xs font-black text-warm-primary-text hover:underline flex items-center gap-1">
+              <span>Mở so sánh 3 máy này</span>
+              <span>&rarr;</span>
+            </a>
+          </div>
+
+        </article>
+
+        <!-- ===================================================================
+             TIMELINE CARD 2: ĐIỆN THOẠI CHỤP ẢNH BAN ĐÊM (YESTERDAY)
+             =================================================================== -->
+        <article class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 sm:p-6 shadow-brutal brutal-card-hover relative transition-all">
+          
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b-2 border-warm-border-subtle">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-warm-pastel-sky border border-warm-text text-sky-900 uppercase">
+                Điện thoại
+              </span>
+              <span class="text-xs font-mono text-warm-muted font-semibold">Hôm qua, 09:15</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span class="text-[11px] font-bold text-emerald-700">Gemini 3.8 Flash (0.38s)</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <a 
+                href="search-results.html?q=dien+thoai+chup+anh+dem+zoom+pin+trau" 
+                class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-secondary hover:bg-warm-secondary-hover text-warm-secondary-text font-black text-xs border border-warm-text shadow-brutal-xs flex items-center gap-1"
+              >
+                <svg class="w-3.5 h-3.5 text-warm-primary" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                <span>Chạy lại</span>
+              </a>
+              <button 
+                type="button" 
+                onclick="deleteHistoryItem(this)" 
+                class="p-1.5 rounded-xl text-warm-muted hover:text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <div class="text-xs font-bold text-warm-muted uppercase tracking-wider mb-1">Câu hỏi của bạn:</div>
+            <div class="text-base sm:text-lg font-extrabold text-warm-text bg-warm-bg border border-warm-border-subtle rounded-xl p-3.5 leading-snug">
+              "Điện thoại chụp ảnh ban đêm đẹp, zoom xa nét, quay video 4K chống rung mượt mà, pin trâu tầm 20 triệu"
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-warm-border-subtle">
+            <div class="text-xs font-bold text-warm-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-warm-primary" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Tiêu chí AI đã bóc tách & cân trọng số:</span>
+            </div>
+            <div class="flex flex-wrap gap-2 text-xs font-mono">
+              <span class="px-2.5 py-1 rounded-lg bg-warm-pastel-amber border border-warm-text font-bold text-warm-secondary-text">
+                Ngân sách: ~ 20.000.000đ (w=0.30)
+              </span>
+              <span class="px-2.5 py-1 rounded-lg bg-warm-pastel-peach border border-warm-text font-bold text-amber-900">
+                Camera: Night Mode, OIS, Tele 3x+ (w=0.50)
+              </span>
+              <span class="px-2.5 py-1 rounded-lg bg-warm-pastel-mint border border-warm-text font-bold text-emerald-900">
+                Pin: ≥ 5.000 mAh (w=0.20)
+              </span>
+            </div>
+          </div>
+
+          <div class="mt-5 pt-3 border-t border-warm-border-subtle">
+            <div class="text-xs font-bold text-warm-muted uppercase tracking-wider mb-3">Top 3 máy được đề xuất:</div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <a href="product-detail.html" class="flex items-center gap-3 p-2.5 rounded-xl border border-warm-text bg-warm-bg hover:bg-warm-secondary transition-all">
+                <img src="https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=150&q=80" alt="Xiaomi 14T Pro" class="w-12 h-12 rounded-lg object-cover border border-warm-text shrink-0">
+                <div class="min-w-0">
+                  <div class="text-xs font-black text-warm-text truncate">Xiaomi 14T Pro (Leica)</div>
+                  <div class="text-[11px] font-bold text-emerald-700">Match 95% • 16.990.000đ</div>
+                </div>
+              </a>
+              <a href="product-detail.html" class="flex items-center gap-3 p-2.5 rounded-xl border border-warm-text bg-warm-bg hover:bg-warm-secondary transition-all">
+                <img src="https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=150&q=80" alt="Samsung Galaxy S24 FE" class="w-12 h-12 rounded-lg object-cover border border-warm-text shrink-0">
+                <div class="min-w-0">
+                  <div class="text-xs font-black text-warm-text truncate">Samsung Galaxy S24 FE</div>
+                  <div class="text-[11px] font-bold text-emerald-700">Match 92% • 18.990.000đ</div>
+                </div>
+              </a>
+              <a href="product-detail.html" class="flex items-center gap-3 p-2.5 rounded-xl border border-warm-text bg-warm-bg hover:bg-warm-secondary transition-all">
+                <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02560?auto=format&fit=crop&w=150&q=80" alt="Vivo V40 5G" class="w-12 h-12 rounded-lg object-cover border border-warm-text shrink-0">
+                <div class="min-w-0">
+                  <div class="text-xs font-black text-warm-text truncate">Vivo V40 Pro (Zeiss)</div>
+                  <div class="text-[11px] font-bold text-emerald-700">Match 89% • 19.490.000đ</div>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-5 pt-3 border-t-2 border-warm-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-3">
+              <span class="text-warm-muted font-medium">Bạn có thấy gợi ý này hữu ích?</span>
+              <button type="button" onclick="rateHelpful(this, true)" class="px-2.5 py-1 rounded-lg border border-warm-text bg-warm-surface hover:bg-emerald-50 text-warm-text font-bold flex items-center gap-1 transition-colors">
+                👍 Hữu ích
+              </button>
+              <button type="button" onclick="rateHelpful(this, false)" class="px-2.5 py-1 rounded-lg border border-warm-text bg-warm-surface hover:bg-red-50 text-warm-muted hover:text-red-600 font-bold flex items-center gap-1 transition-colors">
+                👎 Chưa đúng ý
+              </button>
+            </div>
+            
+            <a href="compare.html" class="text-xs font-black text-warm-primary-text hover:underline flex items-center gap-1">
+              <span>So sánh Xiaomi & Samsung</span>
+              <span>&rarr;</span>
+            </a>
+          </div>
+
+        </article>
+
+        <!-- ===================================================================
+             TIMELINE CARD 3: MỎNG NHẸ CHO SINH VIÊN (3 DAYS AGO)
+             =================================================================== -->
+        <article class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 sm:p-6 shadow-brutal brutal-card-hover relative transition-all">
+          
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b-2 border-warm-border-subtle">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-warm-pastel-amber border border-warm-text text-warm-secondary-text uppercase">
+                Laptop
+              </span>
+              <span class="text-xs font-mono text-warm-muted font-semibold">3 ngày trước, 20:05</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span class="text-[11px] font-bold text-emerald-700">Gemini 3.8 Flash (0.45s)</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <a 
+                href="search-results.html?q=laptop+mong+nhe+sinh+vien+duoi+18+trieu" 
+                class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-secondary hover:bg-warm-secondary-hover text-warm-secondary-text font-black text-xs border border-warm-text shadow-brutal-xs flex items-center gap-1"
+              >
+                <svg class="w-3.5 h-3.5 text-warm-primary" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                <span>Chạy lại</span>
+              </a>
+              <button 
+                type="button" 
+                onclick="deleteHistoryItem(this)" 
+                class="p-1.5 rounded-xl text-warm-muted hover:text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <div class="text-xs font-bold text-warm-muted uppercase tracking-wider mb-1">Câu hỏi của bạn:</div>
+            <div class="text-base sm:text-lg font-extrabold text-warm-text bg-warm-bg border border-warm-border-subtle rounded-xl p-3.5 leading-snug">
+              "Laptop mỏng nhẹ cho nữ sinh viên kinh tế, màu bạc hoặc vàng hồng, pin trâu cả ngày, giá dưới 18 triệu"
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-warm-border-subtle">
+            <div class="text-xs font-bold text-warm-muted uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-warm-primary" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Tiêu chí AI đã bóc tách & cân trọng số:</span>
+            </div>
+            <div class="flex flex-wrap gap-2 text-xs font-mono">
+              <span class="px-2.5 py-1 rounded-lg bg-warm-pastel-amber border border-warm-text font-bold text-warm-secondary-text">
+                Ngân sách: ≤ 18.000.000đ (w=0.40)
+              </span>
+              <span class="px-2.5 py-1 rounded-lg bg-warm-pastel-mint border border-warm-text font-bold text-emerald-900">
+                Trọng lượng: ≤ 1.35 kg (w=0.35)
+              </span>
+              <span class="px-2.5 py-1 rounded-lg bg-warm-pastel-peach border border-warm-text font-bold text-amber-900">
+                Thiết kế: Mỏng nhẹ / Vỏ kim loại
+              </span>
+            </div>
+          </div>
+
+          <div class="mt-5 pt-3 border-t-2 border-warm-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2 text-warm-muted font-medium">
+              <span>Đánh giá kết quả của AI:</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">
+                👍 Hữu ích
+              </span>
+            </div>
+            
+            <a href="search-results.html?q=laptop+mong+nhe+sinh+vien" class="text-xs font-black text-warm-primary-text hover:underline flex items-center gap-1">
+              <span>Xem lại đầy đủ 6 kết quả</span>
+              <span>&rarr;</span>
+            </a>
+          </div>
+
+        </article>
+
+        <!-- Pagination -->
+        <div class="flex items-center justify-between pt-4 border-t-2 border-warm-border-subtle">
+          <div class="text-xs text-warm-muted font-bold">
+            Hiển thị 1 - 3 của 8 phiên tư vấn
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="px-3 py-1.5 rounded-xl border border-warm-border-subtle text-warm-muted text-xs font-bold cursor-not-allowed" disabled>&larr; Trước</button>
+            <button class="px-3 py-1.5 rounded-xl border-2 border-warm-text bg-warm-primary text-warm-primary-text text-xs font-black shadow-brutal-xs">1</button>
+            <button class="px-3 py-1.5 rounded-xl border-2 border-warm-text bg-warm-surface hover:bg-warm-secondary text-warm-text text-xs font-bold shadow-brutal-xs">2</button>
+            <button class="px-3 py-1.5 rounded-xl border-2 border-warm-text bg-warm-surface hover:bg-warm-secondary text-warm-text text-xs font-bold shadow-brutal-xs">Sau &rarr;</button>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- =========================================================================
+       FOOTER (WARM MINIMALIST + SOFT NEO-BRUTALISM)
+       ========================================================================= -->
+  <footer class="mt-16 bg-warm-surface border-t-2 border-warm-text py-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl border-2 border-warm-text shadow-brutal-xs overflow-hidden">
+          <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
+            <rect width="100" height="100" fill="#F59E0B" />
+            <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
+            <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" fill="none" />
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-extrabold text-warm-text">AI Shopping Agent</div>
+          <div class="text-xs text-warm-muted font-medium">Hệ thống Tư vấn Thiết bị Công nghệ Thông minh</div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-6 text-xs font-bold text-warm-muted">
+        <a href="index.html" class="hover:text-warm-text transition-colors">Trang chủ</a>
+        <a href="search-results.html" class="hover:text-warm-text transition-colors">Tìm kiếm AI</a>
+        <a href="compare.html" class="hover:text-warm-text transition-colors">So sánh thiết bị</a>
+        <a href="favorites.html" class="hover:text-warm-text transition-colors">Yêu thích</a>
+        <a href="settings.html" class="hover:text-warm-text transition-colors">Cài đặt cá nhân</a>
+      </div>
+
+      <div class="text-xs text-warm-muted font-mono">
+        © 2026 AI Shopping Agent. Warm Minimalist Design.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification & Interactive JS -->
+  <div id="toast-notify" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 shadow-brutal-lg flex items-center gap-3 max-w-sm">
+      <div id="toast-icon" class="w-8 h-8 rounded-xl bg-emerald-100 border border-warm-text flex items-center justify-center text-emerald-800 shrink-0 font-bold">✓</div>
+      <div id="toast-text" class="text-xs font-bold text-warm-text">Thông báo hành động thành công!</div>
+    </div>
+  </div>
+
+  <script>
+    function showToast(message, isSuccess = true) {
+      const toast = document.getElementById('toast-notify');
+      const text = document.getElementById('toast-text');
+      const icon = document.getElementById('toast-icon');
+      
+      text.textContent = message;
+      if (isSuccess) {
+        icon.className = 'w-8 h-8 rounded-xl bg-emerald-100 border border-warm-text flex items-center justify-center text-emerald-800 shrink-0 font-bold';
+        icon.textContent = '✓';
+      } else {
+        icon.className = 'w-8 h-8 rounded-xl bg-red-100 border border-warm-text flex items-center justify-center text-red-800 shrink-0 font-bold';
+        icon.textContent = '!';
+      }
+      
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 3000);
+    }
+
+    function rateHelpful(button, isHelpful) {
+      const parent = button.parentElement;
+      if (isHelpful) {
+        parent.innerHTML = '<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-bold border border-emerald-300">👍 Cảm ơn bạn! Đã ghi nhận phản hồi hữu ích</span>';
+        showToast('Đã lưu phản hồi của bạn vào cơ sở dữ liệu học máy AI!');
+      } else {
+        parent.innerHTML = '<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 font-bold border border-amber-300">👎 Đã ghi nhận. AI sẽ điều chỉnh trọng số ở lần tới</span>';
+        showToast('Cảm ơn bạn. Ý kiến đóng góp sẽ giúp cải thiện mô hình.', false);
+      }
+    }
+
+    function deleteHistoryItem(button) {
+      const card = button.closest('article');
+      if (confirm('Bạn có chắc chắn muốn xóa phiên tìm kiếm này khỏi lịch sử?')) {
+        card.style.transition = 'all 0.3s ease';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          card.remove();
+          showToast('Đã xóa phiên hỏi thành công!');
+        }, 300);
+      }
+    }
+
+    function confirmClearHistory() {
+      if (confirm('CẢNH BÁO: Hành động này sẽ xóa toàn bộ 8 phiên tư vấn đã lưu. Bạn có muốn tiếp tục?')) {
+        showToast('Đang làm mới lịch sử...');
+        setTimeout(() => {
+          location.reload();
+        }, 800);
+      }
+    }
+  </script>
+
+</body>
+</html>

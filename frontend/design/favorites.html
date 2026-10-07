@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sản Phẩm Yêu Thích (Wishlist) — AI Shopping Agent</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            warm: {
+              bg: '#FAF8F5',
+              surface: '#FFFFFF',
+              'surface-card': '#FFFFFF',
+              border: '#292524',
+              'border-subtle': '#F3EFE6',
+              primary: '#F59E0B',
+              'primary-hover': '#D97706',
+              'primary-light': '#FEF3C7',
+              'primary-text': '#78350F',
+              secondary: '#FEF3C7',
+              'secondary-hover': '#FDE68A',
+              'secondary-text': '#92400E',
+              accent: '#FBBF24',
+              text: '#292524',
+              muted: '#78716C',
+              hint: '#A8A29E',
+              'pastel-peach': '#FFEDD5',
+              'pastel-sky': '#E0F2FE',
+              'pastel-mint': '#DCFCE7',
+              'pastel-lavender': '#F3E8FF',
+              'pastel-amber': '#FEF3C7',
+            }
+          },
+          boxShadow: {
+            'brutal-xs': '1.5px 1.5px 0px #292524',
+            'brutal-sm': '2px 2px 0px #292524',
+            'brutal': '4px 4px 0px #292524',
+            'brutal-md': '5px 5px 0px #292524',
+            'brutal-lg': '6px 6px 0px #292524',
+          },
+          borderRadius: {
+            'xl': '12px',
+            '2xl': '18px',
+            '3xl': '24px',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <link rel="stylesheet" href="tokens.css">
+  
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #FAF8F5; }
+    ::-webkit-scrollbar-thumb { background: #D7CDB7; border: 1px solid #292524; border-radius: 9999px; }
+    
+    .brutal-card-hover {
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+    .brutal-card-hover:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 5px 5px 0px #292524;
+    }
+    .brutal-button-action {
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .brutal-button-action:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0px 0px 0px #292524;
+    }
+  </style>
+</head>
+<body class="bg-warm-bg text-warm-text font-sans antialiased min-h-screen flex flex-col selection:bg-warm-primary selection:text-white">
+
+  <!-- =========================================================================
+       TOP FLOATING NAVBAR (REGISTERED USER)
+       ========================================================================= -->
+  <div class="sticky top-3 z-40 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
+    <header class="bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl shadow-brutal px-4 sm:px-6 py-3 flex items-center justify-between gap-4 transition-all">
+      
+      <!-- Brand Logo -->
+      <a href="index.html" class="flex items-center gap-3 group focus:outline-none shrink-0" aria-label="Trang chủ AI Shopping Agent">
+        <div class="w-11 h-11 rounded-2xl border-2 border-warm-text shadow-brutal-xs overflow-hidden group-hover:-translate-y-0.5 transition-all shrink-0">
+          <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
+            <defs>
+              <linearGradient id="logoWarmGradFav" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FBBF24" />
+                <stop offset="100%" stop-color="#F59E0B" />
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" fill="url(#logoWarmGradFav)" />
+            <circle cx="73" cy="22" r="7.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <circle cx="23" cy="69" r="6.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
+            <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" fill="none" />
+          </svg>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-lg sm:text-xl font-extrabold text-warm-text tracking-tight flex items-center gap-1.5 leading-none">
+            ShoppingAgent
+            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded-full border border-warm-text bg-warm-secondary text-warm-secondary-text">AI</span>
+          </span>
+          <span class="text-[11px] font-medium text-warm-muted mt-0.5">Trợ lý Mua sắm Thông minh</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Links (4 mục tinh gọn trên 1 hàng) -->
+      <nav class="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-bold text-warm-text whitespace-nowrap shrink-0" aria-label="Menu chính">
+        <a href="search-results.html" class="hover:text-warm-primary transition-colors text-sm font-bold text-warm-text whitespace-nowrap shrink-0">Tìm kiếm AI</a>
+        <a href="category.html?type=laptop" class="hover:text-warm-primary transition-colors text-sm font-bold text-warm-text whitespace-nowrap shrink-0">Laptop</a>
+        <a href="category.html?type=phone" class="hover:text-warm-primary transition-colors text-sm font-bold text-warm-text whitespace-nowrap shrink-0">Điện thoại</a>
+        <a href="compare.html" class="hover:text-warm-primary transition-colors text-sm font-bold text-warm-text whitespace-nowrap shrink-0 flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-warm-primary" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+          </svg>
+          <span>So sánh</span>
+        </a>
+      </nav>
+
+      <!-- Right User Controls -->
+      <div class="flex items-center gap-2.5 sm:gap-3 shrink-0 whitespace-nowrap">
+        <a 
+          href="index.html#search-section" 
+          class="hidden sm:inline-flex brutal-button-action items-center gap-1.5 px-3.5 py-2 rounded-xl bg-warm-pastel-amber hover:bg-warm-secondary text-warm-secondary-text font-bold text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs cursor-pointer shrink-0"
+        >
+          <svg class="w-4 h-4 text-warm-primary" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+          </svg>
+          <span>Hỏi AI mới</span>
+        </a>
+
+        <!-- Nút Yêu thích (Active) -->
+        <a 
+          href="favorites.html" 
+          class="p-2 sm:px-3 sm:py-2 rounded-xl bg-warm-secondary text-warm-secondary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs flex items-center gap-1.5 transition-all shrink-0"
+          title="Sản phẩm đã lưu"
+        >
+          <svg class="w-4 h-4 text-red-500 fill-red-500" viewBox="0 0 24 24">
+            <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+          </svg>
+          <span class="inline-flex items-center justify-center w-5 h-5 text-[11px] font-black rounded-full bg-red-500 text-white">5</span>
+        </a>
+
+        <!-- User Profile Pill -->
+        <div class="relative group">
+          <button 
+            type="button" 
+            class="flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text shadow-brutal-xs hover:bg-warm-secondary transition-all cursor-pointer shrink-0"
+          >
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-warm-primary border border-warm-text overflow-hidden flex items-center justify-center text-white font-extrabold text-xs shadow-inner">
+              TA
+            </div>
+            <div class="hidden md:flex flex-col text-left leading-tight">
+              <span class="text-xs font-bold text-warm-text">Tuấn Anh</span>
+              <span class="text-[10px] text-warm-muted font-medium">Thành viên VIP</span>
+            </div>
+            <svg class="w-3.5 h-3.5 text-warm-muted transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </button>
+
+          <div class="absolute right-0 mt-2 w-56 bg-warm-surface border-2 border-warm-text rounded-2xl shadow-brutal p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50">
+            <div class="px-3 py-2 border-b border-warm-border-subtle mb-1">
+              <div class="text-xs font-extrabold text-warm-text">Trần Tuấn Anh</div>
+              <div class="text-[11px] text-warm-muted font-mono truncate">tuananh.dev@gmail.com</div>
+            </div>
+            <a href="history.html" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text transition-colors">
+              <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Lịch sử tư vấn AI</span>
+            </a>
+            <a href="favorites.html" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold bg-warm-secondary text-warm-secondary-text border border-warm-text shadow-brutal-xs my-1">
+              <svg class="w-4 h-4 text-red-500 fill-red-500" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+              <span>Sản phẩm yêu thích (5)</span>
+            </a>
+            <a href="my-reviews.html" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text transition-colors">
+              <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+              </svg>
+              <span>Đánh giá của tôi (3)</span>
+            </a>
+            <a href="settings.html" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text transition-colors">
+              <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>Hồ sơ & Tùy chọn AI</span>
+            </a>
+            <div class="border-t border-warm-border-subtle my-1"></div>
+            <a href="index.html" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 transition-colors">
+              <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H3" />
+              </svg>
+              <span>Đăng xuất</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+    </header>
+  </div>
+
+  <!-- =========================================================================
+       MAIN CONTENT: PROFILE SHELL
+       ========================================================================= -->
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+    
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-xs font-bold text-warm-muted mb-6" aria-label="Breadcrumb">
+      <a href="index.html" class="hover:text-warm-text transition-colors">Trang chủ</a>
+      <span>/</span>
+      <span class="text-warm-muted">Tài khoản</span>
+      <span>/</span>
+      <span class="text-warm-text bg-warm-secondary px-2 py-0.5 rounded-md border border-warm-text text-warm-secondary-text">Sản phẩm yêu thích</span>
+    </nav>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- =====================================================================
+           LEFT COLUMN: PROFILE SIDEBAR
+           ===================================================================== -->
+      <aside class="lg:col-span-4 xl:col-span-3 space-y-6">
+        
+        <!-- User Info Card -->
+        <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 shadow-brutal text-center relative overflow-hidden">
+          <div class="absolute top-0 left-0 right-0 h-14 bg-gradient-to-r from-warm-pastel-amber via-warm-primary-light to-warm-pastel-peach border-b-2 border-warm-text"></div>
+          
+          <div class="relative pt-4">
+            <div class="w-18 h-18 sm:w-20 sm:h-20 mx-auto rounded-2xl bg-warm-primary border-2 border-warm-text shadow-brutal-sm flex items-center justify-center text-white font-extrabold text-2xl mb-3 overflow-hidden">
+              <span class="drop-shadow-sm">TA</span>
+            </div>
+            <h2 class="text-lg font-extrabold text-warm-text">Trần Tuấn Anh</h2>
+            <p class="text-xs text-warm-muted font-medium mt-0.5">Software Developer • Hà Nội</p>
+            
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-warm-text bg-warm-secondary text-warm-secondary-text text-[11px] font-black mt-3 shadow-brutal-xs">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Thành viên hoạt động tích cực</span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mt-5 pt-4 border-t-2 border-warm-border-subtle text-center">
+              <div class="p-2 rounded-xl bg-warm-bg border border-warm-border-subtle">
+                <div class="text-base font-extrabold text-warm-text">8</div>
+                <div class="text-[10px] font-bold text-warm-muted uppercase">Lượt hỏi</div>
+              </div>
+              <div class="p-2 rounded-xl bg-warm-secondary border border-warm-text shadow-brutal-xs">
+                <div class="text-base font-black text-warm-secondary-text">5</div>
+                <div class="text-[10px] font-black text-warm-secondary-text uppercase">Đã lưu</div>
+              </div>
+              <div class="p-2 rounded-xl bg-warm-bg border border-warm-border-subtle">
+                <div class="text-base font-extrabold text-warm-text">3</div>
+                <div class="text-[10px] font-bold text-warm-muted uppercase">Review</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar Navigation Links -->
+        <nav class="bg-warm-surface border-2 border-warm-text rounded-2xl p-3 shadow-brutal space-y-1.5" aria-label="Menu hồ sơ">
+          <a href="history.html" class="flex items-center justify-between px-3.5 py-3 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-sm transition-colors group">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-warm-bg group-hover:bg-white border border-warm-text flex items-center justify-center text-warm-muted group-hover:text-warm-primary transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span>Lịch sử tư vấn AI</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-warm-bg group-hover:bg-warm-primary-light border border-warm-text text-warm-text">8</span>
+          </a>
+
+          <!-- Tab 2: Sản phẩm yêu thích (Active) -->
+          <a href="favorites.html" class="flex items-center justify-between px-3.5 py-3 rounded-xl bg-warm-primary text-warm-primary-text font-black text-sm border-2 border-warm-text shadow-brutal-xs transition-transform -translate-y-0.5">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-white border border-warm-text flex items-center justify-center text-red-500 shadow-inner">
+                <svg class="w-4 h-4 fill-red-500" viewBox="0 0 24 24">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+              </div>
+              <span>Sản phẩm yêu thích</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-xs font-extrabold bg-white border border-warm-text text-warm-text">5</span>
+          </a>
+
+          <a href="my-reviews.html" class="flex items-center justify-between px-3.5 py-3 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-sm transition-colors group">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-warm-bg group-hover:bg-white border border-warm-text flex items-center justify-center text-warm-muted group-hover:text-amber-500 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                </svg>
+              </div>
+              <span>Đánh giá của tôi</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-warm-bg group-hover:bg-warm-primary-light border border-warm-text text-warm-text">3</span>
+          </a>
+
+          <a href="settings.html" class="flex items-center justify-between px-3.5 py-3 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-sm transition-colors group">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-warm-bg group-hover:bg-white border border-warm-text flex items-center justify-center text-warm-muted group-hover:text-warm-primary transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <span>Hồ sơ & Tùy chọn AI</span>
+            </div>
+            <span class="w-2.5 h-2.5 rounded-full bg-warm-primary"></span>
+          </a>
+        </nav>
+
+        <!-- Quick Summary Box -->
+        <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 shadow-brutal space-y-3">
+          <div class="text-xs font-extrabold text-warm-text uppercase tracking-wide flex items-center gap-2">
+            <svg class="w-4 h-4 text-warm-primary" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            </svg>
+            <span>Biến động tuần qua</span>
+          </div>
+          <div class="text-xs space-y-2">
+            <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 font-medium">
+              <span class="font-bold">Asus Vivobook Pro 15</span> vừa giảm <strong>1.200.000đ</strong> tại FPT Shop.
+            </div>
+            <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 font-medium">
+              <span class="font-bold">Xiaomi 14T Pro</span> vừa có <strong>4 đánh giá mới</strong> từ người dùng thật.
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- =====================================================================
+           RIGHT COLUMN: WISHLIST CONTENT & AI ADVISOR DRAWER (SCR-07)
+           ===================================================================== -->
+      <section class="lg:col-span-8 xl:col-span-9 space-y-6">
+        
+        <!-- Header Banner & Action Bar -->
+        <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-6 shadow-brutal flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h1 class="text-2xl font-black text-warm-text tracking-tight">Sản Phẩm Yêu Thích</h1>
+              <span class="px-2.5 py-0.5 rounded-full border border-warm-text bg-warm-secondary text-warm-secondary-text text-xs font-black">
+                5 thiết bị
+              </span>
+            </div>
+            <p class="text-sm text-warm-muted font-medium mt-1">
+              Theo dõi biến động giá thị trường, so sánh trực diện và nhận khuyến nghị phân tích từ AI.
+            </p>
+          </div>
+
+          <!-- Feature Action: AI Wishlist Analysis Button -->
+          <div class="flex items-center gap-2.5 w-full md:w-auto">
+            <button 
+              type="button" 
+              onclick="toggleAIAdvisor()" 
+              class="brutal-button-action w-full md:w-auto px-4 py-2.5 rounded-xl bg-warm-pastel-amber hover:bg-warm-secondary text-warm-secondary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
+            >
+              <svg class="w-4 h-4 text-warm-primary animate-spin" style="animation-duration: 3s;" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+              </svg>
+              <span>Nhờ AI Phân Tích Danh Sách Này</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ===================================================================
+             AI ADVISOR BENTO DRAWER (EXPANDABLE)
+             =================================================================== -->
+        <div id="ai-advisor-drawer" class="bg-gradient-to-br from-warm-secondary via-warm-surface to-warm-pastel-peach border-2 border-warm-text rounded-2xl p-5 sm:p-6 shadow-brutal space-y-4 transition-all">
+          <div class="flex items-center justify-between pb-3 border-b-2 border-warm-text">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-warm-primary border border-warm-text flex items-center justify-center text-white font-black shadow-brutal-xs">
+                ★
+              </div>
+              <div>
+                <h3 class="text-sm sm:text-base font-black text-warm-text">Gemini Wishlist Advisor — Phân Tích Thông Minh</h3>
+                <p class="text-xs text-warm-muted font-medium">Được tổng hợp từ 5 thiết bị trong danh sách lưu dựa trên hồ sơ Developer của bạn</p>
+              </div>
+            </div>
+            <button onclick="toggleAIAdvisor()" class="text-warm-muted hover:text-warm-text font-bold text-xs p-1">✕ Đóng</button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
+            
+            <div class="bg-warm-surface border border-warm-text rounded-xl p-3.5 shadow-brutal-xs">
+              <div class="text-[11px] font-black text-emerald-800 uppercase tracking-wide flex items-center gap-1 mb-1">
+                <span>🔥</span> P/P Hiệu năng cao nhất
+              </div>
+              <div class="font-extrabold text-warm-text text-sm">Asus Vivobook Pro 15</div>
+              <p class="text-warm-muted font-medium mt-1 leading-relaxed">
+                Trang bị RAM 32GB chuẩn DDR5, màn hình OLED 120Hz và chip i9. Đang có mức giá 27.990.000đ (rẻ hơn 1.2M so với tuần trước).
+              </p>
+            </div>
+
+            <div class="bg-warm-surface border border-warm-text rounded-xl p-3.5 shadow-brutal-xs">
+              <div class="text-[11px] font-black text-amber-800 uppercase tracking-wide flex items-center gap-1 mb-1">
+                <span>⏳</span> Độ bền & Pin trọn ngày
+              </div>
+              <div class="font-extrabold text-warm-text text-sm">MacBook Air M2 16GB</div>
+              <p class="text-warm-muted font-medium mt-1 leading-relaxed">
+                Pin thực tế lên tới 15.5 tiếng, không quạt hoàn toàn yên tĩnh. Phù hợp nếu bạn thường xuyên di chuyển làm việc tại quán cafe.
+              </p>
+            </div>
+
+            <div class="bg-warm-surface border border-warm-text rounded-xl p-3.5 shadow-brutal-xs">
+              <div class="text-[11px] font-black text-sky-800 uppercase tracking-wide flex items-center gap-1 mb-1">
+                <span>💡</span> Lời khuyên chốt đơn
+              </div>
+              <div class="font-extrabold text-warm-text text-sm">Thời điểm mua tối ưu</div>
+              <p class="text-warm-muted font-medium mt-1 leading-relaxed">
+                Nên cân nhắc chốt ngay Vivobook Pro 15 hoặc Xiaomi 14T Pro vì đang có mã giảm sàn; MacBook Air giữ giá ổn định quanh năm.
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Filter & Batch Action Toolbar -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-2 overflow-x-auto pb-1">
+            <button class="px-3 py-1.5 rounded-xl bg-warm-text text-white text-xs font-black border-2 border-warm-text shadow-brutal-xs shrink-0">Tất cả (5)</button>
+            <button class="px-3 py-1.5 rounded-xl bg-warm-surface hover:bg-warm-secondary text-warm-text text-xs font-bold border-2 border-warm-text shadow-brutal-xs shrink-0 transition-colors">Laptop (3)</button>
+            <button class="px-3 py-1.5 rounded-xl bg-warm-surface hover:bg-warm-secondary text-warm-text text-xs font-bold border-2 border-warm-text shadow-brutal-xs shrink-0 transition-colors">Điện thoại (2)</button>
+            <button class="px-3 py-1.5 rounded-xl bg-warm-surface hover:bg-warm-secondary text-warm-text text-xs font-bold border-2 border-warm-text shadow-brutal-xs shrink-0 transition-colors">Đang giảm giá (2)</button>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <span id="selected-count" class="text-xs font-bold text-warm-muted">Đã chọn 2 máy</span>
+            <a 
+              href="compare.html?ids=1,2" 
+              id="compare-btn"
+              class="brutal-button-action px-3.5 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs border-2 border-warm-text shadow-brutal-xs flex items-center gap-1 cursor-pointer"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+              </svg>
+              <span>So sánh ngay</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- ===================================================================
+             WISHLIST CARDS LIST
+             =================================================================== -->
+        <div class="space-y-4">
+
+          <!-- ITEM 1: ASUS VIVOBOOK PRO 15 -->
+          <article class="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 sm:p-5 shadow-brutal brutal-card-hover flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative transition-all">
+            
+            <div class="flex items-start gap-4 flex-1">
+              <!-- Select Checkbox for compare -->
+              <div class="pt-1">
+                <input type="checkbox" checked onchange="updateSelectedCount()" class="w-5 h-5 rounded-lg border-2 border-warm-text text-warm-primary focus:ring-warm-primary cursor-pointer">
+              </div>
+
+              <!-- Product Thumbnail -->
+              <a href="product-detail.html" class="shrink-0 relative group">
+                <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=300&q=80" alt="Asus Vivobook Pro 15" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl border-2 border-warm-text shadow-brutal-xs group-hover:scale-105 transition-transform">
+                <span class="absolute -top-2 -right-2 px-1.5 py-0.5 rounded-full text-[10px] font-black bg-red-500 text-white border border-warm-text shadow-brutal-xs">-4%</span>
+              </a>
+
+              <!-- Info -->
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-warm-pastel-amber border border-warm-text text-warm-secondary-text uppercase">Laptop</span>
+                  <span class="text-xs font-bold text-warm-muted">Lưu ngày 05/10/2026</span>
+                  <span class="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    AI Match 94%
+                  </span>
+                </div>
+
+                <a href="product-detail.html" class="text-base sm:text-lg font-black text-warm-text hover:text-warm-primary transition-colors block truncate">
+                  Asus Vivobook Pro 15 OLED (Core i9 / RAM 32GB / SSD 1TB / RTX 4060)
+                </a>
+
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs font-semibold text-warm-muted">
+                  <span>RAM: 32 GB LPDDR5</span>
+                  <span>•</span>
+                  <span>Màn hình: 15.6" 3K OLED 120Hz</span>
+                  <span>•</span>
+                  <span>Trọng lượng: 1.8 kg</span>
+                </div>
+
+                <!-- Personal note badge -->
+                <div class="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-warm-bg border border-warm-border-subtle text-xs text-warm-text font-medium">
+                  <span class="text-amber-500">📝</span>
+                  <span>Ghi chú: "Ưu tiên số 1 để chạy Docker & máy ảo"</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Price & Actions Right Box -->
+            <div class="flex md:flex-col items-center md:items-end justify-between w-full md:w-auto pt-3 md:pt-0 border-t-2 md:border-t-0 border-warm-border-subtle gap-3">
+              <div class="text-left md:text-right">
+                <div class="text-lg sm:text-xl font-black text-warm-text">27.990.000₫</div>
+                <div class="text-xs text-warm-muted line-through">29.190.000₫</div>
+                <div class="text-[11px] font-bold text-emerald-700">Giá tốt nhất tại FPT Shop</div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <a 
+                  href="product-detail.html" 
+                  class="brutal-button-action px-3.5 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-bold text-xs border border-warm-text shadow-brutal-xs"
+                >
+                  Xem chi tiết
+                </a>
+                <button 
+                  type="button" 
+                  onclick="removeFavorite(this)" 
+                  class="p-2 rounded-xl text-warm-muted hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-warm-text transition-all"
+                  title="Bỏ lưu khỏi danh sách"
+                >
+                  <svg class="w-4 h-4 fill-red-500 text-red-500" viewBox="0 0 24 24">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+          </article>
+
+          <!-- ITEM 2: MACBOOK AIR M2 -->
+          <article class="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 sm:p-5 shadow-brutal brutal-card-hover flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative transition-all">
+            
+            <div class="flex items-start gap-4 flex-1">
+              <div class="pt-1">
+                <input type="checkbox" checked onchange="updateSelectedCount()" class="w-5 h-5 rounded-lg border-2 border-warm-text text-warm-primary focus:ring-warm-primary cursor-pointer">
+              </div>
+
+              <a href="product-detail.html" class="shrink-0 relative group">
+                <img src="https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?auto=format&fit=crop&w=300&q=80" alt="MacBook Air M2" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl border-2 border-warm-text shadow-brutal-xs group-hover:scale-105 transition-transform">
+              </a>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-warm-pastel-amber border border-warm-text text-warm-secondary-text uppercase">Laptop</span>
+                  <span class="text-xs font-bold text-warm-muted">Lưu ngày 02/10/2026</span>
+                  <span class="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    AI Match 91%
+                  </span>
+                </div>
+
+                <a href="product-detail.html" class="text-base sm:text-lg font-black text-warm-text hover:text-warm-primary transition-colors block truncate">
+                  Apple MacBook Air 13.6" M2 (RAM 16GB / SSD 512GB / Midnight)
+                </a>
+
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs font-semibold text-warm-muted">
+                  <span>Chip: Apple M2 8-core</span>
+                  <span>•</span>
+                  <span>Pin: 18 giờ thực tế</span>
+                  <span>•</span>
+                  <span>Trọng lượng: 1.24 kg</span>
+                </div>
+
+                <div class="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-warm-bg border border-warm-border-subtle text-xs text-warm-text font-medium">
+                  <span class="text-amber-500">📝</span>
+                  <span>Ghi chú: "Để đi cafe, cần đợi khuyến mãi trả góp 0%"</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex md:flex-col items-center md:items-end justify-between w-full md:w-auto pt-3 md:pt-0 border-t-2 md:border-t-0 border-warm-border-subtle gap-3">
+              <div class="text-left md:text-right">
+                <div class="text-lg sm:text-xl font-black text-warm-text">26.490.000₫</div>
+                <div class="text-xs text-warm-muted">Giá ổn định 30 ngày qua</div>
+                <div class="text-[11px] font-bold text-warm-muted">Giá rẻ nhất tại CellphoneS</div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <a 
+                  href="product-detail.html" 
+                  class="brutal-button-action px-3.5 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-bold text-xs border border-warm-text shadow-brutal-xs"
+                >
+                  Xem chi tiết
+                </a>
+                <button 
+                  type="button" 
+                  onclick="removeFavorite(this)" 
+                  class="p-2 rounded-xl text-warm-muted hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-warm-text transition-all"
+                  title="Bỏ lưu khỏi danh sách"
+                >
+                  <svg class="w-4 h-4 fill-red-500 text-red-500" viewBox="0 0 24 24">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+          </article>
+
+          <!-- ITEM 3: XIAOMI 14T PRO (ĐIỆN THOẠI) -->
+          <article class="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 sm:p-5 shadow-brutal brutal-card-hover flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative transition-all">
+            
+            <div class="flex items-start gap-4 flex-1">
+              <div class="pt-1">
+                <input type="checkbox" onchange="updateSelectedCount()" class="w-5 h-5 rounded-lg border-2 border-warm-text text-warm-primary focus:ring-warm-primary cursor-pointer">
+              </div>
+
+              <a href="product-detail.html" class="shrink-0 relative group">
+                <img src="https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=300&q=80" alt="Xiaomi 14T Pro" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl border-2 border-warm-text shadow-brutal-xs group-hover:scale-105 transition-transform">
+                <span class="absolute -top-2 -right-2 px-1.5 py-0.5 rounded-full text-[10px] font-black bg-red-500 text-white border border-warm-text shadow-brutal-xs">-6%</span>
+              </a>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-warm-pastel-sky border border-warm-text text-sky-900 uppercase">Điện thoại</span>
+                  <span class="text-xs font-bold text-warm-muted">Lưu hôm qua</span>
+                  <span class="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    AI Match 95%
+                  </span>
+                </div>
+
+                <a href="product-detail.html" class="text-base sm:text-lg font-black text-warm-text hover:text-warm-primary transition-colors block truncate">
+                  Xiaomi 14T Pro 5G (Ống kính Leica Summilux / Dimensity 9300+ / Sạc 120W)
+                </a>
+
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs font-semibold text-warm-muted">
+                  <span>Camera: Leica 50MP + Tele 50MP</span>
+                  <span>•</span>
+                  <span>Pin: 5.000 mAh (19 phút đầy 100%)</span>
+                </div>
+
+                <div class="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-warm-bg border border-warm-border-subtle text-xs text-warm-text font-medium">
+                  <span class="text-amber-500">📝</span>
+                  <span>Ghi chú: "Camera chụp đêm quá đỉnh, chờ so sánh với S24 FE"</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex md:flex-col items-center md:items-end justify-between w-full md:w-auto pt-3 md:pt-0 border-t-2 md:border-t-0 border-warm-border-subtle gap-3">
+              <div class="text-left md:text-right">
+                <div class="text-lg sm:text-xl font-black text-warm-text">16.990.000₫</div>
+                <div class="text-xs text-warm-muted line-through">17.990.000₫</div>
+                <div class="text-[11px] font-bold text-emerald-700">Tặng kèm sạc 120W</div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <a 
+                  href="product-detail.html" 
+                  class="brutal-button-action px-3.5 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-bold text-xs border border-warm-text shadow-brutal-xs"
+                >
+                  Xem chi tiết
+                </a>
+                <button 
+                  type="button" 
+                  onclick="removeFavorite(this)" 
+                  class="p-2 rounded-xl text-warm-muted hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-warm-text transition-all"
+                >
+                  <svg class="w-4 h-4 fill-red-500 text-red-500" viewBox="0 0 24 24">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+          </article>
+
+          <!-- ITEM 4: LENOVO THINKPAD E16 -->
+          <article class="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 sm:p-5 shadow-brutal brutal-card-hover flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative transition-all">
+            <div class="flex items-start gap-4 flex-1">
+              <div class="pt-1">
+                <input type="checkbox" onchange="updateSelectedCount()" class="w-5 h-5 rounded-lg border-2 border-warm-text text-warm-primary focus:ring-warm-primary cursor-pointer">
+              </div>
+
+              <a href="product-detail.html" class="shrink-0 relative group">
+                <img src="https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&w=300&q=80" alt="Lenovo ThinkPad E16" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl border-2 border-warm-text shadow-brutal-xs group-hover:scale-105 transition-transform">
+              </a>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-warm-pastel-amber border border-warm-text text-warm-secondary-text uppercase">Laptop</span>
+                  <span class="text-xs font-bold text-warm-muted">Lưu tuần trước</span>
+                  <span class="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    AI Match 89%
+                  </span>
+                </div>
+
+                <a href="product-detail.html" class="text-base sm:text-lg font-black text-warm-text hover:text-warm-primary transition-colors block truncate">
+                  Lenovo ThinkPad E16 Gen 2 (Ryzen 7 7735U / RAM 16GB / SSD 512GB)
+                </a>
+
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs font-semibold text-warm-muted">
+                  <span>Bàn phím: Chuẩn ThinkPad TrackPoint</span>
+                  <span>•</span>
+                  <span>Màn hình: 16" WQXGA chống chói</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex md:flex-col items-center md:items-end justify-between w-full md:w-auto pt-3 md:pt-0 border-t-2 md:border-t-0 border-warm-border-subtle gap-3">
+              <div class="text-left md:text-right">
+                <div class="text-lg sm:text-xl font-black text-warm-text">23.490.000₫</div>
+                <div class="text-xs text-warm-muted">Bảo hành 2 năm chính hãng</div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <a href="product-detail.html" class="brutal-button-action px-3.5 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-bold text-xs border border-warm-text shadow-brutal-xs">
+                  Xem chi tiết
+                </a>
+                <button type="button" onclick="removeFavorite(this)" class="p-2 rounded-xl text-warm-muted hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-warm-text transition-all">
+                  <svg class="w-4 h-4 fill-red-500 text-red-500" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <!-- ITEM 5: SAMSUNG GALAXY S24 FE -->
+          <article class="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 sm:p-5 shadow-brutal brutal-card-hover flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative transition-all">
+            <div class="flex items-start gap-4 flex-1">
+              <div class="pt-1">
+                <input type="checkbox" onchange="updateSelectedCount()" class="w-5 h-5 rounded-lg border-2 border-warm-text text-warm-primary focus:ring-warm-primary cursor-pointer">
+              </div>
+
+              <a href="product-detail.html" class="shrink-0 relative group">
+                <img src="https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=300&q=80" alt="Samsung Galaxy S24 FE" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl border-2 border-warm-text shadow-brutal-xs group-hover:scale-105 transition-transform">
+              </a>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-warm-pastel-sky border border-warm-text text-sky-900 uppercase">Điện thoại</span>
+                  <span class="text-xs font-bold text-warm-muted">Lưu 3 ngày trước</span>
+                  <span class="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    AI Match 92%
+                  </span>
+                </div>
+
+                <a href="product-detail.html" class="text-base sm:text-lg font-black text-warm-text hover:text-warm-primary transition-colors block truncate">
+                  Samsung Galaxy S24 FE 5G (Galaxy AI / Exynos 2400e / Màn hình 6.7" 120Hz)
+                </a>
+
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs font-semibold text-warm-muted">
+                  <span>Tính năng: Khoanh vùng tìm kiếm đa năng Google AI</span>
+                  <span>•</span>
+                  <span>Kháng nước: IP68</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex md:flex-col items-center md:items-end justify-between w-full md:w-auto pt-3 md:pt-0 border-t-2 md:border-t-0 border-warm-border-subtle gap-3">
+              <div class="text-left md:text-right">
+                <div class="text-lg sm:text-xl font-black text-warm-text">18.990.000₫</div>
+                <div class="text-[11px] font-bold text-emerald-700">Tặng gói Samsung Care+ 1 năm</div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <a href="product-detail.html" class="brutal-button-action px-3.5 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-bold text-xs border border-warm-text shadow-brutal-xs">
+                  Xem chi tiết
+                </a>
+                <button type="button" onclick="removeFavorite(this)" class="p-2 rounded-xl text-warm-muted hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-warm-text transition-all">
+                  <svg class="w-4 h-4 fill-red-500 text-red-500" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </button>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="mt-16 bg-warm-surface border-t-2 border-warm-text py-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl border-2 border-warm-text shadow-brutal-xs overflow-hidden">
+          <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
+            <rect width="100" height="100" fill="#F59E0B" />
+            <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
+            <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" fill="none" />
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-extrabold text-warm-text">AI Shopping Agent</div>
+          <div class="text-xs text-warm-muted font-medium">Hệ thống Tư vấn Thiết bị Công nghệ Thông minh</div>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-6 text-xs font-bold text-warm-muted">
+        <a href="index.html" class="hover:text-warm-text transition-colors">Trang chủ</a>
+        <a href="search-results.html" class="hover:text-warm-text transition-colors">Tìm kiếm AI</a>
+        <a href="compare.html" class="hover:text-warm-text transition-colors">So sánh thiết bị</a>
+        <a href="favorites.html" class="hover:text-warm-text transition-colors">Yêu thích</a>
+        <a href="settings.html" class="hover:text-warm-text transition-colors">Cài đặt cá nhân</a>
+      </div>
+      <div class="text-xs text-warm-muted font-mono">
+        © 2026 AI Shopping Agent. Warm Minimalist Design.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toast-notify" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 shadow-brutal-lg flex items-center gap-3 max-w-sm">
+      <div id="toast-icon" class="w-8 h-8 rounded-xl bg-emerald-100 border border-warm-text flex items-center justify-center text-emerald-800 shrink-0 font-bold">✓</div>
+      <div id="toast-text" class="text-xs font-bold text-warm-text">Đã xóa khỏi danh sách yêu thích!</div>
+    </div>
+  </div>
+
+  <script>
+    function showToast(message) {
+      const toast = document.getElementById('toast-notify');
+      const text = document.getElementById('toast-text');
+      text.textContent = message;
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 3000);
+    }
+
+    function removeFavorite(button) {
+      const card = button.closest('article');
+      if (confirm('Bỏ lưu sản phẩm này khỏi danh sách yêu thích?')) {
+        card.style.transition = 'all 0.3s ease';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          card.remove();
+          showToast('Đã bỏ lưu sản phẩm thành công!');
+          updateSelectedCount();
+        }, 300);
+      }
+    }
+
+    function toggleAIAdvisor() {
+      const drawer = document.getElementById('ai-advisor-drawer');
+      if (drawer.style.display === 'none') {
+        drawer.style.display = 'block';
+        showToast('Đã mở bảng phân tích gợi ý AI!');
+      } else {
+        drawer.style.display = 'none';
+      }
+    }
+
+    function updateSelectedCount() {
+      const checkboxes = document.querySelectorAll('article input[type="checkbox"]:checked');
+      const countSpan = document.getElementById('selected-count');
+      const compareBtn = document.getElementById('compare-btn');
+      
+      const count = checkboxes.length;
+      countSpan.textContent = `Đã chọn ${count} máy`;
+      
+      if (count >= 2) {
+        compareBtn.classList.remove('opacity-50', 'pointer-events-none');
+      } else {
+        compareBtn.classList.add('opacity-50', 'pointer-events-none');
+      }
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Shopping Agent — Trợ lý Mua sắm Thông minh (Soft-Brutalist Box Style)</title>
+  
+  <!-- Google Fonts: Plus Jakarta Sans with full Vietnamese accents -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Tailwind Configuration with Warm Minimalist + Soft Neo-Brutalist Box Style -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            warm: {
+              bg: '#FAF8F5',             // Nền tổng thể ấm (Kem/Off-white ấm)
+              'bg-alt': '#FDFBF7',         // Nền phụ ấm dịu
+              subtle: '#F5EFE6',         // Nền nhấn nhạt / hover
+              surface: '#FFFFFF',        // Nền Card / Khung nội dung
+              'surface-soft': '#FBF9F5', // Nền sub-box trong card
+              border: '#292524',         // Viền hộp cứng cáp Warm Charcoal (2px)
+              'border-subtle': '#E7DFCE',// Viền phân tách nội bộ
+              primary: '#F59E0B',        // Màu chủ đạo: Amber ấm (CTA chính)
+              'primary-hover': '#D97706',// Hover Amber
+              'primary-dark': '#B45309', // Active Amber
+              'primary-text': '#451A03', // Chữ trên nền Amber (đạt tương phản 8.8:1)
+              accent: '#FBBF24',         // Vàng mật ong ấm
+              secondary: '#FEF3C7',      // Nền Butter Yellow mềm (Tag / Badge)
+              'secondary-text': '#92400E',// Chữ cam đất đậm (5.45:1)
+              text: '#292524',           // Warm Charcoal (Tiêu đề & Chữ chính - 12.4:1)
+              muted: '#78716C',          // Warm Stone (Chữ phụ - 4.64:1)
+              hint: '#A8A29E',           // Placeholder & Icon phụ
+              
+              // Màu pastel cho icon box giống ảnh mẫu người dùng cung cấp
+              'pastel-peach': '#FFEDD5',
+              'pastel-sky': '#E0F2FE',
+              'pastel-mint': '#DCFCE7',
+              'pastel-lavender': '#F3E8FF',
+              'pastel-amber': '#FEF3C7',
+            }
+          },
+          boxShadow: {
+            // Đổ bóng góc chéo cứng cáp (Hard Offset Shadows)
+            'brutal-xs': '1.5px 1.5px 0px #292524',
+            'brutal-sm': '2px 2px 0px #292524',
+            'brutal': '4px 4px 0px #292524',
+            'brutal-md': '5px 5px 0px #292524',
+            'brutal-lg': '6px 6px 0px #292524',
+            'brutal-xl': '8px 8px 0px #292524',
+          },
+          borderRadius: {
+            'xl': '12px',
+            '2xl': '18px',
+            '3xl': '24px',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <link rel="stylesheet" href="tokens.css">
+  
+  <style>
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #FAF8F5;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D7CDB7;
+      border: 1px solid #292524;
+      border-radius: 9999px;
+    }
+
+    /* Tactile Clickable Card Transition */
+    .brutal-card-hover {
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+    .brutal-card-hover:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0px #292524;
+    }
+    .brutal-card-hover:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px #292524;
+    }
+
+    /* Tactile Button */
+    .brutal-button-action {
+      transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
+    }
+    .brutal-button-action:hover {
+      transform: translate(-1.5px, -1.5px);
+      box-shadow: 4px 4px 0px #292524;
+    }
+    .brutal-button-action:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0px 0px 0px #292524;
+    }
+  </style>
+</head>
+
+<body class="bg-warm-bg text-warm-text font-sans antialiased min-h-screen flex flex-col selection:bg-warm-secondary selection:text-warm-secondary-text">
+
+  <!-- =========================================================================
+       SHARED FLOATING NAVBAR (Layout chung chuẩn cho Role Khách & User)
+       ========================================================================= -->
+  <div class="sticky top-3 z-40 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
+    <header class="bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl shadow-brutal px-4 sm:px-6 py-3 flex items-center justify-between gap-4 transition-all">
+      
+      <!-- Brand Logo (Yellow Sparkle Star with Smile) -->
+      <a href="index.html" class="flex items-center gap-3 group focus:outline-none shrink-0" aria-label="Trang chủ AI Shopping Agent">
+        <div class="w-11 h-11 rounded-2xl border-2 border-warm-text shadow-brutal-xs overflow-hidden group-hover:-translate-y-0.5 transition-all shrink-0">
+          <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
+            <defs>
+              <linearGradient id="logoWarmGradIndex" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FBBF24" />
+                <stop offset="100%" stop-color="#F59E0B" />
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" fill="url(#logoWarmGradIndex)" />
+            <circle cx="73" cy="22" r="7.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <circle cx="23" cy="69" r="6.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
+            <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" fill="none" />
+          </svg>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-lg sm:text-xl font-extrabold text-warm-text tracking-tight flex items-center gap-1.5 leading-none">
+            ShoppingAgent
+            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded-full border border-warm-text bg-warm-secondary text-warm-secondary-text">AI</span>
+          </span>
+          <span class="text-[11px] font-medium text-warm-muted mt-0.5">Trợ lý Mua sắm Thông minh</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Links (Dành cho Khách vãng lai: 3 mục tinh gọn trên 1 hàng) -->
+      <nav class="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-bold text-warm-text whitespace-nowrap shrink-0" aria-label="Menu chính">
+        <!-- Bấm Tìm kiếm AI chuyển sang trang search-results.html -->
+        <a href="search-results.html" class="hover:text-warm-primary transition-colors text-sm font-bold text-warm-text whitespace-nowrap shrink-0">Tìm kiếm AI</a>
+        <a href="category.html?type=laptop" class="hover:text-warm-primary transition-colors text-sm font-bold text-warm-text whitespace-nowrap shrink-0">Laptop</a>
+        <a href="category.html?type=phone" class="hover:text-warm-primary transition-colors text-sm font-bold text-warm-text whitespace-nowrap shrink-0">Điện thoại</a>
+      </nav>
+
+      <!-- Right Actions (Dành cho Khách vãng lai: Đăng ký & Đăng nhập) -->
+      <div class="flex items-center gap-2.5 sm:gap-3 shrink-0 whitespace-nowrap">
+        <button 
+          type="button" 
+          onclick="openAuthModal('register')" 
+          class="brutal-button-action px-3.5 sm:px-4 py-2 rounded-xl bg-warm-secondary hover:bg-warm-pastel-amber text-warm-secondary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs cursor-pointer whitespace-nowrap shrink-0"
+        >
+          Đăng ký
+        </button>
+
+        <button 
+          type="button" 
+          onclick="openAuthModal('login')" 
+          class="brutal-button-action px-3.5 sm:px-4 py-2 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H3" />
+          </svg>
+          <span>Đăng nhập</span>
+        </button>
+      </div>
+
+    </header>
+  </div>
+
+  <!-- =========================================================================
+       HERO SECTION WITH SOFT NEO-BRUTALIST PILL & HEADLINE
+       ========================================================================= -->
+  <main class="flex-1">
+    <section id="search-section" class="pt-10 pb-14 sm:pt-14 sm:pb-20">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+        
+        <!-- Popular / Category Pill (Giống hệt Pill "Popular Courses" trong ảnh mẫu) -->
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border-2 border-warm-text bg-warm-secondary text-warm-secondary-text text-xs sm:text-sm font-bold shadow-brutal-xs mb-5">
+          <svg class="w-4 h-4 text-warm-primary" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          </svg>
+          <span>Trợ lý Tư vấn Mua sắm Thế hệ Mới</span>
+        </div>
+
+        <!-- Headline (Chữ to, đậm, rõ nét như "Explore Top-Rated Courses") -->
+        <h1 class="text-3xl sm:text-5xl font-extrabold text-warm-text tracking-tight mb-3">
+          Khám phá Thiết bị Công nghệ Phù hợp Nhất
+        </h1>
+
+        <!-- Subtitle -->
+        <p class="text-sm sm:text-base text-warm-muted max-w-2xl mx-auto font-medium mb-8">
+          Học từ hàng ngàn đánh giá người dùng thực tế & thông số kỹ thuật chuẩn hóa để đưa ra gợi ý thông minh, minh bạch nhất.
+        </p>
+
+        <!-- ===================================================================
+             AI OMNIBOX CONTAINER (Hộp tìm kiếm viền 2px + shadow 5px 5px)
+             =================================================================== -->
+        <div class="bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-brutal-md text-left">
+          
+          <form id="ai-search-form" onsubmit="event.preventDefault(); handleSearchSubmit();" class="relative">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              
+              <!-- Search Icon in Pastel Box -->
+              <div class="hidden sm:flex w-11 h-11 rounded-xl bg-warm-pastel-amber border-2 border-warm-text items-center justify-center text-warm-text shadow-brutal-xs shrink-0">
+                <svg class="w-5 h-5 text-warm-secondary-text" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+              </div>
+
+              <!-- Input -->
+              <div class="flex-1 relative">
+                <label for="ai-query-input" class="sr-only">Nhập nhu cầu mua sắm bằng tiếng Việt</label>
+                <input 
+                  type="text" 
+                  id="ai-query-input"
+                  value="Tìm laptop lập trình web và đồ họa nhẹ tầm 20 đến 25 triệu, RAM 16GB, pin trâu" 
+                  placeholder="Ví dụ: Tìm điện thoại chụp ảnh đẹp dưới 15 triệu, pin khỏe cả ngày..."
+                  class="w-full bg-warm-bg/70 border-2 border-warm-text rounded-xl px-4 py-3 sm:py-3 text-warm-text font-bold placeholder-warm-hint text-sm sm:text-base focus:outline-none focus:bg-white shadow-brutal-xs"
+                  autocomplete="off"
+                />
+                <!-- Clear Button -->
+                <button 
+                  type="button" 
+                  id="clear-query-btn"
+                  onclick="clearQueryInput()" 
+                  class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-warm-muted hover:text-warm-text rounded-lg hover:bg-warm-subtle transition-colors"
+                  aria-label="Xóa nội dung"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Submit CTA Button -->
+              <button 
+                type="submit" 
+                class="brutal-button-action px-6 py-3 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-extrabold text-sm sm:text-base border-2 border-warm-text shadow-brutal-sm flex items-center justify-center gap-2 cursor-pointer shrink-0"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span>Phân tích & Tìm</span>
+              </button>
+            </div>
+          </form>
+
+          <!-- Interactive AI Intent Criteria Parser Visualizer -->
+          <div id="ai-criteria-card" class="mt-4 pt-4 border-t-2 border-warm-text/15">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold text-warm-text flex items-center gap-1.5 uppercase tracking-wide">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-warm-text"></span>
+                <span>AI Criteria Parser (Gemini 3.8 Flash Bóc Tách)</span>
+              </span>
+              <span class="text-[11px] text-warm-secondary-text font-bold bg-warm-secondary border border-warm-text px-2 py-0.5 rounded-md shadow-brutal-xs">
+                Độ chính xác: 98.4%
+              </span>
+            </div>
+
+            <!-- Tags Extracted by LLM -->
+            <div id="extracted-criteria-container" class="flex flex-wrap gap-2 text-xs">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-sky border-2 border-warm-text font-bold text-warm-text shadow-brutal-xs">
+                <span class="text-warm-muted font-normal">Danh mục:</span>
+                <span>Laptop</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-amber border-2 border-warm-text font-bold text-warm-secondary-text shadow-brutal-xs">
+                <span class="font-normal text-warm-secondary-text">Ngân sách:</span>
+                <span>20.000.000đ - 25.000.000đ</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-mint border-2 border-warm-text font-bold text-warm-text shadow-brutal-xs">
+                <span class="text-warm-muted font-normal">Bộ nhớ:</span>
+                <span>RAM ≥ 16GB</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-peach border-2 border-warm-text font-bold text-warm-text shadow-brutal-xs">
+                <span class="text-warm-muted font-normal">Pin:</span>
+                <span>Thời lượng cao (&gt; 8h)</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-lavender border-2 border-warm-text font-bold text-warm-text shadow-brutal-xs">
+                <span class="text-warm-muted font-normal">Mục đích:</span>
+                <span>Lập trình Web & Đồ họa nhẹ</span>
+              </span>
+            </div>
+
+            <!-- Direct link to SCR-02 -->
+            <div class="mt-3.5 pt-3 border-t border-warm-border-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span class="text-xs text-warm-muted font-semibold">✓ Đã bóc tách xong 5 tiêu chí lọc chính xác từ câu hỏi của bạn.</span>
+              <a href="search-results.html" class="brutal-button-action px-3.5 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white border-2 border-warm-text font-extrabold text-xs shadow-brutal-xs inline-flex items-center justify-center gap-1.5">
+                <span>Xem kết quả tìm kiếm & Bộ lọc AI (SCR-02)</span>
+                <span>→</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sample Prompt Chips -->
+        <div class="mt-5 flex flex-wrap items-center justify-center gap-2 text-xs">
+          <span class="text-warm-text font-bold flex items-center gap-1 mr-1">
+            Gợi ý nhanh:
+          </span>
+          
+          <button 
+            type="button" 
+            onclick="applyPrompt('Tìm laptop lập trình web và đồ họa nhẹ tầm 20 đến 25 triệu, RAM 16GB, pin trâu', 'laptop', '20-25tr', '16GB', 'Pin trâu', 'Dev & Design')" 
+            class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text font-bold text-xs hover:bg-warm-secondary shadow-brutal-xs cursor-pointer"
+          >
+            💻 Laptop Dev (20-25tr)
+          </button>
+          
+          <button 
+            type="button" 
+            onclick="applyPrompt('Điện thoại chụp ảnh chân dung và phong cảnh đẹp dưới 15 triệu, pin khỏe sạc nhanh', 'phone', '<15tr', 'Camera OIS', 'Pin 5000mAh', 'Chụp ảnh & Đi chơi')" 
+            class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text font-bold text-xs hover:bg-warm-secondary shadow-brutal-xs cursor-pointer"
+          >
+            📱 Điện thoại chụp ảnh đẹp (&lt; 15tr)
+          </button>
+          
+          <button 
+            type="button" 
+            onclick="applyPrompt('Tìm MacBook mỏng nhẹ cho sinh viên kinh tế thuyết trình pin dùng cả ngày dưới 22 triệu', 'laptop', '<22tr', 'Retina', 'Pin 15h', 'Văn phòng')" 
+            class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text font-bold text-xs hover:bg-warm-secondary shadow-brutal-xs cursor-pointer"
+          >
+            🍎 MacBook mỏng nhẹ (&lt; 22tr)
+          </button>
+
+          <button 
+            type="button" 
+            onclick="applyPrompt('Smartphone chiến game Genshin và Liên Quân mượt màn 120Hz tầm 8 đến 10 triệu', 'phone', '8-10tr', 'Chip mạnh', 'Màn 120Hz', 'Gaming mượt')" 
+            class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text font-bold text-xs hover:bg-warm-secondary shadow-brutal-xs cursor-pointer"
+          >
+            🎮 Smartphone Gaming (&lt; 10tr)
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =========================================================================
+       SECTION: PRODUCT CARDS (THIẾT KẾ BOX CARD GIỐNG HỆT 4 HỘP TRONG ẢNH MẪU)
+       ========================================================================= -->
+    <section id="categories" class="py-12 bg-warm-bg border-t-2 border-warm-text/10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header row with Filter tabs -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-warm-text bg-warm-pastel-amber text-warm-secondary-text font-bold text-xs shadow-brutal-xs mb-2">
+              Top Ranked Products
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-warm-text tracking-tight">Sản phẩm được Đề xuất Hàng đầu</h2>
+            <p class="text-xs sm:text-sm text-warm-muted font-medium">Bố cục thẻ ngang chuẩn xác theo định dạng hộp Soft-Brutalism</p>
+          </div>
+
+          <!-- Category filter buttons with brutal button style -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0" role="tablist">
+            <button 
+              type="button" 
+              onclick="filterCategory('all', this)" 
+              class="cat-tab brutal-button-action px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-warm-primary text-warm-primary-text border-2 border-warm-text shadow-brutal-xs whitespace-nowrap cursor-pointer"
+              role="tab" 
+              aria-selected="true"
+            >
+              Tất cả đề xuất
+            </button>
+            <button 
+              type="button" 
+              onclick="filterCategory('laptop', this)" 
+              class="cat-tab brutal-button-action px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-warm-surface text-warm-text border-2 border-warm-text shadow-brutal-xs whitespace-nowrap cursor-pointer"
+              role="tab" 
+              aria-selected="false"
+            >
+              Laptop (Dev & Đồ họa)
+            </button>
+            <button 
+              type="button" 
+              onclick="filterCategory('phone', this)" 
+              class="cat-tab brutal-button-action px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-warm-surface text-warm-text border-2 border-warm-text shadow-brutal-xs whitespace-nowrap cursor-pointer"
+              role="tab" 
+              aria-selected="false"
+            >
+              Điện thoại thông minh
+            </button>
+          </div>
+        </div>
+
+        <!-- ===================================================================
+             THE 4 HORIZONTAL BOX CARDS (MÔ PHỎNG CHÍNH XÁC THEO ẢNH MẪU CỦA USER)
+             =================================================================== -->
+        <div id="product-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <!-- CARD 1: Lenovo ThinkBook (Pastel Peach Icon Box giống thẻ 1 trong ảnh) -->
+          <article class="product-item laptop brutal-card-hover bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-brutal flex flex-col justify-between cursor-pointer" onclick="openDetailModal('Lenovo ThinkBook 14 G6+ IMH', '20.890.000đ', '98%', 'Intel Core Ultra 5 125H', '16GB LPDDR5X', '512GB PCIe 4.0', '14.5 inch 2.8K 90Hz', '85Wh (~9.5h)')">
+            <div>
+              <!-- Top Row: Icon Container + Titles + Star Rating Badge -->
+              <div class="flex items-start justify-between gap-4">
+                
+                <div class="flex items-start gap-4">
+                  <!-- Pastel Peach Icon Box (như ô <//> Web Dev trong ảnh) -->
+                  <div class="w-14 h-14 rounded-2xl bg-warm-pastel-peach border-2 border-warm-text flex items-center justify-center text-warm-text shadow-brutal-xs shrink-0">
+                    <svg class="w-7 h-7 text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="3" y="4" width="18" height="12" rx="2" />
+                      <path d="M2 18h20v2H2z" />
+                      <path d="M9 16h6" />
+                    </svg>
+                  </div>
+
+                  <div>
+                    <h3 class="text-base sm:text-lg font-extrabold text-warm-text tracking-tight hover:text-warm-primary transition-colors">
+                      Lenovo ThinkBook 14 G6+
+                    </h3>
+                    <p class="text-xs sm:text-sm text-warm-muted font-medium mt-0.5">
+                      bởi Lenovo • Intel Ultra 5 125H • 16GB LPDDR5X
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Green / Amber Star Rating Pill (Giống hệt ★ 4.9 trong ảnh mẫu) -->
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-extrabold text-xs sm:text-sm shadow-brutal-xs shrink-0">
+                  <span class="text-warm-primary">★</span>
+                  <span>9.8/10 (AI 98%)</span>
+                </div>
+              </div>
+
+              <!-- Metadata Row with icons (như 48 lessons / 24h / 12.5K trong ảnh mẫu) -->
+              <div class="mt-4 pt-3 border-t border-warm-border-subtle flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-warm-text font-bold">
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <span>Màn 2.8K 90Hz 100% sRGB</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Pin 85Wh (~9.5h Code)</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span>342 Đánh giá</span>
+                </span>
+              </div>
+
+              <!-- AI Review Pros & Cons summary box -->
+              <div class="mt-3.5 p-3 rounded-xl bg-warm-surface-soft border border-warm-text/20 text-xs">
+                <span class="font-bold text-warm-text flex items-center gap-1 mb-1">
+                  <span class="w-2 h-2 rounded-full bg-warm-primary"></span>
+                  AI Review Tóm tắt:
+                </span>
+                <p class="text-emerald-800 font-medium">✓ Bàn phím hành trình sâu 1.5mm cực êm cho lập trình viên, build nhôm nguyên khối đầm tay.</p>
+                <p class="text-warm-secondary-text font-medium mt-0.5">⚠ Củ sạc 100W đi kèm hơi to, màn gương có bóng nhẹ ngoài trời.</p>
+              </div>
+            </div>
+
+            <!-- Price & Actions Footer -->
+            <div class="mt-4 pt-3.5 border-t-2 border-warm-text/10 flex items-center justify-between">
+              <div>
+                <span class="text-xs text-warm-muted line-through">23.990.000đ</span>
+                <span class="text-lg sm:text-xl font-extrabold text-warm-text ml-2">20.890.000đ</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button 
+                  type="button" 
+                  class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text text-xs font-bold shadow-brutal-xs hover:bg-warm-subtle"
+                >
+                  Xem phân tích
+                </button>
+                <button 
+                  type="button" 
+                  class="brutal-button-action px-4 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white border-2 border-warm-text text-xs font-extrabold shadow-brutal-xs"
+                >
+                  Mua ngay
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <!-- CARD 2: ASUS Zenbook OLED (Pastel Sky Blue Icon Box giống thẻ 2 trong ảnh) -->
+          <article class="product-item laptop brutal-card-hover bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-brutal flex flex-col justify-between cursor-pointer" onclick="openDetailModal('ASUS Zenbook 14 OLED UX3405', '24.490.000đ', '95%', 'Intel Core Ultra 7 155H', '16GB LPDDR5X', '1TB PCIe 4.0', '14 inch 3K OLED 120Hz', '75Wh (11h VP)')">
+            <div>
+              <div class="flex items-start justify-between gap-4">
+                
+                <div class="flex items-start gap-4">
+                  <!-- Pastel Sky Blue Icon Box (như ô UI/UX Design trong ảnh) -->
+                  <div class="w-14 h-14 rounded-2xl bg-warm-pastel-sky border-2 border-warm-text flex items-center justify-center text-warm-text shadow-brutal-xs shrink-0">
+                    <svg class="w-7 h-7 text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                    </svg>
+                  </div>
+
+                  <div>
+                    <h3 class="text-base sm:text-lg font-extrabold text-warm-text tracking-tight hover:text-warm-primary transition-colors">
+                      ASUS Zenbook 14 OLED
+                    </h3>
+                    <p class="text-xs sm:text-sm text-warm-muted font-medium mt-0.5">
+                      bởi ASUS • Intel Ultra 7 155H • 1TB SSD NVMe
+                    </p>
+                  </div>
+                </div>
+
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-extrabold text-xs sm:text-sm shadow-brutal-xs shrink-0">
+                  <span class="text-warm-primary">★</span>
+                  <span>9.5/10 (AI 95%)</span>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-warm-border-subtle flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-warm-text font-bold">
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <span>Màn OLED 3K 120Hz 100% DCI-P3</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Pin 75Wh (11h văn phòng)</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span>218 Đánh giá</span>
+                </span>
+              </div>
+
+              <div class="mt-3.5 p-3 rounded-xl bg-warm-surface-soft border border-warm-text/20 text-xs">
+                <span class="font-bold text-warm-text flex items-center gap-1 mb-1">
+                  <span class="w-2 h-2 rounded-full bg-warm-primary"></span>
+                  AI Review Tóm tắt:
+                </span>
+                <p class="text-emerald-800 font-medium">✓ Màn OLED màu sắc rực rỡ và độ tương phản vô cực cho đồ họa, loa Harman Kardon to rõ.</p>
+                <p class="text-warm-secondary-text font-medium mt-0.5">⚠ Màn gương hơi phản chiếu ánh sáng khi ngồi đối diện cửa sổ.</p>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3.5 border-t-2 border-warm-text/10 flex items-center justify-between">
+              <div>
+                <span class="text-xs text-warm-muted line-through">26.990.000đ</span>
+                <span class="text-lg sm:text-xl font-extrabold text-warm-text ml-2">24.490.000đ</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button 
+                  type="button" 
+                  class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text text-xs font-bold shadow-brutal-xs hover:bg-warm-subtle"
+                >
+                  Xem phân tích
+                </button>
+                <button 
+                  type="button" 
+                  class="brutal-button-action px-4 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white border-2 border-warm-text text-xs font-extrabold shadow-brutal-xs"
+                >
+                  Mua ngay
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <!-- CARD 3: Xiaomi 14T Leica (Pastel Lavender Icon Box giống thẻ 3 trong ảnh) -->
+          <article class="product-item phone brutal-card-hover bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-brutal flex flex-col justify-between cursor-pointer" onclick="openDetailModal('Xiaomi 14T 5G Leica Edition', '12.290.000đ', '94%', 'Dimensity 8300-Ultra', '12GB LPDDR5X', '512GB UFS 4.0', '6.67 inch AMOLED 1.5K 144Hz', '5000 mAh (Sạc 67W)')">
+            <div>
+              <div class="flex items-start justify-between gap-4">
+                
+                <div class="flex items-start gap-4">
+                  <!-- Pastel Lavender Icon Box (như ô Data Science trong ảnh) -->
+                  <div class="w-14 h-14 rounded-2xl bg-warm-pastel-lavender border-2 border-warm-text flex items-center justify-center text-warm-text shadow-brutal-xs shrink-0">
+                    <svg class="w-7 h-7 text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+
+                  <div>
+                    <h3 class="text-base sm:text-lg font-extrabold text-warm-text tracking-tight hover:text-warm-primary transition-colors">
+                      Xiaomi 14T 5G Leica
+                    </h3>
+                    <p class="text-xs sm:text-sm text-warm-muted font-medium mt-0.5">
+                      bởi Xiaomi • Dimensity 8300-Ultra • Camera 50MP
+                    </p>
+                  </div>
+                </div>
+
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-extrabold text-xs sm:text-sm shadow-brutal-xs shrink-0">
+                  <span class="text-warm-primary">★</span>
+                  <span>9.4/10 (AI 94%)</span>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-warm-border-subtle flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-warm-text font-bold">
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span>Màn AMOLED 1.5K 144Hz 4000 nits</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span>Pin 5000mAh (Sạc 67W 45p)</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span>410 Đánh giá</span>
+                </span>
+              </div>
+
+              <div class="mt-3.5 p-3 rounded-xl bg-warm-surface-soft border border-warm-text/20 text-xs">
+                <span class="font-bold text-warm-text flex items-center gap-1 mb-1">
+                  <span class="w-2 h-2 rounded-full bg-warm-primary"></span>
+                  AI Review Tóm tắt:
+                </span>
+                <p class="text-emerald-800 font-medium">✓ Ống kính Leica Summilux màu nghệ, chụp đêm khử nhiễu tốt, viền màn hình siêu mỏng đều 4 cạnh.</p>
+                <p class="text-warm-secondary-text font-medium mt-0.5">⚠ Khung viền bằng nhựa giả kim loại, không hỗ trợ sạc không dây Qi.</p>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3.5 border-t-2 border-warm-text/10 flex items-center justify-between">
+              <div>
+                <span class="text-xs text-warm-muted line-through">13.990.000đ</span>
+                <span class="text-lg sm:text-xl font-extrabold text-warm-text ml-2">12.290.000đ</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button 
+                  type="button" 
+                  class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text text-xs font-bold shadow-brutal-xs hover:bg-warm-subtle"
+                >
+                  Xem phân tích
+                </button>
+                <button 
+                  type="button" 
+                  class="brutal-button-action px-4 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white border-2 border-warm-text text-xs font-extrabold shadow-brutal-xs"
+                >
+                  Mua ngay
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <!-- CARD 4: Samsung Galaxy S23 FE (Pastel Mint Icon Box giống thẻ 4 trong ảnh) -->
+          <article class="product-item phone brutal-card-hover bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-brutal flex flex-col justify-between cursor-pointer" onclick="openDetailModal('Samsung Galaxy S23 FE', '11.890.000đ', '92%', 'Exynos 2200 / Snapdragon 8 Gen 1', '8GB RAM', '256GB Storage', 'Dynamic AMOLED 2X 120Hz', '4500 mAh (Sạc 25W)')">
+            <div>
+              <div class="flex items-start justify-between gap-4">
+                
+                <div class="flex items-start gap-4">
+                  <!-- Pastel Mint Icon Box (như ô Mobile App Dev trong ảnh) -->
+                  <div class="w-14 h-14 rounded-2xl bg-warm-pastel-mint border-2 border-warm-text flex items-center justify-center text-warm-text shadow-brutal-xs shrink-0">
+                    <svg class="w-7 h-7 text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="7" y="2" width="10" height="20" rx="3" />
+                      <circle cx="12" cy="5" r="0.8" />
+                      <path d="M11 18h2" />
+                    </svg>
+                  </div>
+
+                  <div>
+                    <h3 class="text-base sm:text-lg font-extrabold text-warm-text tracking-tight hover:text-warm-primary transition-colors">
+                      Samsung Galaxy S23 FE
+                    </h3>
+                    <p class="text-xs sm:text-sm text-warm-muted font-medium mt-0.5">
+                      bởi Samsung • Dynamic AMOLED 2X • Kháng nước IP68
+                    </p>
+                  </div>
+                </div>
+
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-extrabold text-xs sm:text-sm shadow-brutal-xs shrink-0">
+                  <span class="text-warm-primary">★</span>
+                  <span>9.2/10 (AI 92%)</span>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-warm-border-subtle flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-warm-text font-bold">
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span>Màn Dynamic AMOLED 2X 120Hz</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span>Pin 4500mAh + Sạc không dây</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span>528 Đánh giá</span>
+                </span>
+              </div>
+
+              <div class="mt-3.5 p-3 rounded-xl bg-warm-surface-soft border border-warm-text/20 text-xs">
+                <span class="font-bold text-warm-text flex items-center gap-1 mb-1">
+                  <span class="w-2 h-2 rounded-full bg-warm-primary"></span>
+                  AI Review Tóm tắt:
+                </span>
+                <p class="text-emerald-800 font-medium">✓ Khung kim loại cầm đầm tay, hỗ trợ Samsung DeX tiện lợi, camera tele 3X chụp xa nét.</p>
+                <p class="text-warm-secondary-text font-medium mt-0.5">⚠ Viền màn hình hơi dày so với bản S23 thường, công suất sạc 25W hơi chậm.</p>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3.5 border-t-2 border-warm-text/10 flex items-center justify-between">
+              <div>
+                <span class="text-xs text-warm-muted line-through">14.890.000đ</span>
+                <span class="text-lg sm:text-xl font-extrabold text-warm-text ml-2">11.890.000đ</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button 
+                  type="button" 
+                  class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text text-xs font-bold shadow-brutal-xs hover:bg-warm-subtle"
+                >
+                  Xem phân tích
+                </button>
+                <button 
+                  type="button" 
+                  class="brutal-button-action px-4 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white border-2 border-warm-text text-xs font-extrabold shadow-brutal-xs"
+                >
+                  Mua ngay
+                </button>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+       SECTION: WEIGHTED SCORING TESTER (Hộp Thuật toán Box Style)
+       ========================================================================= -->
+    <section id="scoring-demo" class="py-12 bg-warm-bg border-t-2 border-warm-text/10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="bg-warm-surface border-2 border-warm-text rounded-3xl p-6 sm:p-8 shadow-brutal-md">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            
+            <div class="lg:col-span-6 space-y-4">
+              <span class="px-3 py-1 rounded-full bg-warm-secondary text-warm-secondary-text border border-warm-text font-bold text-xs inline-block shadow-brutal-xs">
+                Mô phỏng Thuật toán Đa Tiêu chí
+              </span>
+              <h3 class="text-2xl sm:text-3xl font-extrabold text-warm-text tracking-tight">
+                Tự điều chỉnh trọng số xếp hạng của AI
+              </h3>
+              <p class="text-sm text-warm-muted font-medium leading-relaxed">
+                Hệ thống backend sử dụng mô hình xếp hạng <strong>Weighted Scoring</strong> khách quan. Bạn ưu tiên cấu hình chip/RAM, giá thành tiết kiệm, hay review của cộng đồng? Hãy kéo thanh trượt để xem điểm tự động cập nhật.
+              </p>
+
+              <!-- Sliders -->
+              <div class="space-y-4 pt-2">
+                <div>
+                  <div class="flex justify-between text-xs font-extrabold text-warm-text mb-1">
+                    <span>Trọng số Cấu hình & Hiệu năng:</span>
+                    <span id="weight-spec-val" class="text-warm-secondary-text font-mono font-bold">40%</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    id="weight-spec" 
+                    min="10" 
+                    max="70" 
+                    value="40" 
+                    oninput="updateScoringWeights()" 
+                    class="w-full accent-warm-primary cursor-pointer"
+                  >
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-xs font-extrabold text-warm-text mb-1">
+                    <span>Trọng số Tối ưu Ngân sách (Giá mềm):</span>
+                    <span id="weight-price-val" class="text-warm-secondary-text font-mono font-bold">35%</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    id="weight-price" 
+                    min="10" 
+                    max="70" 
+                    value="35" 
+                    oninput="updateScoringWeights()" 
+                    class="w-full accent-warm-primary cursor-pointer"
+                  >
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-xs font-extrabold text-warm-text mb-1">
+                    <span>Trọng số Đánh giá & Hài lòng (Review Score):</span>
+                    <span id="weight-review-val" class="text-warm-secondary-text font-mono font-bold">25%</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    id="weight-review" 
+                    min="10" 
+                    max="70" 
+                    value="25" 
+                    oninput="updateScoringWeights()" 
+                    class="w-full accent-warm-primary cursor-pointer"
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Live ranking box -->
+            <div class="lg:col-span-6 bg-warm-bg border-2 border-warm-text rounded-2xl p-5 shadow-brutal-sm">
+              <div class="flex items-center justify-between pb-3 border-b-2 border-warm-text/10 mb-4">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-warm-text">Bảng xếp hạng thời gian thực</span>
+                <span class="text-xs text-warm-secondary-text font-bold bg-warm-secondary border border-warm-text px-2 py-0.5 rounded shadow-brutal-xs">Weighted Sum Model</span>
+              </div>
+
+              <div class="space-y-3">
+                <div class="p-3 rounded-xl bg-warm-surface border-2 border-warm-text shadow-brutal-xs flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <span class="w-7 h-7 rounded-xl bg-warm-primary text-warm-primary-text font-extrabold text-xs flex items-center justify-center border border-warm-text shadow-brutal-xs">1</span>
+                    <div>
+                      <h4 class="text-xs font-bold text-warm-text">Lenovo ThinkBook 14 G6+</h4>
+                      <span class="text-[11px] text-warm-muted">Hiệu năng 95 • Giá 20.89M • Review 4.8★</span>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-sm font-extrabold text-warm-primary-dark font-mono" id="score-item-1">94.8</span>
+                    <span class="block text-[10px] text-warm-muted">Điểm tổng</span>
+                  </div>
+                </div>
+
+                <div class="p-3 rounded-xl bg-warm-surface border-2 border-warm-text shadow-brutal-xs flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <span class="w-7 h-7 rounded-xl bg-warm-secondary text-warm-secondary-text font-extrabold text-xs flex items-center justify-center border border-warm-text shadow-brutal-xs">2</span>
+                    <div>
+                      <h4 class="text-xs font-bold text-warm-text">Xiaomi 14T 5G Leica</h4>
+                      <span class="text-[11px] text-warm-muted">Hiệu năng 90 • Giá 12.29M • Review 4.7★</span>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-sm font-extrabold text-warm-primary-dark font-mono" id="score-item-2">91.5</span>
+                    <span class="block text-[10px] text-warm-muted">Điểm tổng</span>
+                  </div>
+                </div>
+
+                <div class="p-3 rounded-xl bg-warm-surface border-2 border-warm-text shadow-brutal-xs flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <span class="w-7 h-7 rounded-xl bg-warm-pastel-sky text-warm-text font-extrabold text-xs flex items-center justify-center border border-warm-text shadow-brutal-xs">3</span>
+                    <div>
+                      <h4 class="text-xs font-bold text-warm-text">ASUS Zenbook 14 OLED</h4>
+                      <span class="text-[11px] text-warm-muted">Hiệu năng 96 • Giá 24.49M • Review 4.9★</span>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-sm font-extrabold text-warm-primary-dark font-mono" id="score-item-3">89.2</span>
+                    <span class="block text-[10px] text-warm-muted">Điểm tổng</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =========================================================================
+       FOOTER
+       ========================================================================= -->
+  <footer class="bg-warm-surface border-t-2 border-warm-text py-10 text-xs text-warm-muted">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl border-2 border-warm-text shadow-brutal-xs overflow-hidden shrink-0">
+          <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
+            <rect width="100" height="100" fill="#F59E0B" />
+            <circle cx="73" cy="22" r="7.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <circle cx="23" cy="69" r="6.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
+            <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" fill="none" />
+          </svg>
+        </div>
+        <span class="font-extrabold text-warm-text text-sm">AI Shopping Agent © 2025</span>
+      </div>
+      <p class="text-warm-muted font-medium">Thiết kế theo phong cách Soft-Brutalist Box (Trắng – Vàng ấm + Hard Offset Shadow).</p>
+      <div class="flex items-center gap-4 font-bold text-warm-text">
+        <a href="#search-section" class="hover:text-warm-primary">Lên đầu trang ↑</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- =========================================================================
+       MODAL: CHI TIẾT SẢN PHẨM (BRUTAL BOX MODAL)
+       ========================================================================= -->
+  <div id="product-detail-modal" class="fixed inset-0 z-50 hidden bg-warm-text/50 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-product-title">
+    <div class="bg-warm-surface border-2 border-warm-text rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 shadow-brutal-xl animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="flex items-start justify-between gap-4 pb-4 border-b-2 border-warm-text/10">
+        <div>
+          <span class="px-2.5 py-0.5 rounded-full border border-warm-text bg-warm-secondary text-warm-secondary-text text-xs font-bold inline-block mb-1 shadow-brutal-xs">
+            Bản phân tích chuyên sâu
+          </span>
+          <h3 id="modal-product-title" class="text-xl font-extrabold text-warm-text">
+            Tên sản phẩm
+          </h3>
+        </div>
+        <button 
+          type="button" 
+          onclick="closeDetailModal()" 
+          class="brutal-button-action p-2 text-warm-text rounded-xl bg-warm-surface border-2 border-warm-text shadow-brutal-xs hover:bg-warm-subtle cursor-pointer"
+          aria-label="Đóng"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="py-5 space-y-4">
+        <!-- Specs boxes -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div class="p-3 bg-warm-bg rounded-xl border-2 border-warm-text shadow-brutal-xs">
+            <span class="text-warm-muted block text-[11px] font-medium">Vi xử lý</span>
+            <strong id="modal-cpu" class="text-warm-text font-bold">Intel Ultra</strong>
+          </div>
+          <div class="p-3 bg-warm-bg rounded-xl border-2 border-warm-text shadow-brutal-xs">
+            <span class="text-warm-muted block text-[11px] font-medium">RAM</span>
+            <strong id="modal-ram" class="text-warm-text font-bold">16GB</strong>
+          </div>
+          <div class="p-3 bg-warm-bg rounded-xl border-2 border-warm-text shadow-brutal-xs">
+            <span class="text-warm-muted block text-[11px] font-medium">Ổ cứng</span>
+            <strong id="modal-storage" class="text-warm-text font-bold">512GB SSD</strong>
+          </div>
+          <div class="p-3 bg-warm-bg rounded-xl border-2 border-warm-text shadow-brutal-xs">
+            <span class="text-warm-muted block text-[11px] font-medium">Màn hình</span>
+            <strong id="modal-screen" class="text-warm-text font-bold">2.8K 90Hz</strong>
+          </div>
+        </div>
+
+        <!-- AI Review Box -->
+        <div class="p-4 bg-warm-surface-soft rounded-2xl border-2 border-warm-text shadow-brutal-xs space-y-2">
+          <h4 class="text-xs font-extrabold uppercase tracking-wider text-warm-text flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-warm-primary border border-warm-text"></span>
+            Tóm tắt Đánh giá Thực tế từ Khách hàng
+          </h4>
+          <div class="space-y-2 text-xs font-medium">
+            <div class="p-2.5 bg-emerald-50 text-emerald-900 rounded-xl border border-emerald-300">
+              <strong class="block mb-0.5">✓ Điểm được khen nhiều nhất:</strong>
+              <p>Khả năng tản nhiệt khi compile code rất tốt. Bàn phím bấm êm tay không gây mỏi. Màn hình chuẩn màu làm việc ban đêm dịu mắt.</p>
+            </div>
+            <div class="p-2.5 bg-amber-50 text-amber-950 rounded-xl border border-amber-300">
+              <strong class="block mb-0.5">⚠ Những điểm cần cân nhắc:</strong>
+              <p>Khung vỏ nhôm hơi bám nhẹ vân tay với người hay ra mồ hôi. Âm lượng loa trung bình, nếu nghe nhạc EDM nên có tai nghe ngoài.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Price -->
+        <div class="flex items-center justify-between p-4 bg-warm-pastel-amber rounded-2xl border-2 border-warm-text shadow-brutal-xs">
+          <div>
+            <span class="text-xs text-warm-secondary-text font-bold block">Giá đề xuất tốt nhất thị trường</span>
+            <span id="modal-price" class="text-2xl font-black text-warm-text">20.890.000đ</span>
+          </div>
+          <span id="modal-score" class="px-3.5 py-1.5 rounded-xl bg-warm-surface text-warm-secondary-text font-extrabold text-sm border-2 border-warm-text shadow-brutal-xs">
+            AI Match: 98%
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-4 border-t-2 border-warm-text/10">
+        <button 
+          type="button" 
+          onclick="closeDetailModal()" 
+          class="brutal-button-action px-4 py-2 rounded-xl bg-warm-surface border-2 border-warm-text text-xs font-bold text-warm-text hover:bg-warm-subtle shadow-brutal-xs cursor-pointer"
+        >
+          Đóng
+        </button>
+        <a 
+          href="product-detail.html?id=1"
+          class="brutal-button-action px-5 py-2 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-extrabold text-xs border-2 border-warm-text shadow-brutal-xs cursor-pointer flex items-center gap-1.5"
+        >
+          <span>Xem Trang Chi Tiết & Tóm Tắt AI</span>
+          <span>→</span>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       AUTH MODAL: ĐĂNG NHẬP / ĐĂNG KÝ (SCR-18)
+       ========================================================================= -->
+  <div id="auth-modal" class="hidden fixed inset-0 z-50 bg-warm-text/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="brutal-card max-w-md w-full bg-white p-6 shadow-brutal-xl space-y-4">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b-2 border-warm-text/15">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-warm-primary border-2 border-warm-text flex items-center justify-center font-black text-xs text-warm-primary-text">
+            AI
+          </div>
+          <span class="font-black text-base text-warm-text" id="auth-modal-title">Tài Khoản AI Shopping Agent</span>
+        </div>
+        <button type="button" onclick="closeAuthModal()" class="p-1 text-warm-muted hover:text-warm-text text-base font-bold">✕</button>
+      </div>
+
+      <!-- Tab Switcher -->
+      <div class="grid grid-cols-2 gap-2 p-1 rounded-xl bg-warm-surface-soft border-2 border-warm-text">
+        <button type="button" id="auth-tab-login" onclick="switchAuthTab('login')" class="py-2 rounded-lg bg-warm-primary text-warm-primary-text font-black text-xs transition-all shadow-brutal-xs">
+          Đăng Nhập
+        </button>
+        <button type="button" id="auth-tab-register" onclick="switchAuthTab('register')" class="py-2 rounded-lg text-warm-text font-bold text-xs hover:bg-warm-secondary transition-all">
+          Đăng Ký
+        </button>
+      </div>
+
+      <!-- Form Inputs -->
+      <form onsubmit="handleAuthSubmit(event)" class="space-y-3 text-xs font-bold text-warm-text">
+        <div id="auth-field-name" class="hidden space-y-1">
+          <label class="block">Họ và Tên:</label>
+          <input type="text" id="auth-input-name" placeholder="Nguyễn Văn A" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold focus:outline-none focus:bg-white" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="block">Email hoặc Tên đăng nhập:</label>
+          <input type="text" id="auth-input-email" placeholder="example@email.com" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold focus:outline-none focus:bg-white" required />
+        </div>
+
+        <div class="space-y-1">
+          <label class="block">Mật khẩu:</label>
+          <input type="password" id="auth-input-password" placeholder="••••••••" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold focus:outline-none focus:bg-white" required />
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" id="auth-submit-btn" class="w-full py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-sm border-2 border-warm-text shadow-brutal-sm cursor-pointer transition-all mt-2">
+          Đăng Nhập Ngay
+        </button>
+      </form>
+
+      <!-- Quick Demo Accounts -->
+      <div class="pt-3 border-t border-warm-text/10 space-y-1.5">
+        <span class="text-[10px] font-bold text-warm-muted uppercase block">Đăng nhập nhanh tài khoản mẫu:</span>
+        <div class="flex gap-2">
+          <button type="button" onclick="fillDemoAccount('user')" class="flex-1 py-1.5 rounded-lg bg-warm-surface-soft hover:bg-warm-secondary border border-warm-text/30 text-[11px] font-bold text-warm-text">
+            👤 Thành viên
+          </button>
+          <button type="button" onclick="fillDemoAccount('admin')" class="flex-1 py-1.5 rounded-lg bg-warm-surface-soft hover:bg-warm-secondary border border-warm-text/30 text-[11px] font-bold text-warm-text">
+            ⚡ Quản trị viên
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       PAGE JAVASCRIPT
+       ========================================================================= -->
+  <script>
+    function openAuthModal(mode = 'login') {
+      const modal = document.getElementById('auth-modal');
+      modal.classList.remove('hidden');
+      switchAuthTab(mode);
+    }
+
+    function closeAuthModal() {
+      const modal = document.getElementById('auth-modal');
+      modal.classList.add('hidden');
+    }
+
+    function switchAuthTab(mode) {
+      const tabLogin = document.getElementById('auth-tab-login');
+      const tabRegister = document.getElementById('auth-tab-register');
+      const fieldName = document.getElementById('auth-field-name');
+      const submitBtn = document.getElementById('auth-submit-btn');
+
+      if (mode === 'register') {
+        tabRegister.classList.add('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
+        tabRegister.classList.remove('hover:bg-warm-secondary');
+        tabLogin.classList.remove('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
+        tabLogin.classList.add('hover:bg-warm-secondary');
+
+        fieldName.classList.remove('hidden');
+        submitBtn.innerText = 'Tạo Tài Khoản Mới';
+      } else {
+        tabLogin.classList.add('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
+        tabLogin.classList.remove('hover:bg-warm-secondary');
+        tabRegister.classList.remove('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
+        tabRegister.classList.add('hover:bg-warm-secondary');
+
+        fieldName.classList.add('hidden');
+        submitBtn.innerText = 'Đăng Nhập Ngay';
+      }
+    }
+
+    function fillDemoAccount(role) {
+      const email = document.getElementById('auth-input-email');
+      const pass = document.getElementById('auth-input-password');
+      if (role === 'admin') {
+        email.value = 'admin@shoppingagent.vn';
+        pass.value = 'admin123456';
+      } else {
+        email.value = 'user.demo@gmail.com';
+        pass.value = 'user123456';
+      }
+      switchAuthTab('login');
+    }
+
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('auth-input-email').value;
+      alert(`Đăng nhập thành công với tài khoản: ${email}`);
+      closeAuthModal();
+    }
+    function clearQueryInput() {
+      const input = document.getElementById('ai-query-input');
+      input.value = '';
+      input.focus();
+    }
+
+    function applyPrompt(queryText, category, budget, spec1, spec2, role) {
+      const input = document.getElementById('ai-query-input');
+      input.value = queryText;
+
+      const container = document.getElementById('extracted-criteria-container');
+      const catLabel = category === 'laptop' ? 'Laptop' : 'Điện thoại thông minh';
+      
+      container.innerHTML = `
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-sky border-2 border-warm-text font-bold text-warm-text shadow-brutal-xs">
+          <span class="text-warm-muted font-normal">Danh mục:</span>
+          <span>${catLabel}</span>
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-amber border-2 border-warm-text font-bold text-warm-secondary-text shadow-brutal-xs">
+          <span class="font-normal text-warm-secondary-text">Ngân sách:</span>
+          <span>${budget}</span>
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-mint border-2 border-warm-text font-bold text-warm-text shadow-brutal-xs">
+          <span class="text-warm-muted font-normal">Tiêu chí 1:</span>
+          <span>${spec1}</span>
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-peach border-2 border-warm-text font-bold text-warm-text shadow-brutal-xs">
+          <span class="text-warm-muted font-normal">Tiêu chí 2:</span>
+          <span>${spec2}</span>
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-lavender border-2 border-warm-text font-bold text-warm-text shadow-brutal-xs">
+          <span class="text-warm-muted font-normal">Mục đích:</span>
+          <span>${role}</span>
+        </span>
+      `;
+
+      const buttons = document.querySelectorAll('.cat-tab');
+      if (category === 'laptop') {
+        filterCategory('laptop', buttons[1]);
+      } else if (category === 'phone') {
+        filterCategory('phone', buttons[2]);
+      }
+    }
+
+    function handleSearchSubmit() {
+      const input = document.getElementById('ai-query-input');
+      const query = input.value.trim();
+      if (!query) {
+        input.focus();
+        return;
+      }
+      
+      const criteriaCard = document.getElementById('ai-criteria-card');
+      criteriaCard.classList.add('opacity-40');
+      
+      setTimeout(() => {
+        // Navigate to SCR-02 Search Results page with query param
+        window.location.href = 'search-results.html?q=' + encodeURIComponent(query);
+      }, 250);
+    }
+
+    function filterCategory(cat, tabElement) {
+      const allTabs = document.querySelectorAll('.cat-tab');
+      allTabs.forEach(t => {
+        t.classList.remove('bg-warm-primary', 'text-warm-primary-text');
+        t.classList.add('bg-warm-surface', 'text-warm-text');
+        t.setAttribute('aria-selected', 'false');
+      });
+
+      if (tabElement) {
+        tabElement.classList.add('bg-warm-primary', 'text-warm-primary-text');
+        tabElement.classList.remove('bg-warm-surface', 'text-warm-text');
+        tabElement.setAttribute('aria-selected', 'true');
+      }
+
+      const items = document.querySelectorAll('.product-item');
+      items.forEach(item => {
+        if (cat === 'all') {
+          item.classList.remove('hidden');
+        } else if (item.classList.contains(cat)) {
+          item.classList.remove('hidden');
+        } else {
+          item.classList.add('hidden');
+        }
+      });
+    }
+
+    function updateScoringWeights() {
+      const wSpec = parseInt(document.getElementById('weight-spec').value, 10);
+      const wPrice = parseInt(document.getElementById('weight-price').value, 10);
+      const wReview = parseInt(document.getElementById('weight-review').value, 10);
+
+      document.getElementById('weight-spec-val').innerText = `${wSpec}%`;
+      document.getElementById('weight-price-val').innerText = `${wPrice}%`;
+      document.getElementById('weight-review-val').innerText = `${wReview}%`;
+
+      const total = wSpec + wPrice + wReview;
+      const nSpec = wSpec / total;
+      const nPrice = wPrice / total;
+      const nReview = wReview / total;
+
+      const s1 = (95 * nSpec + 88 * nPrice + 96 * nReview).toFixed(1);
+      const s2 = (90 * nSpec + 96 * nPrice + 94 * nReview).toFixed(1);
+      const s3 = (98 * nSpec + 78 * nPrice + 98 * nReview).toFixed(1);
+
+      document.getElementById('score-item-1').innerText = s1;
+      document.getElementById('score-item-2').innerText = s2;
+      document.getElementById('score-item-3').innerText = s3;
+    }
+
+    function openDetailModal(title, price, score, cpu, ram, storage, screen, battery) {
+      document.getElementById('modal-product-title').innerText = title;
+      document.getElementById('modal-price').innerText = price;
+      document.getElementById('modal-score').innerText = `AI Match: ${score}`;
+      document.getElementById('modal-cpu').innerText = cpu;
+      document.getElementById('modal-ram').innerText = ram;
+      document.getElementById('modal-storage').innerText = storage;
+      document.getElementById('modal-screen').innerText = screen;
+      
+      const modal = document.getElementById('product-detail-modal');
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDetailModal() {
+      const modal = document.getElementById('product-detail-modal');
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeDetailModal();
+      }
+    });
+  </script>
+
+</body>
+</html>

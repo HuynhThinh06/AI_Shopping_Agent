@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ngành Hàng & Thuộc Tính Động — AI Shopping Agent Admin</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            warm: {
+              bg: '#FAF8F5',
+              surface: '#FFFFFF',
+              'surface-card': '#FFFFFF',
+              border: '#292524',
+              'border-subtle': '#F3EFE6',
+              primary: '#F59E0B',
+              'primary-hover': '#D97706',
+              'primary-light': '#FEF3C7',
+              'primary-text': '#78350F',
+              secondary: '#FEF3C7',
+              'secondary-hover': '#FDE68A',
+              'secondary-text': '#92400E',
+              accent: '#FBBF24',
+              text: '#292524',
+              muted: '#78716C',
+              hint: '#A8A29E',
+              'pastel-peach': '#FFEDD5',
+              'pastel-sky': '#E0F2FE',
+              'pastel-mint': '#DCFCE7',
+              'pastel-lavender': '#F3E8FF',
+              'pastel-amber': '#FEF3C7',
+            }
+          },
+          boxShadow: {
+            'brutal-xs': '1.5px 1.5px 0px #292524',
+            'brutal-sm': '2px 2px 0px #292524',
+            'brutal': '4px 4px 0px #292524',
+            'brutal-md': '5px 5px 0px #292524',
+            'brutal-lg': '6px 6px 0px #292524',
+          },
+          borderRadius: {
+            'xl': '12px',
+            '2xl': '18px',
+            '3xl': '24px',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <link rel="stylesheet" href="tokens.css">
+  
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #FAF8F5; }
+    ::-webkit-scrollbar-thumb { background: #D7CDB7; border: 1px solid #292524; border-radius: 9999px; }
+    
+    .brutal-card-hover {
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+    .brutal-card-hover:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 5px 5px 0px #292524;
+    }
+    .brutal-button-action {
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .brutal-button-action:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0px 0px 0px #292524;
+    }
+  </style>
+</head>
+<body class="bg-warm-bg text-warm-text font-sans antialiased min-h-screen flex flex-col selection:bg-warm-primary selection:text-white">
+
+  <div class="flex-1 flex flex-col lg:flex-row min-h-screen">
+    
+    <!-- LEFT SIDEBAR -->
+    <aside class="w-full lg:w-72 bg-warm-surface border-b-2 lg:border-b-0 lg:border-r-2 border-warm-text p-4 sm:p-5 flex flex-col justify-between shrink-0 shadow-brutal lg:shadow-none z-30">
+      <div class="space-y-6">
+        <a href="admin-dashboard.html" class="flex items-center gap-3 group focus:outline-none">
+          <div class="w-11 h-11 rounded-2xl border-2 border-warm-text shadow-brutal-xs overflow-hidden group-hover:-translate-y-0.5 transition-all shrink-0">
+            <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
+              <rect width="100" height="100" fill="#F59E0B" />
+              <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
+              <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" fill="none" />
+            </svg>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-base sm:text-lg font-black text-warm-text tracking-tight flex items-center gap-1.5 leading-none">
+              ShoppingAgent
+              <span class="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-full border border-warm-text bg-red-100 text-red-800">Admin</span>
+            </span>
+            <span class="text-[11px] font-bold text-warm-muted mt-0.5">Control Center • Gemini AI</span>
+          </div>
+        </a>
+
+        <nav class="space-y-1.5" aria-label="Menu Quản Trị">
+          <a href="admin-dashboard.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-xs sm:text-sm transition-colors group">
+            <svg class="w-4 h-4 text-warm-muted group-hover:text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+            <span>Tổng quan (Dashboard)</span>
+          </a>
+
+          <a href="admin-products.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-xs sm:text-sm transition-colors group">
+            <svg class="w-4 h-4 text-warm-muted group-hover:text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
+            <span>Quản lý Sản phẩm</span>
+          </a>
+
+          <!-- Active: Ngành hàng & Thuộc tính -->
+          <a href="admin-categories.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs transition-transform -translate-y-0.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/></svg>
+            <span>Ngành hàng & Thuộc tính</span>
+          </a>
+
+          <a href="admin-weights.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-xs sm:text-sm transition-colors group">
+            <svg class="w-4 h-4 text-warm-muted group-hover:text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z"/></svg>
+            <span>Trọng số Xếp hạng</span>
+          </a>
+
+          <a href="admin-reviews.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-xs sm:text-sm transition-colors group">
+            <svg class="w-4 h-4 text-warm-muted group-hover:text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v5.518z"/></svg>
+            <span>Duyệt Review & AI Cache</span>
+          </a>
+
+          <a href="admin-llm-logs.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-xs sm:text-sm transition-colors group">
+            <svg class="w-4 h-4 text-warm-muted group-hover:text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.143 2.143L15 7.5"/></svg>
+            <span>Nhật ký LLM & Chi phí</span>
+          </a>
+
+          <a href="admin-benchmark.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-xs sm:text-sm transition-colors group">
+            <svg class="w-4 h-4 text-warm-muted group-hover:text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
+            <span>Benchmark Precision</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="pt-6 border-t-2 border-warm-border-subtle space-y-2">
+        <a href="index.html" class="flex items-center justify-between px-3 py-2 rounded-xl bg-warm-bg hover:bg-warm-secondary border border-warm-text text-xs font-bold transition-all">
+          <span class="flex items-center gap-2"><span>🌐</span><span>Xem Website Người Dùng</span></span>
+          <span>&rarr;</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- RIGHT CONTENT: CATEGORIES & ATTRIBUTES (SCR-13) -->
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full mx-auto">
+      
+      <!-- Header -->
+      <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 sm:p-6 shadow-brutal flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-black text-warm-text tracking-tight">Ngành Hàng & Thuộc Tính Động</h1>
+            <span class="px-2.5 py-0.5 rounded-full bg-warm-secondary border border-warm-text text-warm-secondary-text text-xs font-black">
+              2 Ngành Hàng • 26 Thuộc Tính
+            </span>
+          </div>
+          <p class="text-xs sm:text-sm text-warm-muted font-medium mt-1">
+            Khai báo bảng thuộc tính kỹ thuật (`category_attributes`) dùng để tự động sinh JSON Schema trong Prompt của Gemini.
+          </p>
+        </div>
+
+        <button 
+          type="button" 
+          onclick="openAttributeModal()" 
+          class="brutal-button-action px-4 py-2 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+          <span>Thêm thuộc tính động</span>
+        </button>
+      </div>
+
+      <!-- Category Tabs Switcher -->
+      <div class="flex items-center gap-2 border-b-2 border-warm-border-subtle pb-0.5">
+        <button 
+          type="button" 
+          onclick="switchCategoryTab('laptop')" 
+          id="cat-tab-laptop" 
+          class="px-5 py-2.5 rounded-t-xl border-t-2 border-x-2 border-warm-text bg-warm-surface text-warm-text font-black text-xs sm:text-sm -mb-[2px] shadow-none flex items-center gap-2"
+        >
+          <span>💻</span>
+          <span>Laptop (86 máy • 12 thuộc tính)</span>
+        </button>
+        <button 
+          type="button" 
+          onclick="switchCategoryTab('phone')" 
+          id="cat-tab-phone" 
+          class="px-5 py-2.5 rounded-t-xl text-warm-muted hover:text-warm-text font-bold text-xs sm:text-sm transition-colors flex items-center gap-2"
+        >
+          <span>📱</span>
+          <span>Điện Thoại Thông Minh (56 máy • 14 thuộc tính)</span>
+        </button>
+      </div>
+
+      <!-- Attributes Table -->
+      <div class="bg-warm-surface border-2 border-warm-text rounded-2xl shadow-brutal overflow-hidden">
+        <div class="p-4 bg-warm-bg border-b-2 border-warm-text flex items-center justify-between">
+          <div class="text-xs font-black text-warm-text uppercase tracking-wider flex items-center gap-2">
+            <span>📋</span>
+            <span id="table-title">Danh Sách Thuộc Tính Ngành Hàng: Laptop</span>
+          </div>
+          <span class="text-[11px] font-mono text-warm-muted">Tự động đồng bộ vào System Prompt LLM</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-warm-surface border-b-2 border-warm-border-subtle text-warm-muted font-black uppercase text-[10px]">
+              <tr>
+                <th class="py-3 px-4">Mã thuộc tính (Key)</th>
+                <th class="py-3 px-4">Tên hiển thị tiếng Việt</th>
+                <th class="py-3 px-4">Kiểu dữ liệu</th>
+                <th class="py-3 px-4">Đơn vị đo</th>
+                <th class="py-3 px-4 text-center">Đưa vào Prompt AI</th>
+                <th class="py-3 px-4 text-center">Cho phép lọc</th>
+                <th class="py-3 px-4 text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="attributes-tbody" class="divide-y-2 divide-warm-border-subtle font-medium">
+              
+              <!-- ATTR 1 -->
+              <tr class="hover:bg-warm-bg/70 transition-colors">
+                <td class="py-3.5 px-4 font-mono font-bold text-warm-text">cpu_model</td>
+                <td class="py-3.5 px-4 font-bold text-warm-text">Vi xử lý (CPU)</td>
+                <td class="py-3.5 px-4"><span class="px-2 py-0.5 rounded bg-warm-pastel-amber font-mono font-bold text-[10px]">string</span></td>
+                <td class="py-3.5 px-4 text-warm-muted">-</td>
+                <td class="py-3.5 px-4 text-center">
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-black text-[10px]">✓ Bắt buộc</span>
+                </td>
+                <td class="py-3.5 px-4 text-center"><span class="text-emerald-700 font-bold">Có</span></td>
+                <td class="py-3.5 px-4 text-right">
+                  <button type="button" onclick="openAttributeModal()" class="text-warm-muted hover:text-warm-text font-bold mr-2">Sửa</button>
+                  <button type="button" class="text-warm-muted hover:text-red-600 font-bold">Xóa</button>
+                </td>
+              </tr>
+
+              <!-- ATTR 2 -->
+              <tr class="hover:bg-warm-bg/70 transition-colors">
+                <td class="py-3.5 px-4 font-mono font-bold text-warm-text">ram_gb</td>
+                <td class="py-3.5 px-4 font-bold text-warm-text">Dung lượng RAM</td>
+                <td class="py-3.5 px-4"><span class="px-2 py-0.5 rounded bg-warm-pastel-sky font-mono font-bold text-[10px] text-sky-900">integer</span></td>
+                <td class="py-3.5 px-4 font-mono font-bold text-warm-text">GB</td>
+                <td class="py-3.5 px-4 text-center">
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-black text-[10px]">✓ Bắt buộc</span>
+                </td>
+                <td class="py-3.5 px-4 text-center"><span class="text-emerald-700 font-bold">Có</span></td>
+                <td class="py-3.5 px-4 text-right">
+                  <button type="button" onclick="openAttributeModal()" class="text-warm-muted hover:text-warm-text font-bold mr-2">Sửa</button>
+                  <button type="button" class="text-warm-muted hover:text-red-600 font-bold">Xóa</button>
+                </td>
+              </tr>
+
+              <!-- ATTR 3 -->
+              <tr class="hover:bg-warm-bg/70 transition-colors">
+                <td class="py-3.5 px-4 font-mono font-bold text-warm-text">battery_hours</td>
+                <td class="py-3.5 px-4 font-bold text-warm-text">Thời lượng Pin thực tế</td>
+                <td class="py-3.5 px-4"><span class="px-2 py-0.5 rounded bg-warm-pastel-mint font-mono font-bold text-[10px] text-emerald-900">float</span></td>
+                <td class="py-3.5 px-4 font-mono font-bold text-warm-text">Giờ (hours)</td>
+                <td class="py-3.5 px-4 text-center">
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-black text-[10px]">✓ Bắt buộc</span>
+                </td>
+                <td class="py-3.5 px-4 text-center"><span class="text-emerald-700 font-bold">Có</span></td>
+                <td class="py-3.5 px-4 text-right">
+                  <button type="button" onclick="openAttributeModal()" class="text-warm-muted hover:text-warm-text font-bold mr-2">Sửa</button>
+                  <button type="button" class="text-warm-muted hover:text-red-600 font-bold">Xóa</button>
+                </td>
+              </tr>
+
+              <!-- ATTR 4 -->
+              <tr class="hover:bg-warm-bg/70 transition-colors">
+                <td class="py-3.5 px-4 font-mono font-bold text-warm-text">weight_kg</td>
+                <td class="py-3.5 px-4 font-bold text-warm-text">Trọng lượng máy</td>
+                <td class="py-3.5 px-4"><span class="px-2 py-0.5 rounded bg-warm-pastel-mint font-mono font-bold text-[10px] text-emerald-900">float</span></td>
+                <td class="py-3.5 px-4 font-mono font-bold text-warm-text">kg</td>
+                <td class="py-3.5 px-4 text-center">
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-black text-[10px]">✓ Bắt buộc</span>
+                </td>
+                <td class="py-3.5 px-4 text-center"><span class="text-emerald-700 font-bold">Có</span></td>
+                <td class="py-3.5 px-4 text-right">
+                  <button type="button" onclick="openAttributeModal()" class="text-warm-muted hover:text-warm-text font-bold mr-2">Sửa</button>
+                  <button type="button" class="text-warm-muted hover:text-red-600 font-bold">Xóa</button>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- MODAL THÊM / SỬA THUỘC TÍNH ĐỘNG -->
+  <div id="attribute-modal" class="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-warm-surface border-2 border-warm-text rounded-3xl shadow-brutal-lg max-w-lg w-full p-6 relative">
+      <button type="button" onclick="closeAttributeModal()" class="absolute top-5 right-5 p-2 rounded-xl border border-warm-text hover:bg-warm-secondary text-xs font-black">✕</button>
+
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-2xl bg-warm-primary border-2 border-warm-text shadow-brutal-xs flex items-center justify-center text-white font-black text-lg">
+          ＋
+        </div>
+        <div>
+          <h2 class="text-xl font-black text-warm-text">Thêm Thuộc Tính Động Mới</h2>
+          <p class="text-xs text-warm-muted font-medium">Thuộc tính sẽ tự động được thêm vào schema JSON của LLM</p>
+        </div>
+      </div>
+
+      <form onsubmit="event.preventDefault(); saveAttribute();" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-warm-text mb-1">Mã thuộc tính (Key - không dấu, snake_case):</label>
+          <input type="text" placeholder="ví dụ: refresh_rate_hz" required class="w-full px-3.5 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-mono text-xs focus:outline-none focus:bg-white shadow-brutal-xs">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-warm-text mb-1">Tên hiển thị tiếng Việt (Label):</label>
+          <input type="text" placeholder="ví dụ: Tần số quét màn hình" required class="w-full px-3.5 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text text-xs focus:outline-none focus:bg-white shadow-brutal-xs">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-warm-text mb-1">Kiểu dữ liệu:</label>
+            <select class="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none shadow-brutal-xs">
+              <option value="integer">Integer (Số nguyên)</option>
+              <option value="float">Float (Số thực)</option>
+              <option value="string">String (Chuỗi ký tự)</option>
+              <option value="boolean">Boolean (Đúng/Sai)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-warm-text mb-1">Đơn vị đo (Unit):</label>
+            <input type="text" placeholder="ví dụ: Hz, GB, mAh..." class="w-full px-3.5 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs focus:outline-none focus:bg-white shadow-brutal-xs">
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2">
+          <label class="flex items-center gap-2.5 text-xs font-bold text-warm-text cursor-pointer">
+            <input type="checkbox" checked class="w-4 h-4 rounded border-2 border-warm-text text-warm-primary">
+            <span>Bắt buộc đưa vào System Prompt để Gemini bóc tách</span>
+          </label>
+          <label class="flex items-center gap-2.5 text-xs font-bold text-warm-text cursor-pointer">
+            <input type="checkbox" checked class="w-4 h-4 rounded border-2 border-warm-text text-warm-primary">
+            <span>Hiển thị trên bộ lọc Sidebar trang tìm kiếm</span>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t-2 border-warm-border-subtle">
+          <button type="button" onclick="closeAttributeModal()" class="px-4 py-2 rounded-xl border-2 border-warm-text bg-warm-surface text-xs font-bold shadow-brutal-xs">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-xl border-2 border-warm-text bg-warm-primary text-warm-primary-text font-black text-xs shadow-brutal-xs">Lưu thuộc tính</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function switchCategoryTab(cat) {
+      const btnLaptop = document.getElementById('cat-tab-laptop');
+      const btnPhone = document.getElementById('cat-tab-phone');
+      const title = document.getElementById('table-title');
+
+      if (cat === 'laptop') {
+        btnLaptop.className = 'px-5 py-2.5 rounded-t-xl border-t-2 border-x-2 border-warm-text bg-warm-surface text-warm-text font-black text-xs sm:text-sm -mb-[2px] shadow-none flex items-center gap-2';
+        btnPhone.className = 'px-5 py-2.5 rounded-t-xl text-warm-muted hover:text-warm-text font-bold text-xs sm:text-sm transition-colors flex items-center gap-2';
+        title.textContent = 'Danh Sách Thuộc Tính Ngành Hàng: Laptop';
+      } else {
+        btnPhone.className = 'px-5 py-2.5 rounded-t-xl border-t-2 border-x-2 border-warm-text bg-warm-surface text-warm-text font-black text-xs sm:text-sm -mb-[2px] shadow-none flex items-center gap-2';
+        btnLaptop.className = 'px-5 py-2.5 rounded-t-xl text-warm-muted hover:text-warm-text font-bold text-xs sm:text-sm transition-colors flex items-center gap-2';
+        title.textContent = 'Danh Sách Thuộc Tính Ngành Hàng: Điện Thoại Thông Minh';
+      }
+    }
+
+    function openAttributeModal() {
+      const modal = document.getElementById('attribute-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeAttributeModal() {
+      const modal = document.getElementById('attribute-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function saveAttribute() {
+      closeAttributeModal();
+      alert('Đã thêm thuộc tính mới và cập nhật System Instruction của Gemini!');
+    }
+  </script>
+
+</body>
+</html>

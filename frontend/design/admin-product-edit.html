@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chỉnh Sửa Sản Phẩm & Cấu Hình Động — Admin</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            warm: {
+              bg: '#FAF8F5',
+              surface: '#FFFFFF',
+              'surface-card': '#FFFFFF',
+              border: '#292524',
+              'border-subtle': '#F3EFE6',
+              primary: '#F59E0B',
+              'primary-hover': '#D97706',
+              'primary-light': '#FEF3C7',
+              'primary-text': '#78350F',
+              secondary: '#FEF3C7',
+              'secondary-hover': '#FDE68A',
+              'secondary-text': '#92400E',
+              accent: '#FBBF24',
+              text: '#292524',
+              muted: '#78716C',
+              hint: '#A8A29E',
+              'pastel-peach': '#FFEDD5',
+              'pastel-sky': '#E0F2FE',
+              'pastel-mint': '#DCFCE7',
+              'pastel-lavender': '#F3E8FF',
+              'pastel-amber': '#FEF3C7',
+            }
+          },
+          boxShadow: {
+            'brutal-xs': '1.5px 1.5px 0px #292524',
+            'brutal-sm': '2px 2px 0px #292524',
+            'brutal': '4px 4px 0px #292524',
+            'brutal-md': '5px 5px 0px #292524',
+            'brutal-lg': '6px 6px 0px #292524',
+          },
+          borderRadius: {
+            'xl': '12px',
+            '2xl': '18px',
+            '3xl': '24px',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <link rel="stylesheet" href="tokens.css">
+  
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #FAF8F5; }
+    ::-webkit-scrollbar-thumb { background: #D7CDB7; border: 1px solid #292524; border-radius: 9999px; }
+    
+    .brutal-card-hover {
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+    .brutal-card-hover:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 5px 5px 0px #292524;
+    }
+    .brutal-button-action {
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .brutal-button-action:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0px 0px 0px #292524;
+    }
+  </style>
+</head>
+<body class="bg-warm-bg text-warm-text font-sans antialiased min-h-screen flex flex-col selection:bg-warm-primary selection:text-white">
+
+  <div class="flex-1 flex flex-col lg:flex-row min-h-screen">
+    
+    <!-- LEFT SIDEBAR -->
+    <aside class="w-full lg:w-72 bg-warm-surface border-b-2 lg:border-b-0 lg:border-r-2 border-warm-text p-4 sm:p-5 flex flex-col justify-between shrink-0 shadow-brutal lg:shadow-none z-30">
+      <div class="space-y-6">
+        <a href="admin-dashboard.html" class="flex items-center gap-3 group focus:outline-none">
+          <div class="w-11 h-11 rounded-2xl border-2 border-warm-text shadow-brutal-xs overflow-hidden group-hover:-translate-y-0.5 transition-all shrink-0">
+            <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
+              <rect width="100" height="100" fill="#F59E0B" />
+              <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
+              <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" fill="none" />
+            </svg>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-base sm:text-lg font-black text-warm-text tracking-tight flex items-center gap-1.5 leading-none">
+              ShoppingAgent
+              <span class="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-full border border-warm-text bg-red-100 text-red-800">Admin</span>
+            </span>
+            <span class="text-[11px] font-bold text-warm-muted mt-0.5">Control Center • Gemini AI</span>
+          </div>
+        </a>
+
+        <nav class="space-y-1.5" aria-label="Menu Quản Trị">
+          <a href="admin-dashboard.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-xs sm:text-sm transition-colors group">
+            <svg class="w-4 h-4 text-warm-muted group-hover:text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+            <span>Tổng quan (Dashboard)</span>
+          </a>
+
+          <a href="admin-products.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs transition-transform -translate-y-0.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
+            <span>Quản lý Sản phẩm</span>
+          </a>
+
+          <a href="admin-categories.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-xs sm:text-sm transition-colors group">
+            <svg class="w-4 h-4 text-warm-muted group-hover:text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/></svg>
+            <span>Ngành hàng & Thuộc tính</span>
+          </a>
+
+          <a href="admin-weights.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-xs sm:text-sm transition-colors group">
+            <svg class="w-4 h-4 text-warm-muted group-hover:text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z"/></svg>
+            <span>Trọng số Xếp hạng</span>
+          </a>
+
+          <a href="admin-reviews.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-xs sm:text-sm transition-colors group">
+            <svg class="w-4 h-4 text-warm-muted group-hover:text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v5.518z"/></svg>
+            <span>Duyệt Review & AI Cache</span>
+          </a>
+
+          <a href="admin-llm-logs.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-xs sm:text-sm transition-colors group">
+            <svg class="w-4 h-4 text-warm-muted group-hover:text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.143 2.143L15 7.5"/></svg>
+            <span>Nhật ký LLM & Chi phí</span>
+          </a>
+
+          <a href="admin-benchmark.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-warm-text hover:bg-warm-secondary hover:text-warm-secondary-text font-bold text-xs sm:text-sm transition-colors group">
+            <svg class="w-4 h-4 text-warm-muted group-hover:text-warm-text" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
+            <span>Benchmark Precision</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="pt-6 border-t-2 border-warm-border-subtle space-y-2">
+        <a href="index.html" class="flex items-center justify-between px-3 py-2 rounded-xl bg-warm-bg hover:bg-warm-secondary border border-warm-text text-xs font-bold transition-all">
+          <span class="flex items-center gap-2"><span>🌐</span><span>Xem Website Người Dùng</span></span>
+          <span>&rarr;</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- RIGHT MAIN CONTENT: PRODUCT SPEC EDITOR (SCR-12) -->
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-5xl w-full mx-auto">
+      
+      <!-- Top Action Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b-2 border-warm-border-subtle">
+        <div class="flex items-center gap-2 text-xs font-bold text-warm-muted">
+          <a href="admin-products.html" class="hover:text-warm-text">&larr; Quay lại danh sách</a>
+          <span>/</span>
+          <span class="text-warm-text">Chỉnh sửa sản phẩm</span>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <a href="admin-products.html" class="px-4 py-2 rounded-xl border-2 border-warm-text bg-warm-surface hover:bg-warm-bg text-warm-text font-bold text-xs shadow-brutal-xs">
+            Hủy bỏ
+          </a>
+          <button type="button" onclick="saveProduct()" class="brutal-button-action px-5 py-2 rounded-xl border-2 border-warm-text bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm shadow-brutal flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            <span>Lưu & Xuất bản</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Editor Header -->
+      <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 sm:p-6 shadow-brutal flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-black text-warm-text tracking-tight">
+            Chỉnh Sửa: Asus Vivobook Pro 15 OLED
+          </h1>
+          <p class="text-xs sm:text-sm text-warm-muted font-medium mt-1">
+            Cấu hình thông số động theo bảng thuộc tính ngành hàng (`category_attributes`) phục vụ trích xuất tiêu chí của Gemini.
+          </p>
+        </div>
+
+        <!-- Mode Switch: Visual Form vs JSON Spec -->
+        <div class="flex items-center gap-1 p-1 bg-warm-bg border-2 border-warm-text rounded-xl shrink-0">
+          <button type="button" onclick="switchSpecMode('form')" id="btn-mode-form" class="px-3 py-1.5 rounded-lg bg-warm-primary text-warm-primary-text font-black text-xs shadow-brutal-xs">
+            Form Trực Quan
+          </button>
+          <button type="button" onclick="switchSpecMode('json')" id="btn-mode-json" class="px-3 py-1.5 rounded-lg text-warm-muted hover:text-warm-text font-bold text-xs">
+            Mã JSON Specs
+          </button>
+        </div>
+      </div>
+
+      <!-- FORM BODY -->
+      <form id="product-form" onsubmit="event.preventDefault(); saveProduct();" class="space-y-6">
+        
+        <!-- BLOCK 1: THÔNG TIN CƠ BẢN -->
+        <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 sm:p-6 shadow-brutal space-y-4">
+          <h3 class="text-sm font-black text-warm-text uppercase tracking-wider flex items-center gap-2">
+            <span>📦</span> 1. Thông Tin Cơ Bản & Định Danh
+          </h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-warm-text mb-1">Tên sản phẩm đầy đủ:</label>
+              <input type="text" value="Asus Vivobook Pro 15 OLED (K6502VU)" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs sm:text-sm focus:outline-none focus:bg-white shadow-brutal-xs">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-warm-text mb-1">Mã SKU / Định danh:</label>
+              <input type="text" value="ASUS-VIVO-15-OLED" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-mono font-bold text-xs focus:outline-none focus:bg-white shadow-brutal-xs">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-warm-text mb-1">Ngành hàng (Category):</label>
+              <select id="category-selector" onchange="switchCategorySpec(this.value)" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs sm:text-sm focus:outline-none focus:bg-white shadow-brutal-xs">
+                <option value="laptop" selected>Laptop</option>
+                <option value="phone">Điện thoại thông minh</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-warm-text mb-1">Thương hiệu (Brand):</label>
+              <input type="text" value="Asus" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs sm:text-sm focus:outline-none focus:bg-white shadow-brutal-xs">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-warm-text mb-1">Giá bán tốt nhất (VNĐ):</label>
+              <input type="number" value="27990000" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-mono font-bold text-xs sm:text-sm focus:outline-none focus:bg-white shadow-brutal-xs">
+            </div>
+
+          </div>
+        </div>
+
+        <!-- BLOCK 2: CLOUDINARY IMAGE MANAGER -->
+        <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 sm:p-6 shadow-brutal space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-black text-warm-text uppercase tracking-wider flex items-center gap-2">
+              <span>🖼️</span> 2. Thư Viện Hình Ảnh (Cloudinary CDN)
+            </h3>
+            <span class="text-xs font-bold text-warm-muted">4 / 8 ảnh</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            
+            <div class="relative group rounded-xl border-2 border-warm-text overflow-hidden shadow-brutal-xs">
+              <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=300&q=80" alt="Ảnh 1" class="w-full h-24 object-cover">
+              <span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-warm-primary text-white text-[9px] font-black border border-warm-text">Cover</span>
+              <button type="button" class="absolute top-1.5 right-1.5 p-1 rounded bg-white text-red-600 border border-warm-text opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+            </div>
+
+            <div class="relative group rounded-xl border-2 border-warm-text overflow-hidden shadow-brutal-xs">
+              <img src="https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&w=300&q=80" alt="Ảnh 2" class="w-full h-24 object-cover">
+              <button type="button" class="absolute top-1.5 right-1.5 p-1 rounded bg-white text-red-600 border border-warm-text opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+            </div>
+
+            <div class="relative group rounded-xl border-2 border-warm-text overflow-hidden shadow-brutal-xs">
+              <img src="https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&w=300&q=80" alt="Ảnh 3" class="w-full h-24 object-cover">
+              <button type="button" class="absolute top-1.5 right-1.5 p-1 rounded bg-white text-red-600 border border-warm-text opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+            </div>
+
+            <!-- Upload Drop Area -->
+            <label class="h-24 rounded-xl border-2 border-dashed border-warm-text bg-warm-bg hover:bg-warm-secondary flex flex-col items-center justify-center cursor-pointer transition-colors text-center p-2">
+              <svg class="w-6 h-6 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+              <span class="text-[11px] font-bold text-warm-text mt-1">Upload ảnh mới</span>
+              <input type="file" class="hidden">
+            </label>
+
+          </div>
+        </div>
+
+        <!-- BLOCK 3: DYNAMIC SPECS EDITOR -->
+        <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 sm:p-6 shadow-brutal space-y-4">
+          
+          <div class="flex items-center justify-between pb-3 border-b-2 border-warm-border-subtle">
+            <div>
+              <h3 class="text-sm font-black text-warm-text uppercase tracking-wider flex items-center gap-2">
+                <span>⚙️</span> 3. Thông Số Kỹ Thuật Động (Dynamic Specs)
+              </h3>
+              <p class="text-xs text-warm-muted font-medium mt-0.5">
+                Các trường này được nạp tự động từ bảng thuộc tính của ngành hàng tương ứng.
+              </p>
+            </div>
+            <span id="spec-category-badge" class="px-2.5 py-0.5 rounded-full text-xs font-black bg-warm-secondary text-warm-secondary-text border border-warm-text">
+              Specs: Laptop
+            </span>
+          </div>
+
+          <!-- VISUAL FORM CONTAINER -->
+          <div id="spec-form-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            
+            <div>
+              <label class="block text-xs font-bold text-warm-text mb-1">Vi xử lý (CPU):</label>
+              <input type="text" value="Intel Core i9-13900H (14 nhân, 20 luồng)" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs focus:outline-none focus:bg-white shadow-brutal-xs">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-warm-text mb-1">RAM (GB):</label>
+              <input type="number" value="32" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-mono font-bold text-xs focus:outline-none focus:bg-white shadow-brutal-xs">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-warm-text mb-1">Dung lượng ổ cứng SSD (GB):</label>
+              <input type="number" value="1024" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-mono font-bold text-xs focus:outline-none focus:bg-white shadow-brutal-xs">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-warm-text mb-1">Card đồ họa (GPU):</label>
+              <input type="text" value="NVIDIA GeForce RTX 4060 8GB GDDR6" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs focus:outline-none focus:bg-white shadow-brutal-xs">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-warm-text mb-1">Kích thước màn hình (inch):</label>
+              <input type="text" value="15.6 inch 2.8K (2880 x 1620) OLED 120Hz" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs focus:outline-none focus:bg-white shadow-brutal-xs">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-warm-text mb-1">Thời lượng Pin thực tế (Giờ):</label>
+              <input type="number" step="0.5" value="7.5" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-mono font-bold text-xs focus:outline-none focus:bg-white shadow-brutal-xs">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-warm-text mb-1">Trọng lượng (kg):</label>
+              <input type="number" step="0.05" value="1.80" class="w-full px-3.5 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-mono font-bold text-xs focus:outline-none focus:bg-white shadow-brutal-xs">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-warm-text mb-1">Khả năng nâng cấp RAM:</label>
+              <select class="w-full px-3.5 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs focus:outline-none focus:bg-white shadow-brutal-xs">
+                <option value="onboard">RAM hàn cứng (Onboard)</option>
+                <option value="upgradable" selected>Nâng cấp được (1 khe trống)</option>
+              </select>
+            </div>
+
+          </div>
+
+          <!-- RAW JSON CONTAINER (HIDDEN BY DEFAULT) -->
+          <div id="spec-json-container" class="hidden">
+            <textarea 
+              rows="10" 
+              class="w-full p-4 rounded-xl border-2 border-warm-text bg-stone-900 text-emerald-400 font-mono text-xs focus:outline-none shadow-brutal-inner"
+            >{
+  "cpu": "Intel Core i9-13900H",
+  "ram_gb": 32,
+  "storage_gb": 1024,
+  "gpu": "NVIDIA GeForce RTX 4060 8GB",
+  "screen_size": 15.6,
+  "screen_panel": "OLED 120Hz 2.8K",
+  "battery_hours": 7.5,
+  "weight_kg": 1.80,
+  "is_ram_upgradable": true
+}</textarea>
+          </div>
+
+        </div>
+
+        <!-- BLOCK 4: AI SUMMARY HINTS -->
+        <div class="bg-warm-secondary border-2 border-warm-text rounded-2xl p-5 shadow-brutal space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="text-base">💡</span>
+            <h3 class="text-xs font-black text-warm-secondary-text uppercase tracking-wider">
+              Gợi Ý Ngữ Cảnh Cho LLM Gemini (System Guidance)
+            </h3>
+          </div>
+          <p class="text-xs text-warm-text font-medium leading-relaxed">
+            Sản phẩm này đặc biệt phù hợp cho các truy vấn có từ khóa: <strong>"Docker", "Lập trình nặng", "Render video 4K", "Đồ họa 3D"</strong>. Màn hình OLED chuẩn màu 100% DCI-P3 là điểm cộng vượt trội so với các đối thủ cùng tầm giá.
+          </p>
+        </div>
+
+      </form>
+
+    </main>
+
+  </div>
+
+  <script>
+    function switchSpecMode(mode) {
+      const formContainer = document.getElementById('spec-form-container');
+      const jsonContainer = document.getElementById('spec-json-container');
+      const btnForm = document.getElementById('btn-mode-form');
+      const btnJson = document.getElementById('btn-mode-json');
+
+      if (mode === 'form') {
+        formContainer.classList.remove('hidden');
+        jsonContainer.classList.add('hidden');
+        btnForm.className = 'px-3 py-1.5 rounded-lg bg-warm-primary text-warm-primary-text font-black text-xs shadow-brutal-xs';
+        btnJson.className = 'px-3 py-1.5 rounded-lg text-warm-muted hover:text-warm-text font-bold text-xs';
+      } else {
+        formContainer.classList.add('hidden');
+        jsonContainer.classList.remove('hidden');
+        btnJson.className = 'px-3 py-1.5 rounded-lg bg-warm-primary text-warm-primary-text font-black text-xs shadow-brutal-xs';
+        btnForm.className = 'px-3 py-1.5 rounded-lg text-warm-muted hover:text-warm-text font-bold text-xs';
+      }
+    }
+
+    function switchCategorySpec(category) {
+      const badge = document.getElementById('spec-category-badge');
+      if (category === 'phone') {
+        badge.textContent = 'Specs: Điện Thoại Thông Minh';
+      } else {
+        badge.textContent = 'Specs: Laptop';
+      }
+    }
+
+    function saveProduct() {
+      alert('Đã cập nhật cấu hình sản phẩm thành công vào hệ thống Database & AI Knowledge Base!');
+      window.location.href = 'admin-products.html';
+    }
+  </script>
+
+</body>
+</html>

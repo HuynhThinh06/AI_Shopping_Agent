@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kết quả Tìm kiếm AI — AI Shopping Agent (SCR-02)</title>
+  
+  <!-- Google Fonts: Plus Jakarta Sans with full Vietnamese accents -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Tailwind Configuration with Warm Minimalist + Soft Neo-Brutalist Box Style -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            warm: {
+              bg: '#FAF8F5',             // Nền tổng thể chính (Kem/Off-white ấm)
+              'bg-alt': '#FDFBF7',         // Nền phụ
+              subtle: '#F5EFE6',         // Nền nhấn nhạt / hover
+              surface: '#FFFFFF',        // Nền Card / Khung nội dung
+              'surface-soft': '#FBF9F5', // Nền sub-box trong card
+              border: '#292524',         // Viền hộp Warm Charcoal 2px
+              'border-subtle': '#E7DFCE',// Viền mảnh nội bộ
+              primary: '#F59E0B',        // Màu chủ đạo: Amber ấm (CTA chính)
+              'primary-hover': '#D97706',// Hover Amber
+              'primary-dark': '#B45309', // Active Amber
+              'primary-text': '#451A03', // Chữ trên nền Amber (đạt tương phản 8.8:1)
+              accent: '#FBBF24',         // Vàng mật ong ấm
+              secondary: '#FEF3C7',      // Nền Butter Yellow mềm (Tag / Badge)
+              'secondary-text': '#92400E',// Chữ cam đất đậm (5.45:1)
+              text: '#292524',           // Warm Charcoal (Tiêu đề & Chữ chính - 12.4:1)
+              muted: '#78716C',          // Warm Stone (Chữ phụ - 4.64:1)
+              hint: '#A8A29E',           // Placeholder & Icon phụ
+              
+              // Màu pastel cho icon container giống phong cách mẫu
+              'pastel-peach': '#FFEDD5',
+              'pastel-sky': '#E0F2FE',
+              'pastel-mint': '#DCFCE7',
+              'pastel-lavender': '#F3E8FF',
+              'pastel-amber': '#FEF3C7',
+            }
+          },
+          boxShadow: {
+            'brutal-xs': '1.5px 1.5px 0px #292524',
+            'brutal-sm': '2px 2px 0px #292524',
+            'brutal': '4px 4px 0px #292524',
+            'brutal-md': '5px 5px 0px #292524',
+            'brutal-lg': '6px 6px 0px #292524',
+            'brutal-xl': '8px 8px 0px #292524',
+          },
+          borderRadius: {
+            'xl': '12px',
+            '2xl': '18px',
+            '3xl': '24px',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <link rel="stylesheet" href="tokens.css">
+  
+  <style>
+    /* Custom scrollbar matching warm theme */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #FAF8F5;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D7CDB7;
+      border: 1px solid #292524;
+      border-radius: 9999px;
+    }
+
+    /* Tactile Clickable Card Transition */
+    .brutal-card-hover {
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+    .brutal-card-hover:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0px #292524;
+    }
+    .brutal-card-hover:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px #292524;
+    }
+
+    /* Tactile Button */
+    .brutal-button-action {
+      transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
+    }
+    .brutal-button-action:hover {
+      transform: translate(-1.5px, -1.5px);
+      box-shadow: 4px 4px 0px #292524;
+    }
+    .brutal-button-action:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0px 0px 0px #292524;
+    }
+  </style>
+</head>
+
+<body class="bg-warm-bg text-warm-text font-sans antialiased min-h-screen flex flex-col selection:bg-warm-secondary selection:text-warm-secondary-text pb-24">
+
+  <!-- =========================================================================
+       1. STICKY TOP NAVBAR (Floating Box Style)
+       ========================================================================= -->
+  <div class="sticky top-3 z-40 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
+    <header class="bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl shadow-brutal px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo (New Yellow Sparkle Star with Smile) -->
+      <a href="index.html" class="flex items-center gap-3 group focus:outline-none shrink-0" aria-label="Về trang chủ">
+        <div class="w-11 h-11 rounded-2xl border-2 border-warm-text shadow-brutal-xs overflow-hidden group-hover:-translate-y-0.5 transition-all shrink-0">
+          <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
+            <defs>
+              <linearGradient id="logoWarmGradResults" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FBBF24" />
+                <stop offset="100%" stop-color="#F59E0B" />
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" fill="url(#logoWarmGradResults)" />
+            <circle cx="73" cy="22" r="7.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <circle cx="23" cy="69" r="6.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
+            <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" fill="none" />
+          </svg>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-lg sm:text-xl font-extrabold text-warm-text tracking-tight flex items-center gap-1.5 leading-none">
+            ShoppingAgent
+            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded-full border border-warm-text bg-warm-secondary text-warm-secondary-text">AI</span>
+          </span>
+          <span class="text-[11px] font-medium text-warm-muted mt-0.5">Trợ lý Mua sắm Thông minh</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Links (Giữ nguyên menu giống index.html, làm NỔI BẬT tab "Tìm kiếm AI") -->
+      <nav class="hidden lg:flex items-center gap-5 xl:gap-7 text-sm font-bold text-warm-text whitespace-nowrap shrink-0" aria-label="Menu chính">
+        <!-- NỔI BẬT TAB TÌM KIẾM AI -->
+        <a href="search-results.html" class="px-3.5 py-1.5 rounded-xl bg-warm-primary text-warm-primary-text border-2 border-warm-text font-black shadow-brutal-xs flex items-center gap-1.5 whitespace-nowrap shrink-0" aria-current="page">
+          <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+          <span>Tìm kiếm AI</span>
+        </a>
+        <a href="category.html?type=laptop" class="hover:text-warm-primary transition-colors text-sm font-bold text-warm-text whitespace-nowrap shrink-0">Laptop</a>
+        <a href="category.html?type=phone" class="hover:text-warm-primary transition-colors text-sm font-bold text-warm-text whitespace-nowrap shrink-0">Điện thoại</a>
+      </nav>
+
+      <!-- Right Actions (Dành cho Khách vãng lai: Đăng ký & Đăng nhập) -->
+      <div class="flex items-center gap-2.5 sm:gap-3 shrink-0 whitespace-nowrap">
+        <button 
+          type="button" 
+          onclick="openAuthModal('register')" 
+          class="brutal-button-action px-3.5 sm:px-4 py-2 rounded-xl bg-warm-secondary hover:bg-warm-pastel-amber text-warm-secondary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs cursor-pointer whitespace-nowrap shrink-0"
+        >
+          Đăng ký
+        </button>
+
+        <button 
+          type="button" 
+          onclick="openAuthModal('login')" 
+          class="brutal-button-action px-3.5 sm:px-4 py-2 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H3" />
+          </svg>
+          <span>Đăng nhập</span>
+        </button>
+      </div>
+
+    </header>
+  </div>
+
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 mt-5">
+
+    <!-- =========================================================================
+         SEARCH OMNIBOX BAR (Để người dùng gõ / tinh chỉnh câu hỏi dễ dàng)
+         ========================================================================= -->
+    <section id="search-omnibox-section" class="bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-brutal-md mb-6">
+      <form onsubmit="event.preventDefault(); triggerNewSearch();" class="relative">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          
+          <div class="hidden sm:flex w-10 h-10 rounded-xl bg-warm-pastel-amber border-2 border-warm-text items-center justify-center text-warm-text shadow-brutal-xs shrink-0">
+            <svg class="w-5 h-5 text-warm-secondary-text" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+          </div>
+
+          <div class="flex-1 relative">
+            <input 
+              type="text" 
+              id="header-query-input"
+              value="Tìm laptop lập trình web và đồ họa nhẹ tầm 20 đến 25 triệu, RAM 16GB, pin trâu" 
+              placeholder="Nhập câu hỏi mua sắm tự nhiên..."
+              class="w-full bg-warm-bg border-2 border-warm-text rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold text-warm-text placeholder-warm-hint focus:outline-none focus:bg-white shadow-brutal-xs"
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            class="brutal-button-action px-5 py-2.5 bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white border-2 border-warm-text rounded-xl text-xs sm:text-sm font-extrabold shadow-brutal-xs flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span>Phân tích & Tìm</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- =========================================================================
+         2. LLM INTENT EXTRACTION BANNER (Trọng tâm SCR-02)
+         ========================================================================= -->
+    <section class="bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-brutal-md mb-8">
+      
+      <!-- Top meta: Model name, latency, token count -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pb-3.5 border-b-2 border-warm-text/10">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-warm-text bg-warm-pastel-amber text-warm-secondary-text font-extrabold text-xs shadow-brutal-xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 border border-warm-text animate-pulse"></span>
+            Gemini 3.8 Flash • Criteria Extracted
+          </span>
+          <span class="text-xs text-warm-muted font-semibold hidden md:inline">
+            Độ trễ: <strong>280ms</strong> • Tokens tiêu thụ: <strong>68</strong>
+          </span>
+        </div>
+
+        <div class="flex items-center gap-2 text-xs">
+          <span class="text-warm-muted font-medium">Độ khớp nhu cầu:</span>
+          <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-400 font-extrabold text-xs">
+            98.4% Tự tin
+          </span>
+        </div>
+      </div>
+
+      <!-- Current natural language query -->
+      <div class="mt-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-warm-muted block mb-0.5">Câu hỏi gốc từ bạn:</span>
+          <h1 class="text-base sm:text-lg font-extrabold text-warm-text tracking-tight flex items-center gap-2">
+            <span class="text-warm-primary">“</span>
+            <span id="current-query-display">Tìm laptop lập trình web và đồ họa nhẹ tầm 20 đến 25 triệu, RAM 16GB, pin trâu</span>
+            <span class="text-warm-primary">”</span>
+          </h1>
+        </div>
+
+        <button 
+          type="button" 
+          onclick="openEditCriteriaModal()" 
+          class="brutal-button-action self-start md:self-auto px-3.5 py-1.5 rounded-xl bg-warm-secondary text-warm-secondary-text border-2 border-warm-text text-xs font-bold shadow-brutal-xs flex items-center gap-1.5 cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+          </svg>
+          <span>Sửa tiêu chí AI</span>
+        </button>
+      </div>
+
+      <!-- Editable Extracted Criteria Pills -->
+      <div class="mt-4 pt-4 border-t border-warm-border-subtle">
+        <div class="text-[11px] font-extrabold text-warm-muted uppercase tracking-wider mb-2">
+          Các ràng buộc hệ thống đã trích xuất & áp dụng xếp hạng:
+        </div>
+        
+        <div id="criteria-pills-row" class="flex flex-wrap gap-2 text-xs">
+          <!-- Category -->
+          <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-sky border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
+            <span class="text-warm-muted font-medium">Ngành hàng:</span>
+            <span>Laptop</span>
+          </div>
+
+          <!-- Budget Range -->
+          <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-amber border-2 border-warm-text font-extrabold text-warm-secondary-text shadow-brutal-xs">
+            <span class="font-medium text-warm-secondary-text">Ngân sách:</span>
+            <span>20.000.000đ – 25.000.000đ</span>
+            <button type="button" onclick="quickEditPill('budget')" class="hover:text-warm-primary-dark ml-1 text-sm font-bold" title="Chỉnh sửa">✎</button>
+          </div>
+
+          <!-- RAM -->
+          <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-mint border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
+            <span class="text-warm-muted font-medium">Bộ nhớ RAM:</span>
+            <span>≥ 16GB</span>
+            <button type="button" onclick="quickEditPill('ram')" class="hover:text-warm-primary-dark ml-1 text-sm font-bold" title="Chỉnh sửa">✎</button>
+          </div>
+
+          <!-- Battery -->
+          <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-peach border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
+            <span class="text-warm-muted font-medium">Thời lượng Pin:</span>
+            <span>Pin trâu (&gt; 8 giờ)</span>
+            <button type="button" onclick="quickEditPill('battery')" class="hover:text-warm-primary-dark ml-1 text-sm font-bold" title="Chỉnh sửa">✎</button>
+          </div>
+
+          <!-- Purpose -->
+          <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-lavender border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
+            <span class="text-warm-muted font-medium">Nhu cầu trọng tâm:</span>
+            <span>Lập trình Web & Đồ họa nhẹ</span>
+          </div>
+
+          <!-- Display -->
+          <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
+            <span class="text-warm-muted font-medium">Màn hình:</span>
+            <span>Màu chuẩn / Tần số quét cao</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- =====================================================================
+           3. WEIGHTED SCORING PRESET BAR (Điều chỉnh trọng số tức thì)
+           ===================================================================== -->
+      <div class="mt-4 pt-4 border-t-2 border-warm-text/10 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="font-extrabold text-warm-text flex items-center gap-1">
+            <svg class="w-4 h-4 text-warm-primary" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+            </svg>
+            Thuật toán Weighted Scoring:
+          </span>
+          <span class="text-warm-muted hidden sm:inline">Chọn chiến lược ưu tiên:</span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-1.5" role="tablist">
+          <button 
+            type="button" 
+            onclick="setAlgorithmPreset('balanced', this)" 
+            class="algo-preset-btn brutal-button-action px-3 py-1.5 rounded-xl border-2 border-warm-text bg-warm-primary text-warm-primary-text font-extrabold text-xs shadow-brutal-xs cursor-pointer"
+          >
+            ⚖️ Cân bằng AI (Mặc định)
+          </button>
+          
+          <button 
+            type="button" 
+            onclick="setAlgorithmPreset('spec', this)" 
+            class="algo-preset-btn brutal-button-action px-3 py-1.5 rounded-xl border-2 border-warm-text bg-warm-surface text-warm-text font-bold text-xs shadow-brutal-xs cursor-pointer hover:bg-warm-secondary"
+          >
+            🚀 Ưu tiên Cấu hình (60%)
+          </button>
+
+          <button 
+            type="button" 
+            onclick="setAlgorithmPreset('price', this)" 
+            class="algo-preset-btn brutal-button-action px-3 py-1.5 rounded-xl border-2 border-warm-text bg-warm-surface text-warm-text font-bold text-xs shadow-brutal-xs cursor-pointer hover:bg-warm-secondary"
+          >
+            💰 Ưu tiên Giá mềm (60%)
+          </button>
+
+          <button 
+            type="button" 
+            onclick="setAlgorithmPreset('review', this)" 
+            class="algo-preset-btn brutal-button-action px-3 py-1.5 rounded-xl border-2 border-warm-text bg-warm-surface text-warm-text font-bold text-xs shadow-brutal-xs cursor-pointer hover:bg-warm-secondary"
+          >
+            ⭐ Ưu tiên Review tốt (50%)
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =========================================================================
+         4. MAIN CONTENT LAYOUT: SIDEBAR FILTERS + RESULTS
+         ========================================================================= -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- =====================================================================
+           LEFT SIDEBAR: BỘ LỌC TIÊU CHÍ (FACETED FILTERS)
+           ===================================================================== -->
+      <aside class="lg:col-span-4 bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-5 shadow-brutal space-y-6">
+        
+        <div class="flex items-center justify-between pb-3 border-b-2 border-warm-text/10">
+          <h2 class="text-sm font-extrabold uppercase tracking-wide text-warm-text flex items-center gap-2">
+            <svg class="w-4 h-4 text-warm-primary" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+            </svg>
+            Bộ Lọc Nâng Cao
+          </h2>
+          <button 
+            type="button" 
+            onclick="resetAllFilters()" 
+            class="text-[11px] font-bold text-warm-secondary-text hover:underline cursor-pointer"
+          >
+            Thiết lập lại
+          </button>
+        </div>
+
+        <!-- Filter 1: Mức giá -->
+        <div>
+          <label class="block text-xs font-extrabold text-warm-text mb-2">Khoảng giá mong muốn:</label>
+          <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+            <button type="button" class="filter-chip-price px-2.5 py-1.5 rounded-xl border border-warm-text bg-warm-bg font-bold text-warm-text shadow-brutal-xs hover:bg-warm-secondary">15 - 20 triệu</button>
+            <button type="button" class="filter-chip-price px-2.5 py-1.5 rounded-xl border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-extrabold shadow-brutal-xs">20 - 25 triệu ✓</button>
+            <button type="button" class="filter-chip-price px-2.5 py-1.5 rounded-xl border border-warm-text bg-warm-bg font-bold text-warm-text shadow-brutal-xs hover:bg-warm-secondary">25 - 30 triệu</button>
+            <button type="button" class="filter-chip-price px-2.5 py-1.5 rounded-xl border border-warm-text bg-warm-bg font-bold text-warm-text shadow-brutal-xs hover:bg-warm-secondary">Trên 30 triệu</button>
+          </div>
+          <div class="flex items-center gap-2 text-xs font-mono">
+            <input type="text" value="20.000.000" class="w-full bg-warm-bg border border-warm-text rounded-lg px-2 py-1 text-center font-bold">
+            <span>–</span>
+            <input type="text" value="25.000.000" class="w-full bg-warm-bg border border-warm-text rounded-lg px-2 py-1 text-center font-bold">
+          </div>
+        </div>
+
+        <!-- Filter 2: Thương hiệu (Brands) -->
+        <div class="pt-4 border-t border-warm-border-subtle">
+          <label class="block text-xs font-extrabold text-warm-text mb-2">Thương hiệu:</label>
+          <div class="space-y-1.5 text-xs font-medium">
+            <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/50 cursor-pointer">
+              <span class="flex items-center gap-2">
+                <input type="checkbox" checked class="accent-warm-primary w-4 h-4 rounded">
+                <span class="font-bold text-warm-text">Lenovo</span>
+              </span>
+              <span class="text-warm-muted text-[11px]">4 máy</span>
+            </label>
+            <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/50 cursor-pointer">
+              <span class="flex items-center gap-2">
+                <input type="checkbox" checked class="accent-warm-primary w-4 h-4 rounded">
+                <span class="font-bold text-warm-text">ASUS</span>
+              </span>
+              <span class="text-warm-muted text-[11px]">3 máy</span>
+            </label>
+            <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/50 cursor-pointer">
+              <span class="flex items-center gap-2">
+                <input type="checkbox" checked class="accent-warm-primary w-4 h-4 rounded">
+                <span class="font-bold text-warm-text">Apple (MacBook)</span>
+              </span>
+              <span class="text-warm-muted text-[11px]">2 máy</span>
+            </label>
+            <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/50 cursor-pointer">
+              <span class="flex items-center gap-2">
+                <input type="checkbox" class="accent-warm-primary w-4 h-4 rounded">
+                <span class="text-warm-text">Acer</span>
+              </span>
+              <span class="text-warm-muted text-[11px]">2 máy</span>
+            </label>
+            <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/50 cursor-pointer">
+              <span class="flex items-center gap-2">
+                <input type="checkbox" class="accent-warm-primary w-4 h-4 rounded">
+                <span class="text-warm-text">Dell / HP</span>
+              </span>
+              <span class="text-warm-muted text-[11px]">3 máy</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Filter 3: Dung lượng RAM -->
+        <div class="pt-4 border-t border-warm-border-subtle">
+          <label class="block text-xs font-extrabold text-warm-text mb-2">Dung lượng RAM:</label>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button type="button" class="px-3 py-1.5 rounded-xl border border-warm-text bg-warm-bg font-bold text-warm-text shadow-brutal-xs hover:bg-warm-secondary">8GB</button>
+            <button type="button" class="px-3 py-1.5 rounded-xl border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-extrabold shadow-brutal-xs">16GB (Chuẩn) ✓</button>
+            <button type="button" class="px-3 py-1.5 rounded-xl border border-warm-text bg-warm-bg font-bold text-warm-text shadow-brutal-xs hover:bg-warm-secondary">32GB</button>
+          </div>
+        </div>
+
+        <!-- Filter 4: Vi xử lý (Processor) -->
+        <div class="pt-4 border-t border-warm-border-subtle">
+          <label class="block text-xs font-extrabold text-warm-text mb-2">Thế hệ Chip xử lý:</label>
+          <div class="space-y-1.5 text-xs">
+            <label class="flex items-center gap-2 cursor-pointer font-bold text-warm-text">
+              <input type="checkbox" checked class="accent-warm-primary w-4 h-4">
+              <span>Intel Core Ultra (Gen 14 / AI Boost)</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer font-bold text-warm-text">
+              <input type="checkbox" checked class="accent-warm-primary w-4 h-4">
+              <span>Apple Silicon (M2 / M3)</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-warm-text">
+              <input type="checkbox" class="accent-warm-primary w-4 h-4">
+              <span>AMD Ryzen 7 / 8000 Series</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-warm-text">
+              <input type="checkbox" class="accent-warm-primary w-4 h-4">
+              <span>Intel Core i5 / i7 Gen 13</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Filter 5: Đặc điểm nổi bật -->
+        <div class="pt-4 border-t border-warm-border-subtle">
+          <label class="block text-xs font-extrabold text-warm-text mb-2">Tính năng ưu tiên:</label>
+          <div class="space-y-1.5 text-xs">
+            <label class="flex items-center gap-2 cursor-pointer font-bold text-warm-text">
+              <input type="checkbox" checked class="accent-warm-primary w-4 h-4">
+              <span>Pin trâu trên 8 tiếng (Học tập & Dev)</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer font-bold text-warm-text">
+              <input type="checkbox" checked class="accent-warm-primary w-4 h-4">
+              <span>Màn hình 100% sRGB / 2.8K nét</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-warm-text">
+              <input type="checkbox" class="accent-warm-primary w-4 h-4">
+              <span>Mỏng nhẹ dưới 1.4kg</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-warm-text">
+              <input type="checkbox" class="accent-warm-primary w-4 h-4">
+              <span>Vỏ nhôm nguyên khối</span>
+            </label>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- =====================================================================
+           RIGHT MAIN AREA: TOOLBAR + SẢN PHẨM XẾP HẠNG
+           ===================================================================== -->
+      <section class="lg:col-span-8 space-y-5">
+        
+        <!-- Results Header Toolbar -->
+        <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 shadow-brutal-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          
+          <div>
+            <span class="text-xs sm:text-sm font-extrabold text-warm-text">
+              Tìm thấy <span class="text-warm-secondary-text bg-warm-secondary px-2 py-0.5 rounded-md border border-warm-text">6 thiết bị</span> phù hợp tiêu chí
+            </span>
+            <span class="text-xs text-warm-muted block mt-0.5 font-medium">Được sắp xếp tự động theo thuật toán chấm điểm đa tiêu chí</span>
+          </div>
+
+          <!-- Controls: Sort & Layout switcher -->
+          <div class="flex items-center gap-2">
+            <!-- Sort dropdown -->
+            <label for="sort-select" class="sr-only">Sắp xếp</label>
+            <select 
+              id="sort-select" 
+              onchange="changeSortOrder(this.value)"
+              class="bg-warm-bg border-2 border-warm-text rounded-xl px-3 py-1.5 text-xs font-bold text-warm-text shadow-brutal-xs focus:outline-none cursor-pointer"
+            >
+              <option value="score">★ Điểm AI Xếp hạng cao nhất</option>
+              <option value="price_asc">Giá: Thấp đến cao</option>
+              <option value="price_desc">Giá: Cao đến thấp</option>
+              <option value="rating">Đánh giá sao người dùng</option>
+            </select>
+
+            <!-- Layout switch buttons -->
+            <div class="hidden sm:flex items-center border-2 border-warm-text rounded-xl overflow-hidden shadow-brutal-xs">
+              <button 
+                type="button" 
+                onclick="setLayoutView('list')" 
+                id="btn-layout-list"
+                class="p-1.5 bg-warm-primary text-warm-primary-text font-bold"
+                title="Dạng thẻ ngang (như ảnh mẫu)"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+              </button>
+              <button 
+                type="button" 
+                onclick="setLayoutView('grid')" 
+                id="btn-layout-grid"
+                class="p-1.5 bg-warm-surface text-warm-text font-bold hover:bg-warm-subtle"
+                title="Dạng lưới"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- LIST OF RANKED PRODUCTS (Áp dụng cấu trúc Thẻ ngang Hộp LearnHub) -->
+        <div id="results-container" class="space-y-5">
+          
+          <!-- ITEM 1: TOP 1 - Lenovo ThinkBook 14 G6+ (96.8 / 100) -->
+          <article class="product-result-card brutal-card-hover bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-brutal flex flex-col justify-between">
+            <div>
+              <!-- Top Row: Compare checkbox + Icon + Title + Score Badge -->
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 sm:gap-4">
+                  <!-- Compare Checkbox -->
+                  <div class="pt-2">
+                    <input 
+                      type="checkbox" 
+                      id="compare-1" 
+                      checked 
+                      onchange="toggleCompareItem(1, 'Lenovo ThinkBook 14 G6+', '20.890.000đ', this)" 
+                      class="w-4 h-4 rounded accent-warm-primary border-2 border-warm-text cursor-pointer"
+                      title="Chọn so sánh"
+                    >
+                  </div>
+
+                  <!-- Pastel Peach Icon Box (như LearnHub) -->
+                  <div class="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-warm-pastel-peach border-2 border-warm-text flex items-center justify-center text-warm-text shadow-brutal-xs shrink-0">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                      <rect x="3" y="4" width="18" height="12" rx="2" />
+                      <path d="M2 18h20v2H2z" />
+                      <path d="M9 16h6" />
+                    </svg>
+                  </div>
+
+                  <div>
+                    <div class="flex items-center gap-2 mb-0.5">
+                      <span class="px-2 py-0.2 rounded-md bg-warm-pastel-amber border border-warm-text font-extrabold text-[10px] text-warm-secondary-text">HẠNG #1 ĐỀ XUẤT</span>
+                      <span class="text-xs text-warm-muted font-bold">SKU: TB-14G6P-2024</span>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-extrabold text-warm-text tracking-tight hover:text-warm-primary transition-colors cursor-pointer" onclick="openDetailModal('Lenovo ThinkBook 14 G6+ IMH', '20.890.000đ', '96.8%')">
+                      Lenovo ThinkBook 14 G6+ IMH (2024)
+                    </h3>
+                    <p class="text-xs text-warm-muted font-medium">
+                      bởi Lenovo • Intel Core Ultra 5 125H • 16GB LPDDR5X • 512GB PCIe 4.0
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Star Rating Badge (Giống ★ 4.9 trong LearnHub) -->
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-black text-xs sm:text-sm shadow-brutal-xs shrink-0">
+                  <span class="text-warm-primary">★</span>
+                  <span>96.8 / 100</span>
+                </div>
+              </div>
+
+              <!-- Metadata Specs row -->
+              <div class="mt-4 pt-3 border-t border-warm-border-subtle flex flex-wrap items-center gap-4 text-xs font-bold text-warm-text">
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  <span>14.5" 2.8K (2880x1800) 90Hz 100% sRGB</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span>Pin 85Wh (~9.5h Code & Lướt web)</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                  <span>342 Đánh giá (4.8/5 ★)</span>
+                </span>
+              </div>
+
+              <!-- Weighted Score Breakdown Visualizer (Minh bạch công thức AI) -->
+              <div class="mt-3 p-2.5 rounded-xl bg-warm-bg border border-warm-text/20 text-[11px] font-medium flex flex-wrap items-center justify-between gap-2">
+                <span class="font-extrabold text-warm-text">Phân rã điểm thành phần:</span>
+                <div class="flex items-center gap-3">
+                  <span class="flex items-center gap-1">💻 Cấu hình: <strong class="text-warm-text">96/100</strong></span>
+                  <span>•</span>
+                  <span class="flex items-center gap-1">💰 Giá tiền: <strong class="text-warm-text">92/100</strong></span>
+                  <span>•</span>
+                  <span class="flex items-center gap-1">⭐ Đánh giá: <strong class="text-warm-text">98/100</strong></span>
+                </div>
+              </div>
+
+              <!-- AI Review Pros & Cons summary box -->
+              <div class="mt-3 p-3 rounded-xl bg-warm-surface-soft border border-warm-text/20 text-xs">
+                <span class="font-bold text-warm-text flex items-center gap-1 mb-1">
+                  <span class="w-2 h-2 rounded-full bg-warm-primary"></span>
+                  AI Review Tóm tắt từ 342 người mua:
+                </span>
+                <p class="text-emerald-800 font-medium">✓ Bàn phím hành trình sâu 1.5mm cực êm cho lập trình viên, build nhôm nguyên khối đầm tay, màn hình nét.</p>
+                <p class="text-warm-secondary-text font-medium mt-0.5">⚠ Củ sạc 100W đi kèm hơi to, quạt có tiếng gió nhẹ khi build code nặng.</p>
+              </div>
+            </div>
+
+            <!-- Footer Price & CTAs -->
+            <div class="mt-4 pt-3.5 border-t-2 border-warm-text/10 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span class="text-xs text-warm-muted line-through">23.990.000đ</span>
+                <span class="text-lg sm:text-xl font-extrabold text-warm-text ml-2">20.890.000đ</span>
+                <span class="ml-2 px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px] border border-emerald-400">Tiết kiệm 3.1M</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button 
+                  type="button" 
+                  onclick="openDetailModal('Lenovo ThinkBook 14 G6+ IMH', '20.890.000đ', '96.8%')"
+                  class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text text-xs font-bold shadow-brutal-xs hover:bg-warm-subtle cursor-pointer"
+                >
+                  Xem phân tích
+                </button>
+                <a 
+                  href="#" 
+                  class="brutal-button-action px-4 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white border-2 border-warm-text text-xs font-extrabold shadow-brutal-xs cursor-pointer flex items-center gap-1"
+                >
+                  <span>Mua ngay</span>
+                  <span>→</span>
+                </a>
+              </div>
+            </div>
+          </article>
+
+          <!-- ITEM 2: TOP 2 - ASUS Zenbook 14 OLED (95.2 / 100) -->
+          <article class="product-result-card brutal-card-hover bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-brutal flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 sm:gap-4">
+                  <div class="pt-2">
+                    <input 
+                      type="checkbox" 
+                      id="compare-2" 
+                      checked 
+                      onchange="toggleCompareItem(2, 'ASUS Zenbook 14 OLED', '24.490.000đ', this)" 
+                      class="w-4 h-4 rounded accent-warm-primary border-2 border-warm-text cursor-pointer"
+                      title="Chọn so sánh"
+                    >
+                  </div>
+
+                  <!-- Pastel Sky Blue Icon Box -->
+                  <div class="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-warm-pastel-sky border-2 border-warm-text flex items-center justify-center text-warm-text shadow-brutal-xs shrink-0">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                    </svg>
+                  </div>
+
+                  <div>
+                    <div class="flex items-center gap-2 mb-0.5">
+                      <span class="px-2 py-0.2 rounded-md bg-warm-pastel-sky border border-warm-text font-extrabold text-[10px] text-warm-text">HẠNG #2 ĐỀ XUẤT</span>
+                      <span class="text-xs text-warm-muted font-bold">SKU: ASUS-UX3405</span>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-extrabold text-warm-text tracking-tight hover:text-warm-primary transition-colors cursor-pointer" onclick="openDetailModal('ASUS Zenbook 14 OLED UX3405', '24.490.000đ', '95.2%')">
+                      ASUS Zenbook 14 OLED UX3405
+                    </h3>
+                    <p class="text-xs text-warm-muted font-medium">
+                      bởi ASUS • Intel Core Ultra 7 155H • 16GB LPDDR5X • 1TB PCIe 4.0
+                    </p>
+                  </div>
+                </div>
+
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-black text-xs sm:text-sm shadow-brutal-xs shrink-0">
+                  <span class="text-warm-primary">★</span>
+                  <span>95.2 / 100</span>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-warm-border-subtle flex flex-wrap items-center gap-4 text-xs font-bold text-warm-text">
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  <span>14" 3K OLED 120Hz 100% DCI-P3 600 nits</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span>Pin 75Wh (11h xem video / văn phòng)</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                  <span>218 Đánh giá (4.9/5 ★)</span>
+                </span>
+              </div>
+
+              <div class="mt-3 p-2.5 rounded-xl bg-warm-bg border border-warm-text/20 text-[11px] font-medium flex flex-wrap items-center justify-between gap-2">
+                <span class="font-extrabold text-warm-text">Phân rã điểm thành phần:</span>
+                <div class="flex items-center gap-3">
+                  <span class="flex items-center gap-1">💻 Cấu hình: <strong class="text-warm-text">98/100</strong></span>
+                  <span>•</span>
+                  <span class="flex items-center gap-1">💰 Giá tiền: <strong class="text-warm-text">88/100</strong></span>
+                  <span>•</span>
+                  <span class="flex items-center gap-1">⭐ Đánh giá: <strong class="text-warm-text">99/100</strong></span>
+                </div>
+              </div>
+
+              <div class="mt-3 p-3 rounded-xl bg-warm-surface-soft border border-warm-text/20 text-xs">
+                <span class="font-bold text-warm-text flex items-center gap-1 mb-1">
+                  <span class="w-2 h-2 rounded-full bg-warm-primary"></span>
+                  AI Review Tóm tắt:
+                </span>
+                <p class="text-emerald-800 font-medium">✓ Màn hình OLED hiển thị màu đen sâu tuyệt đối, màu chuẩn cho đồ họa, loa Harman Kardon to ấm.</p>
+                <p class="text-warm-secondary-text font-medium mt-0.5">⚠ Màn gương hơi phản quang nhẹ khi ngồi ngoài sân, giá cao hơn ThinkBook ~3.5M.</p>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3.5 border-t-2 border-warm-text/10 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span class="text-xs text-warm-muted line-through">26.990.000đ</span>
+                <span class="text-lg sm:text-xl font-extrabold text-warm-text ml-2">24.490.000đ</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button 
+                  type="button" 
+                  onclick="openDetailModal('ASUS Zenbook 14 OLED UX3405', '24.490.000đ', '95.2%')"
+                  class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text text-xs font-bold shadow-brutal-xs hover:bg-warm-subtle cursor-pointer"
+                >
+                  Xem phân tích
+                </button>
+                <a 
+                  href="#" 
+                  class="brutal-button-action px-4 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white border-2 border-warm-text text-xs font-extrabold shadow-brutal-xs cursor-pointer flex items-center gap-1"
+                >
+                  <span>Mua ngay</span>
+                  <span>→</span>
+                </a>
+              </div>
+            </div>
+          </article>
+
+          <!-- ITEM 3: TOP 3 - Apple MacBook Air M2 13.6" (93.6 / 100) -->
+          <article class="product-result-card brutal-card-hover bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-brutal flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 sm:gap-4">
+                  <div class="pt-2">
+                    <input 
+                      type="checkbox" 
+                      id="compare-3" 
+                      onchange="toggleCompareItem(3, 'MacBook Air M2', '22.890.000đ', this)" 
+                      class="w-4 h-4 rounded accent-warm-primary border-2 border-warm-text cursor-pointer"
+                      title="Chọn so sánh"
+                    >
+                  </div>
+
+                  <!-- Pastel Mint Icon Box -->
+                  <div class="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-warm-pastel-mint border-2 border-warm-text flex items-center justify-center text-warm-text shadow-brutal-xs shrink-0">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                    </svg>
+                  </div>
+
+                  <div>
+                    <div class="flex items-center gap-2 mb-0.5">
+                      <span class="px-2 py-0.2 rounded-md bg-warm-pastel-mint border border-warm-text font-extrabold text-[10px] text-warm-text">HẠNG #3 ĐỀ XUẤT</span>
+                      <span class="text-xs text-warm-muted font-bold">SKU: MBA-M2-16GB</span>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-extrabold text-warm-text tracking-tight hover:text-warm-primary transition-colors cursor-pointer" onclick="openDetailModal('Apple MacBook Air M2 13.6', '22.890.000đ', '93.6%')">
+                      Apple MacBook Air M2 (16GB / 256GB)
+                    </h3>
+                    <p class="text-xs text-warm-muted font-medium">
+                      bởi Apple • Apple M2 8-Core • 16GB Unified Memory • Pin 18 tiếng
+                    </p>
+                  </div>
+                </div>
+
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-black text-xs sm:text-sm shadow-brutal-xs shrink-0">
+                  <span class="text-warm-primary">★</span>
+                  <span>93.6 / 100</span>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-warm-border-subtle flex flex-wrap items-center gap-4 text-xs font-bold text-warm-text">
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  <span>13.6" Liquid Retina 500 nits P3</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span>Pin siêu trâu (~14h thực tế) • Fanless</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-warm-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                  <span>482 Đánh giá (4.9/5 ★)</span>
+                </span>
+              </div>
+
+              <div class="mt-3 p-2.5 rounded-xl bg-warm-bg border border-warm-text/20 text-[11px] font-medium flex flex-wrap items-center justify-between gap-2">
+                <span class="font-extrabold text-warm-text">Phân rã điểm thành phần:</span>
+                <div class="flex items-center gap-3">
+                  <span class="flex items-center gap-1">💻 Cấu hình: <strong class="text-warm-text">91/100</strong></span>
+                  <span>•</span>
+                  <span class="flex items-center gap-1">💰 Giá tiền: <strong class="text-warm-text">92/100</strong></span>
+                  <span>•</span>
+                  <span class="flex items-center gap-1">⭐ Đánh giá: <strong class="text-warm-text">99/100</strong></span>
+                </div>
+              </div>
+
+              <div class="mt-3 p-3 rounded-xl bg-warm-surface-soft border border-warm-text/20 text-xs">
+                <span class="font-bold text-warm-text flex items-center gap-1 mb-1">
+                  <span class="w-2 h-2 rounded-full bg-warm-primary"></span>
+                  AI Review Tóm tắt:
+                </span>
+                <p class="text-emerald-800 font-medium">✓ Thời lượng pin vô địch không đối thủ, thiết kế siêu mỏng 1.24kg, bàn di chuột mượt mà nhất thị trường.</p>
+                <p class="text-warm-secondary-text font-medium mt-0.5">⚠ Bản 256GB tốc độ SSD đọc ghi chậm hơn bản 512GB, chỉ xuất được 1 màn hình ngoài.</p>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3.5 border-t-2 border-warm-text/10 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span class="text-xs text-warm-muted line-through">25.490.000đ</span>
+                <span class="text-lg sm:text-xl font-extrabold text-warm-text ml-2">22.890.000đ</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button 
+                  type="button" 
+                  onclick="openDetailModal('Apple MacBook Air M2 13.6', '22.890.000đ', '93.6%')"
+                  class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text text-xs font-bold shadow-brutal-xs hover:bg-warm-subtle cursor-pointer"
+                >
+                  Xem phân tích
+                </button>
+                <a 
+                  href="#" 
+                  class="brutal-button-action px-4 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white border-2 border-warm-text text-xs font-extrabold shadow-brutal-xs cursor-pointer flex items-center gap-1"
+                >
+                  <span>Mua ngay</span>
+                  <span>→</span>
+                </a>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+        <!-- Pagination / Load more -->
+        <div class="pt-6 pb-2 text-center">
+          <button 
+            type="button" 
+            class="brutal-button-action px-6 py-3 rounded-2xl bg-warm-surface hover:bg-warm-subtle text-warm-text border-2 border-warm-text font-extrabold text-xs sm:text-sm shadow-brutal-sm cursor-pointer"
+          >
+            Tải thêm 3 sản phẩm tiếp theo (Xem thêm)
+          </button>
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- =========================================================================
+       FOOTER
+       ========================================================================= -->
+  <footer class="bg-warm-surface border-t-2 border-warm-text py-10 text-xs text-warm-muted mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl border-2 border-warm-text shadow-brutal-xs overflow-hidden shrink-0">
+          <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
+            <rect width="100" height="100" fill="#F59E0B" />
+            <circle cx="73" cy="22" r="7.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <circle cx="23" cy="69" r="6.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
+            <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" fill="none" />
+          </svg>
+        </div>
+        <span class="font-extrabold text-warm-text text-sm">ShoppingAgent AI © 2025</span>
+      </div>
+      <p class="text-warm-muted font-medium">Thiết kế theo phong cách Soft-Brutalist Box (Trắng – Vàng ấm + Hard Offset Shadow).</p>
+      <div class="flex items-center gap-4 font-bold text-warm-text">
+        <a href="index.html" class="hover:text-warm-primary">Về Trang chủ</a>
+        <a href="#search-omnibox-section" class="hover:text-warm-primary">Lên đầu trang ↑</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- =========================================================================
+       5. FLOATING COMPARISON BOTTOM BAR (Hiển thị khi tick chọn so sánh)
+       ========================================================================= -->
+  <aside id="floating-compare-bar" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4 transition-transform duration-200">
+    <div class="bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-brutal-lg flex items-center justify-between gap-4">
+      
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-warm-primary border-2 border-warm-text flex items-center justify-center text-warm-primary-text font-black text-xs shadow-brutal-xs">
+          VS
+        </div>
+        <div>
+          <span class="font-extrabold text-xs sm:text-sm text-warm-text block">
+            Đang so sánh: <span id="compare-count-text" class="text-warm-secondary-text">2 / 4 thiết bị</span>
+          </span>
+          <span class="text-[11px] text-warm-muted hidden sm:inline">Lenovo ThinkBook 14 G6+ và ASUS Zenbook 14 OLED</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button 
+          type="button" 
+          onclick="clearAllCompare()" 
+          class="px-3 py-2 rounded-xl text-xs font-bold text-warm-muted hover:text-warm-text hover:bg-warm-subtle"
+        >
+          Xóa chọn
+        </button>
+
+        <!-- CTA Go to SCR-04 Comparison Screen -->
+        <a 
+          href="compare.html" 
+          class="brutal-button-action px-4 sm:px-5 py-2 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white border-2 border-warm-text text-xs sm:text-sm font-extrabold shadow-brutal-xs flex items-center gap-1.5 cursor-pointer"
+        >
+          <span>So sánh chi tiết ngay</span>
+          <span>→</span>
+        </a>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- =========================================================================
+       6. MODAL: EDIT EXTRACTED CRITERIA (Sửa nhanh tiêu chí AI đã bóc tách)
+       ========================================================================= -->
+  <div id="criteria-edit-modal" class="fixed inset-0 z-50 hidden bg-warm-text/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-warm-surface border-2 border-warm-text rounded-3xl max-w-lg w-full p-6 shadow-brutal-xl">
+      <div class="flex items-center justify-between pb-3 border-b-2 border-warm-text/10 mb-4">
+        <h3 class="text-base font-extrabold text-warm-text">Chỉnh sửa Tiêu chí Phân tích AI</h3>
+        <button type="button" onclick="closeEditCriteriaModal()" class="text-warm-text font-bold p-1">✕</button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-warm-text mb-1">Ngân sách tối đa (VNĐ):</label>
+          <input type="number" id="edit-budget" value="25000000" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold">
+        </div>
+        <div>
+          <label class="block font-bold text-warm-text mb-1">Dung lượng RAM tối thiểu:</label>
+          <select id="edit-ram" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold">
+            <option value="16" selected>16 GB (Đề xuất cho Lập trình)</option>
+            <option value="32">32 GB (Đồ họa nặng / Ảo hóa)</option>
+            <option value="8">8 GB (Văn phòng nhẹ)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-warm-text mb-1">Yêu cầu thời lượng Pin:</label>
+          <select id="edit-battery" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold">
+            <option value="8" selected>Trên 8 tiếng (Code nguyên ngày)</option>
+            <option value="12">Trên 12 tiếng (Siêu trâu)</option>
+            <option value="5">Trung bình 5-6 tiếng</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end gap-2">
+        <button type="button" onclick="closeEditCriteriaModal()" class="px-4 py-2 rounded-xl bg-warm-bg border-2 border-warm-text font-bold text-xs">Hủy</button>
+        <button type="button" onclick="saveCriteriaChanges()" class="px-5 py-2 rounded-xl bg-warm-primary text-warm-primary-text border-2 border-warm-text font-extrabold text-xs shadow-brutal-xs">Áp dụng & Chạy lại</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       AUTH MODAL: ĐĂNG NHẬP / ĐĂNG KÝ (SCR-18)
+       ========================================================================= -->
+  <div id="auth-modal" class="hidden fixed inset-0 z-50 bg-warm-text/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="brutal-card max-w-md w-full bg-white p-6 shadow-brutal-xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b-2 border-warm-text/15">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-warm-primary border-2 border-warm-text flex items-center justify-center font-black text-xs text-warm-primary-text">AI</div>
+          <span class="font-black text-base text-warm-text">Tài Khoản AI Shopping Agent</span>
+        </div>
+        <button type="button" onclick="closeAuthModal()" class="p-1 text-warm-muted hover:text-warm-text text-base font-bold">✕</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 p-1 rounded-xl bg-warm-surface-soft border-2 border-warm-text">
+        <button type="button" id="auth-tab-login" onclick="switchAuthTab('login')" class="py-2 rounded-lg bg-warm-primary text-warm-primary-text font-black text-xs transition-all shadow-brutal-xs">Đăng Nhập</button>
+        <button type="button" id="auth-tab-register" onclick="switchAuthTab('register')" class="py-2 rounded-lg text-warm-text font-bold text-xs hover:bg-warm-secondary transition-all">Đăng Ký</button>
+      </div>
+
+      <form onsubmit="handleAuthSubmit(event)" class="space-y-3 text-xs font-bold text-warm-text">
+        <div id="auth-field-name" class="hidden space-y-1">
+          <label class="block">Họ và Tên:</label>
+          <input type="text" id="auth-input-name" placeholder="Nguyễn Văn A" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold focus:outline-none focus:bg-white" />
+        </div>
+        <div class="space-y-1">
+          <label class="block">Email hoặc Tên đăng nhập:</label>
+          <input type="text" id="auth-input-email" placeholder="example@email.com" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold focus:outline-none focus:bg-white" required />
+        </div>
+        <div class="space-y-1">
+          <label class="block">Mật khẩu:</label>
+          <input type="password" id="auth-input-password" placeholder="••••••••" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold focus:outline-none focus:bg-white" required />
+        </div>
+        <button type="submit" id="auth-submit-btn" class="w-full py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-sm border-2 border-warm-text shadow-brutal-sm cursor-pointer transition-all mt-2">
+          Đăng Nhập Ngay
+        </button>
+      </form>
+
+      <div class="pt-3 border-t border-warm-text/10 space-y-1.5">
+        <span class="text-[10px] font-bold text-warm-muted uppercase block">Đăng nhập nhanh tài khoản mẫu:</span>
+        <div class="flex gap-2">
+          <button type="button" onclick="fillDemoAccount('user')" class="flex-1 py-1.5 rounded-lg bg-warm-surface-soft hover:bg-warm-secondary border border-warm-text/30 text-[11px] font-bold text-warm-text">👤 Thành viên</button>
+          <button type="button" onclick="fillDemoAccount('admin')" class="flex-1 py-1.5 rounded-lg bg-warm-surface-soft hover:bg-warm-secondary border border-warm-text/30 text-[11px] font-bold text-warm-text">⚡ Quản trị viên</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       7. JAVASCRIPT LOGIC
+       ========================================================================= -->
+  <script>
+    function openAuthModal(mode = 'login') {
+      const modal = document.getElementById('auth-modal');
+      modal.classList.remove('hidden');
+      switchAuthTab(mode);
+    }
+    function closeAuthModal() {
+      const modal = document.getElementById('auth-modal');
+      modal.classList.add('hidden');
+    }
+    function switchAuthTab(mode) {
+      const tabLogin = document.getElementById('auth-tab-login');
+      const tabRegister = document.getElementById('auth-tab-register');
+      const fieldName = document.getElementById('auth-field-name');
+      const submitBtn = document.getElementById('auth-submit-btn');
+
+      if (mode === 'register') {
+        tabRegister.classList.add('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
+        tabRegister.classList.remove('hover:bg-warm-secondary');
+        tabLogin.classList.remove('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
+        tabLogin.classList.add('hover:bg-warm-secondary');
+        fieldName.classList.remove('hidden');
+        submitBtn.innerText = 'Tạo Tài Khoản Mới';
+      } else {
+        tabLogin.classList.add('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
+        tabLogin.classList.remove('hover:bg-warm-secondary');
+        tabRegister.classList.remove('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
+        tabRegister.classList.add('hover:bg-warm-secondary');
+        fieldName.classList.add('hidden');
+        submitBtn.innerText = 'Đăng Nhập Ngay';
+      }
+    }
+    function fillDemoAccount(role) {
+      const email = document.getElementById('auth-input-email');
+      const pass = document.getElementById('auth-input-password');
+      if (role === 'admin') {
+        email.value = 'admin@shoppingagent.vn';
+        pass.value = 'admin123456';
+      } else {
+        email.value = 'user.demo@gmail.com';
+        pass.value = 'user123456';
+      }
+      switchAuthTab('login');
+    }
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('auth-input-email').value;
+      alert(`Đăng nhập thành công với tài khoản: ${email}`);
+      closeAuthModal();
+    }
+    let compareItems = [1, 2];
+
+    function toggleCompareItem(id, name, price, checkbox) {
+      if (checkbox.checked) {
+        if (!compareItems.includes(id)) {
+          if (compareItems.length >= 4) {
+            alert('Bạn chỉ có thể chọn tối đa 4 thiết bị để so sánh cùng lúc.');
+            checkbox.checked = false;
+            return;
+          }
+          compareItems.push(id);
+        }
+      } else {
+        compareItems = compareItems.filter(item => item !== id);
+      }
+      updateCompareUI();
+    }
+
+    function updateCompareUI() {
+      const bar = document.getElementById('floating-compare-bar');
+      const countHeader = document.getElementById('header-compare-count');
+      const countText = document.getElementById('compare-count-text');
+
+      if (compareItems.length > 0) {
+        bar.classList.remove('translate-y-32', 'opacity-0');
+        countHeader.innerText = compareItems.length;
+        countText.innerText = `${compareItems.length} / 4 thiết bị`;
+      } else {
+        bar.classList.add('translate-y-32', 'opacity-0');
+        countHeader.innerText = '0';
+      }
+    }
+
+    function clearAllCompare() {
+      compareItems = [];
+      const checkboxes = document.querySelectorAll('input[type="checkbox"][id^="compare-"]');
+      checkboxes.forEach(cb => cb.checked = false);
+      updateCompareUI();
+    }
+
+    function setAlgorithmPreset(preset, btn) {
+      const allBtns = document.querySelectorAll('.algo-preset-btn');
+      allBtns.forEach(b => {
+        b.classList.remove('bg-warm-primary', 'text-warm-primary-text');
+        b.classList.add('bg-warm-surface', 'text-warm-text');
+      });
+
+      btn.classList.add('bg-warm-primary', 'text-warm-primary-text');
+      btn.classList.remove('bg-warm-surface', 'text-warm-text');
+
+      // Visual feedback of re-ranking animation
+      const container = document.getElementById('results-container');
+      container.classList.add('opacity-40');
+      setTimeout(() => {
+        container.classList.remove('opacity-40');
+      }, 250);
+    }
+
+    function openEditCriteriaModal() {
+      document.getElementById('criteria-edit-modal').classList.remove('hidden');
+    }
+
+    function closeEditCriteriaModal() {
+      document.getElementById('criteria-edit-modal').classList.add('hidden');
+    }
+
+    function saveCriteriaChanges() {
+      closeEditCriteriaModal();
+      // Animate refresh
+      const container = document.getElementById('results-container');
+      container.classList.add('opacity-40');
+      setTimeout(() => {
+        container.classList.remove('opacity-40');
+      }, 300);
+    }
+
+    function quickEditPill(type) {
+      openEditCriteriaModal();
+    }
+
+    function resetAllFilters() {
+      alert('Đã thiết lập lại bộ lọc theo câu truy vấn gốc.');
+    }
+
+    function triggerNewSearch() {
+      const q = document.getElementById('header-query-input').value;
+      document.getElementById('current-query-display').innerText = q;
+      const container = document.getElementById('results-container');
+      container.classList.add('opacity-30');
+      setTimeout(() => {
+        container.classList.remove('opacity-30');
+      }, 300);
+    }
+
+    function changeSortOrder(val) {
+      const container = document.getElementById('results-container');
+      container.classList.add('opacity-40');
+      setTimeout(() => {
+        container.classList.remove('opacity-40');
+      }, 200);
+    }
+
+    function setLayoutView(mode) {
+      const btnList = document.getElementById('btn-layout-list');
+      const btnGrid = document.getElementById('btn-layout-grid');
+      const container = document.getElementById('results-container');
+
+      if (mode === 'grid') {
+        container.classList.remove('space-y-5');
+        container.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2', 'gap-5');
+        btnGrid.classList.add('bg-warm-primary', 'text-warm-primary-text');
+        btnGrid.classList.remove('bg-warm-surface', 'text-warm-text');
+        btnList.classList.remove('bg-warm-primary', 'text-warm-primary-text');
+        btnList.classList.add('bg-warm-surface', 'text-warm-text');
+      } else {
+        container.classList.add('space-y-5');
+        container.classList.remove('grid', 'grid-cols-1', 'md:grid-cols-2', 'gap-5');
+        btnList.classList.add('bg-warm-primary', 'text-warm-primary-text');
+        btnList.classList.remove('bg-warm-surface', 'text-warm-text');
+        btnGrid.classList.remove('bg-warm-primary', 'text-warm-primary-text');
+        btnGrid.classList.add('bg-warm-surface', 'text-warm-text');
+      }
+    }
+
+    function openDetailModal(title, price, score) {
+      window.location.href = 'product-detail.html?id=1';
+    }
+
+    // Keyboard ESC listener
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeEditCriteriaModal();
+      }
+    });
+
+    // Initialize UI on load
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryParam = urlParams.get('q');
+    if (queryParam) {
+      const headerInput = document.getElementById('header-query-input');
+      if (headerInput) headerInput.value = queryParam;
+      const currentQueryDisplay = document.getElementById('current-query-display');
+      if (currentQueryDisplay) currentQueryDisplay.innerText = queryParam;
+    }
+    updateCompareUI();
+  </script>
+
+</body>
+</html>

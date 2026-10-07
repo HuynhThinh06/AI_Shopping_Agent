@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng Nhập & Đăng Ký — AI Shopping Agent</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            warm: {
+              bg: '#FAF8F5',
+              surface: '#FFFFFF',
+              'surface-card': '#FFFFFF',
+              border: '#292524',
+              'border-subtle': '#F3EFE6',
+              primary: '#F59E0B',
+              'primary-hover': '#D97706',
+              'primary-light': '#FEF3C7',
+              'primary-text': '#78350F',
+              secondary: '#FEF3C7',
+              'secondary-hover': '#FDE68A',
+              'secondary-text': '#92400E',
+              accent: '#FBBF24',
+              text: '#292524',
+              muted: '#78716C',
+              hint: '#A8A29E',
+              'pastel-peach': '#FFEDD5',
+              'pastel-sky': '#E0F2FE',
+              'pastel-mint': '#DCFCE7',
+              'pastel-lavender': '#F3E8FF',
+              'pastel-amber': '#FEF3C7',
+            }
+          },
+          boxShadow: {
+            'brutal-xs': '1.5px 1.5px 0px #292524',
+            'brutal-sm': '2px 2px 0px #292524',
+            'brutal': '4px 4px 0px #292524',
+            'brutal-md': '5px 5px 0px #292524',
+            'brutal-lg': '6px 6px 0px #292524',
+            'brutal-xl': '8px 8px 0px #292524',
+          },
+          borderRadius: {
+            'xl': '12px',
+            '2xl': '18px',
+            '3xl': '24px',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <link rel="stylesheet" href="tokens.css">
+  
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #FAF8F5; }
+    ::-webkit-scrollbar-thumb { background: #D7CDB7; border: 1px solid #292524; border-radius: 9999px; }
+    
+    .brutal-card-hover {
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+    .brutal-card-hover:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0px #292524;
+    }
+    .brutal-button-action {
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .brutal-button-action:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0px 0px 0px #292524;
+    }
+  </style>
+</head>
+<body class="bg-warm-bg text-warm-text font-sans antialiased min-h-screen flex flex-col justify-between selection:bg-warm-primary selection:text-white">
+
+  <!-- TOP HEADER (SIMPLE BRAND BAR) -->
+  <header class="py-4 sm:py-6 px-4 sm:px-6 lg:px-8 border-b-2 border-warm-border-subtle bg-warm-surface">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3 group focus:outline-none">
+        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl border-2 border-warm-text shadow-brutal-xs overflow-hidden group-hover:-translate-y-0.5 transition-all shrink-0">
+          <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
+            <defs>
+              <linearGradient id="logoAuthGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FBBF24" />
+                <stop offset="100%" stop-color="#F59E0B" />
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" fill="url(#logoAuthGrad)" />
+            <circle cx="73" cy="22" r="7.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <circle cx="23" cy="69" r="6.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
+            <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" fill="none" />
+          </svg>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-lg sm:text-xl font-extrabold text-warm-text tracking-tight flex items-center gap-1.5 leading-none">
+            ShoppingAgent
+            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded-full border border-warm-text bg-warm-secondary text-warm-secondary-text">AI</span>
+          </span>
+          <span class="text-[11px] font-medium text-warm-muted mt-0.5">Trợ lý Mua sắm Thông minh</span>
+        </div>
+      </a>
+
+      <a href="index.html" class="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-warm-muted hover:text-warm-text transition-colors">
+        <span>&larr;</span>
+        <span>Quay về trang chủ</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- MAIN AUTH CONTAINER -->
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 sm:py-14 flex items-center justify-center">
+    
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full max-w-5xl">
+      
+      <!-- LEFT PROMO COLUMN (DESKTOP) -->
+      <div class="lg:col-span-6 space-y-6 text-left hidden lg:block">
+        
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border-2 border-warm-text bg-warm-secondary text-warm-secondary-text text-xs font-bold shadow-brutal-xs">
+          <span>✨</span>
+          <span>Tài khoản Cá nhân hóa Trợ lý AI</span>
+        </div>
+
+        <h1 class="text-3xl xl:text-4xl font-black text-warm-text tracking-tight leading-tight">
+          Mở Khóa Toàn Bộ Sức Mạnh Tư Vấn Thiết Bị Của Gemini
+        </h1>
+
+        <p class="text-sm text-warm-muted font-medium leading-relaxed">
+          Đăng nhập để lưu trữ lịch sử tư vấn, theo dõi biến động giá trong danh sách yêu thích, và thiết lập cấu hình nghề nghiệp để AI ưu tiên tiêu chí phù hợp nhất.
+        </p>
+
+        <!-- 3 Feature Bento Chips -->
+        <div class="space-y-3 pt-2">
+          
+          <div class="p-3.5 rounded-2xl bg-warm-surface border-2 border-warm-text shadow-brutal-xs flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-warm-pastel-amber border border-warm-text flex items-center justify-center text-warm-secondary-text font-black text-base shrink-0">
+              ⚡
+            </div>
+            <div>
+              <div class="text-xs font-black text-warm-text">Bóc tách ngôn ngữ tự nhiên</div>
+              <div class="text-[11px] text-warm-muted font-medium">Gemini 1.5 Flash tự nhận diện ngân sách, RAM, chip, pin trong 0.4s.</div>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-warm-surface border-2 border-warm-text shadow-brutal-xs flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-warm-pastel-mint border border-warm-text flex items-center justify-center text-emerald-800 font-black text-base shrink-0">
+              ⚖️
+            </div>
+            <div>
+              <div class="text-xs font-black text-warm-text">Xếp hạng đa tiêu chí minh bạch</div>
+              <div class="text-[11px] text-warm-muted font-medium">Tự do điều chỉnh trọng số giữa Cấu hình, Giá thành và Đánh giá.</div>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-warm-surface border-2 border-warm-text shadow-brutal-xs flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-warm-pastel-sky border border-warm-text flex items-center justify-center text-sky-800 font-black text-base shrink-0">
+              🔍
+            </div>
+            <div>
+              <div class="text-xs font-black text-warm-text">Tóm tắt Pros / Cons từ review thật</div>
+              <div class="text-[11px] text-warm-muted font-medium">Tổng hợp đánh giá khách quan, chỉ ra lỗi vặt cần lưu ý.</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: AUTH CARD (LOGIN / REGISTER) -->
+      <div class="lg:col-span-6 w-full">
+        <div class="bg-warm-surface border-2 border-warm-text rounded-3xl p-6 sm:p-8 shadow-brutal-lg relative">
+          
+          <!-- Tab Switcher (Đăng Nhập / Đăng Ký) -->
+          <div class="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-warm-bg border-2 border-warm-text mb-6">
+            <button 
+              type="button" 
+              onclick="switchAuthTab('login')" 
+              id="tab-btn-login"
+              class="py-2.5 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs transition-all"
+            >
+              Đăng nhập
+            </button>
+            <button 
+              type="button" 
+              onclick="switchAuthTab('register')" 
+              id="tab-btn-register"
+              class="py-2.5 rounded-xl text-warm-muted hover:text-warm-text font-bold text-xs sm:text-sm transition-all"
+            >
+              Đăng ký mới
+            </button>
+          </div>
+
+          <!-- =================================================================
+               TAB 1: FORM ĐĂNG NHẬP
+               ================================================================= -->
+          <form id="form-login" onsubmit="event.preventDefault(); handleLoginSubmit();" class="space-y-4">
+            
+            <div>
+              <label class="block text-xs font-black text-warm-text uppercase tracking-wider mb-1.5">Email hoặc Tên đăng nhập:</label>
+              <input 
+                type="email" 
+                id="login-email"
+                value="tuananh.dev@gmail.com" 
+                required 
+                class="w-full px-4 py-3 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs sm:text-sm focus:outline-none focus:bg-white shadow-brutal-xs"
+              >
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-black text-warm-text uppercase tracking-wider">Mật khẩu:</label>
+                <a href="#" class="text-xs font-bold text-warm-muted hover:text-warm-text underline">Quên mật khẩu?</a>
+              </div>
+              <input 
+                type="password" 
+                id="login-password"
+                value="••••••••••••" 
+                required 
+                class="w-full px-4 py-3 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs sm:text-sm focus:outline-none focus:bg-white shadow-brutal-xs"
+              >
+            </div>
+
+            <label class="flex items-center gap-2.5 text-xs font-bold text-warm-text cursor-pointer pt-1">
+              <input type="checkbox" checked class="w-4 h-4 rounded border-2 border-warm-text text-warm-primary focus:ring-warm-primary">
+              <span>Ghi nhớ đăng nhập trên thiết bị này</span>
+            </label>
+
+            <button 
+              type="submit" 
+              class="brutal-button-action w-full py-3.5 rounded-xl border-2 border-warm-text bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-sm shadow-brutal cursor-pointer flex items-center justify-center gap-2 mt-2"
+            >
+              <span>Đăng nhập vào hệ thống</span>
+              <span>&rarr;</span>
+            </button>
+
+            <!-- 1-CLICK DEMO ACCOUNTS (TIỆN LỢI CHO HỘI ĐỒNG BẢO VỆ ĐỒ ÁN) -->
+            <div class="pt-5 mt-5 border-t-2 border-warm-border-subtle space-y-2.5">
+              <div class="text-[11px] font-black text-warm-muted uppercase tracking-wider text-center">
+                Hoặc Đăng Nhập Nhanh 1-Click (Tài khoản mẫu đồ án):
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button 
+                  type="button" 
+                  onclick="fillDemoAccount('user')" 
+                  class="brutal-button-action p-2.5 rounded-xl border-2 border-warm-text bg-warm-secondary hover:bg-warm-pastel-amber text-warm-secondary-text font-black text-xs shadow-brutal-xs flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>👤</span>
+                  <span>User: Tuấn Anh</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  onclick="fillDemoAccount('admin')" 
+                  class="brutal-button-action p-2.5 rounded-xl border-2 border-warm-text bg-red-100 hover:bg-red-200 text-red-900 font-black text-xs shadow-brutal-xs flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>🛡️</span>
+                  <span>Admin Quản Trị</span>
+                </button>
+              </div>
+            </div>
+
+          </form>
+
+          <!-- =================================================================
+               TAB 2: FORM ĐĂNG KÝ
+               ================================================================= -->
+          <form id="form-register" onsubmit="event.preventDefault(); handleRegisterSubmit();" class="space-y-4 hidden">
+            
+            <div>
+              <label class="block text-xs font-black text-warm-text uppercase tracking-wider mb-1.5">Họ và tên của bạn:</label>
+              <input 
+                type="text" 
+                placeholder="Ví dụ: Nguyễn Văn An" 
+                required 
+                class="w-full px-4 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs sm:text-sm focus:outline-none focus:bg-white shadow-brutal-xs"
+              >
+            </div>
+
+            <div>
+              <label class="block text-xs font-black text-warm-text uppercase tracking-wider mb-1.5">Địa chỉ Email:</label>
+              <input 
+                type="email" 
+                placeholder="tenban@gmail.com" 
+                required 
+                class="w-full px-4 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs sm:text-sm focus:outline-none focus:bg-white shadow-brutal-xs"
+              >
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-black text-warm-text uppercase tracking-wider mb-1.5">Mật khẩu:</label>
+                <input 
+                  type="password" 
+                  placeholder="Tối thiểu 8 ký tự" 
+                  required 
+                  class="w-full px-4 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs sm:text-sm focus:outline-none focus:bg-white shadow-brutal-xs"
+                >
+              </div>
+              <div>
+                <label class="block text-xs font-black text-warm-text uppercase tracking-wider mb-1.5">Nhập lại mật khẩu:</label>
+                <input 
+                  type="password" 
+                  placeholder="Nhập lại mật khẩu" 
+                  required 
+                  class="w-full px-4 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs sm:text-sm focus:outline-none focus:bg-white shadow-brutal-xs"
+                >
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-black text-warm-text uppercase tracking-wider mb-1.5">Nhu cầu chính (để AI tối ưu gợi ý):</label>
+              <select class="w-full px-4 py-2.5 rounded-xl border-2 border-warm-text bg-warm-bg text-warm-text font-bold text-xs focus:outline-none shadow-brutal-xs">
+                <option value="dev">Lập trình viên / Developer</option>
+                <option value="designer">Thiết kế đồ họa / Designer 3D</option>
+                <option value="student">Học sinh / Sinh viên</option>
+                <option value="business">Dân văn phòng / Kinh doanh</option>
+                <option value="gamer">Game thủ / Streamer</option>
+              </select>
+            </div>
+
+            <label class="flex items-center gap-2.5 text-xs font-bold text-warm-text cursor-pointer pt-1">
+              <input type="checkbox" checked required class="w-4 h-4 rounded border-2 border-warm-text text-warm-primary focus:ring-warm-primary">
+              <span>Đồng ý với Điều khoản dịch vụ và Chính sách bảo mật</span>
+            </label>
+
+            <button 
+              type="submit" 
+              class="brutal-button-action w-full py-3.5 rounded-xl border-2 border-warm-text bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-sm shadow-brutal cursor-pointer flex items-center justify-center gap-2 mt-2"
+            >
+              <span>Tạo tài khoản ngay</span>
+              <span>&rarr;</span>
+            </button>
+
+          </form>
+
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="py-6 border-t-2 border-warm-border-subtle bg-warm-surface text-center text-xs text-warm-muted font-medium">
+    <div class="max-w-7xl mx-auto px-4">
+      © 2026 AI Shopping Agent. Hệ thống Trợ lý Tư vấn Mua sắm Thông minh (Laptop & Smartphone).
+    </div>
+  </footer>
+
+  <script>
+    function switchAuthTab(tab) {
+      const btnLogin = document.getElementById('tab-btn-login');
+      const btnRegister = document.getElementById('tab-btn-register');
+      const formLogin = document.getElementById('form-login');
+      const formRegister = document.getElementById('form-register');
+
+      if (tab === 'login') {
+        btnLogin.className = 'py-2.5 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs transition-all';
+        btnRegister.className = 'py-2.5 rounded-xl text-warm-muted hover:text-warm-text font-bold text-xs sm:text-sm transition-all';
+        formLogin.classList.remove('hidden');
+        formRegister.classList.add('hidden');
+      } else {
+        btnRegister.className = 'py-2.5 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs transition-all';
+        btnLogin.className = 'py-2.5 rounded-xl text-warm-muted hover:text-warm-text font-bold text-xs sm:text-sm transition-all';
+        formRegister.classList.remove('hidden');
+        formLogin.classList.add('hidden');
+      }
+    }
+
+    function fillDemoAccount(role) {
+      if (role === 'user') {
+        document.getElementById('login-email').value = 'tuananh.dev@gmail.com';
+        document.getElementById('login-password').value = '12345678';
+        alert('Đã nạp tài khoản User mẫu. Đang chuyển hướng vào trang cá nhân...');
+        window.location.href = 'history.html';
+      } else {
+        document.getElementById('login-email').value = 'admin@shoppingagent.vn';
+        document.getElementById('login-password').value = 'admin123456';
+        alert('Đã nạp tài khoản Quản Trị Viên (Admin). Đang chuyển hướng vào Dashboard...');
+        window.location.href = 'admin-dashboard.html';
+      }
+    }
+
+    function handleLoginSubmit() {
+      const email = document.getElementById('login-email').value;
+      if (email.includes('admin')) {
+        window.location.href = 'admin-dashboard.html';
+      } else {
+        window.location.href = 'history.html';
+      }
+    }
+
+    function handleRegisterSubmit() {
+      alert('Đăng ký tài khoản thành công! Tùy chọn nghề nghiệp đã được thiết lập cho AI.');
+      window.location.href = 'settings.html';
+    }
+  </script>
+
+</body>
+</html>
