@@ -1,0 +1,131 @@
+/**
+ * AI Shopping Agent — Design System Tokens
+ * Style: Warm Soft-Brutalism / Playful Neo-brutalist (Trắng – Vàng ấm + Hard Offset Shadow)
+ * 
+ * Based on user-provided LearnHub / Soft-Brutalist card reference:
+ * - 2px solid dark borders (#292524)
+ * - Hard offset diagonal drop shadows (4px 4px 0px #292524)
+ * - Soft rounded corners (16px / rounded-2xl)
+ * - Pastel accent icon containers
+ * - WCAG 2.1 AA / AAA Compliant
+ */
+
+:root {
+  /* ==========================================================================
+     1. COLOR TOKENS
+     ========================================================================= */
+  
+  /* Backgrounds */
+  --color-bg-base: #FAF8F5;          /* Nền tổng thể chính (Kem/Off-white ấm) */
+  --color-bg-alt: #FDFBF7;           /* Nền tổng thể phụ */
+  --color-bg-subtle: #F5EFE6;        /* Khối nền nhấn phụ, hover */
+
+  /* Surfaces & Containers */
+  --color-surface-card: #FFFFFF;     /* Nền card trắng nổi bật */
+  --color-surface-soft: #FBF9F5;     /* Nền sub-box trong card (specs, micro-box) */
+
+  /* Borders & Shadows (Soft Neo-brutalist) */
+  --color-border-dark: #292524;      /* Viền đậm Warm Charcoal chủ đạo (2px) */
+  --color-border-subtle: #E7DFCE;    /* Viền phụ bên trong */
+  --color-border-accent: #FDE68A;    /* Viền vàng ấm */
+
+  /* Primary Accent & CTAs */
+  --color-primary: #F59E0B;          /* Amber ấm chủ đạo (CTAs, active, progress) */
+  --color-primary-hover: #D97706;    /* Hover nút chính */
+  --color-primary-active: #B45309;   /* Click / Active nút chính */
+  --color-primary-text: #451A03;     /* Chữ trên nền vàng Amber (#F59E0B) đạt tương phản 8.8:1 */
+  --color-accent-honey: #FBBF24;     /* Vàng mật ong ấm */
+
+  /* Secondary / Tag / Badge (Butter Yellow mềm) */
+  --color-secondary-bg: #FEF3C7;     /* Nền Butter Yellow mềm cho Tag, Badge */
+  --color-secondary-text: #92400E;   /* Chữ cam đất đậm (Tương phản 5.45:1 đạt chuẩn AA) */
+
+  /* Pastel Card Accent Tones (Dành cho icon container như mẫu) */
+  --color-pastel-peach: #FFEDD5;     /* Cam đào pastel */
+  --color-pastel-amber: #FEF3C7;     /* Vàng bơ pastel */
+  --color-pastel-mint: #DCFCE7;      /* Xanh mint pastel */
+  --color-pastel-sky: #E0F2FE;       /* Xanh dương nhạt pastel */
+  --color-pastel-lavender: #F3E8FF;  /* Tím nhạt pastel */
+
+  /* Typography Colors (Warm Charcoal & Stone - Không dùng đen #000000) */
+  --color-text-main: #292524;        /* Warm Charcoal — Tiêu đề, chữ chính (Tương phản 12.4:1) */
+  --color-text-muted: #78716C;       /* Warm Stone — Chữ phụ, mô tả (Tương phản 4.64:1) */
+  --color-text-subtle: #A8A29E;      /* Placeholder, icon phụ */
+
+  /* ==========================================================================
+     2. SOFT NEO-BRUTALIST BOX SHADOWS & BORDERS
+     ========================================================================= */
+  --border-width-main: 2px;
+  --border-width-thick: 2.5px;
+  --border-width-sm: 1.5px;
+
+  /* Đổ bóng góc chéo cứng cáp (Hard Offset Drop Shadows) */
+  --shadow-box-sm: 2px 2px 0px var(--color-border-dark);
+  --shadow-box-md: 4px 4px 0px var(--color-border-dark);
+  --shadow-box-lg: 6px 6px 0px var(--color-border-dark);
+  --shadow-box-xl: 8px 8px 0px var(--color-border-dark);
+
+  /* Hover & Active tactile feedback */
+  --shadow-box-hover: 6px 6px 0px var(--color-border-dark);
+  --shadow-box-pressed: 1px 1px 0px var(--color-border-dark);
+
+  /* Bo góc mềm mại */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;   /* rounded-2xl — kích thước tiêu chuẩn cho Card */
+  --radius-xl: 20px;   /* Header navbar & Search Box */
+  --radius-full: 9999px; /* Pill */
+
+  /* Typography */
+  --font-family-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+}
+
+/* Base Body */
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-main);
+  font-family: var(--font-family-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Soft Neo-Brutalist Utility Classes */
+.brutal-box {
+  background-color: var(--color-surface-card);
+  border: 2px solid var(--color-border-dark);
+  box-shadow: var(--shadow-box-md);
+  border-radius: var(--radius-lg);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brutal-box:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-box-hover);
+}
+
+.brutal-btn {
+  background-color: var(--color-primary);
+  color: var(--color-primary-text);
+  border: 2px solid var(--color-border-dark);
+  box-shadow: var(--shadow-box-sm);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.brutal-btn:hover {
+  background-color: var(--color-primary-hover);
+  color: #FFFFFF;
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-box-md);
+}
+
+.brutal-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}

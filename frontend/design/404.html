@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Không Tìm Thấy Trang | AI Shopping Agent</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            warm: {
+              bg: '#FAF8F5',
+              surface: '#FFFFFF',
+              'surface-card': '#FFFFFF',
+              border: '#292524',
+              'border-subtle': '#F3EFE6',
+              primary: '#F59E0B',
+              'primary-hover': '#D97706',
+              'primary-light': '#FEF3C7',
+              'primary-text': '#78350F',
+              secondary: '#FEF3C7',
+              'secondary-hover': '#FDE68A',
+              'secondary-text': '#92400E',
+              accent: '#FBBF24',
+              text: '#292524',
+              muted: '#78716C',
+              hint: '#A8A29E',
+              'pastel-peach': '#FFEDD5',
+              'pastel-sky': '#E0F2FE',
+              'pastel-mint': '#DCFCE7',
+              'pastel-lavender': '#F3E8FF',
+              'pastel-amber': '#FEF3C7',
+            }
+          },
+          boxShadow: {
+            'brutal-xs': '1.5px 1.5px 0px #292524',
+            'brutal-sm': '2px 2px 0px #292524',
+            'brutal': '4px 4px 0px #292524',
+            'brutal-md': '5px 5px 0px #292524',
+            'brutal-lg': '6px 6px 0px #292524',
+            'brutal-xl': '8px 8px 0px #292524',
+          },
+          borderRadius: {
+            'xl': '12px',
+            '2xl': '18px',
+            '3xl': '24px',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <link rel="stylesheet" href="tokens.css">
+  
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #FAF8F5; }
+    ::-webkit-scrollbar-thumb { background: #D7CDB7; border: 1px solid #292524; border-radius: 9999px; }
+    
+    .brutal-card-hover {
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+    .brutal-card-hover:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0px #292524;
+    }
+    .brutal-button-action {
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .brutal-button-action:active {
+      transform: translate(2px, 2px);
+      box-shadow: 0px 0px 0px #292524;
+    }
+  </style>
+</head>
+<body class="bg-warm-bg text-warm-text font-sans antialiased min-h-screen flex flex-col justify-between selection:bg-warm-primary selection:text-white">
+
+  <!-- NAVBAR -->
+  <header class="py-4 sm:py-6 px-4 sm:px-6 lg:px-8 border-b-2 border-warm-border-subtle bg-warm-surface">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3 group focus:outline-none">
+        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl border-2 border-warm-text shadow-brutal-xs overflow-hidden group-hover:-translate-y-0.5 transition-all shrink-0">
+          <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
+            <defs>
+              <linearGradient id="logo404Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FBBF24" />
+                <stop offset="100%" stop-color="#F59E0B" />
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" fill="url(#logo404Grad)" />
+            <circle cx="73" cy="22" r="7.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <circle cx="23" cy="69" r="6.5" fill="#FEF3C7" fill-opacity="0.9" />
+            <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
+            <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" fill="none" />
+          </svg>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-lg sm:text-xl font-extrabold text-warm-text tracking-tight flex items-center gap-1.5 leading-none">
+            ShoppingAgent
+            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded-full border border-warm-text bg-warm-secondary text-warm-secondary-text">AI</span>
+          </span>
+          <span class="text-[11px] font-medium text-warm-muted mt-0.5">Trợ lý Mua sắm Thông minh</span>
+        </div>
+      </a>
+
+      <div class="flex items-center gap-3">
+        <a href="search-results.html" class="text-xs sm:text-sm font-bold text-warm-text hover:text-warm-primary transition-colors">Tìm kiếm AI</a>
+        <a href="index.html" class="px-3.5 py-1.5 rounded-xl border-2 border-warm-text bg-warm-secondary text-warm-secondary-text text-xs sm:text-sm font-black shadow-brutal-xs">Trang chủ</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN 404 BODY -->
+  <main class="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-12 sm:py-20 flex flex-col items-center justify-center text-center">
+    
+    <!-- 404 DISPLAY BOX (SOFT NEO-BRUTALISM) -->
+    <div class="relative mb-6">
+      
+      <!-- Big Badge -->
+      <div class="inline-flex items-center justify-center px-8 sm:px-12 py-5 rounded-3xl border-3 border-warm-text bg-warm-secondary shadow-brutal-lg">
+        <span class="text-6xl sm:text-8xl font-black text-warm-text tracking-tighter font-mono">
+          404
+        </span>
+      </div>
+
+      <!-- Floating Robot Sticker -->
+      <div class="absolute -top-6 -right-6 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-warm-primary border-2 border-warm-text shadow-brutal flex items-center justify-center text-2xl sm:text-3xl animate-bounce" style="animation-duration: 2s;">
+        🤖
+      </div>
+    </div>
+
+    <!-- Error Headline -->
+    <h1 class="text-2xl sm:text-4xl font-black text-warm-text tracking-tight mb-3">
+      Ối! Không Tìm Thấy Trang Hoặc AI Đang Lạc Đường
+    </h1>
+
+    <!-- Explanatory Subtitle -->
+    <p class="text-sm sm:text-base text-warm-muted max-w-xl mx-auto font-medium mb-8 leading-relaxed">
+      Đường dẫn bạn yêu cầu không tồn tại, sản phẩm đã ngừng kinh doanh hoặc mô hình Gemini đang đồng bộ dữ liệu. Đừng lo, bạn có thể tìm kiếm lại thiết bị ngay dưới đây!
+    </p>
+
+    <!-- INLINE QUICK SEARCH OMNIBOX -->
+    <div class="w-full max-w-xl bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-brutal-md text-left mb-8">
+      <form onsubmit="event.preventDefault(); handleSearch(this);" class="flex items-center gap-2">
+        <div class="w-10 h-10 rounded-xl bg-warm-pastel-amber border border-warm-text flex items-center justify-center text-warm-secondary-text shrink-0">
+          🔍
+        </div>
+        <input 
+          type="text" 
+          placeholder="Hỏi AI: Laptop code Docker 25 triệu, điện thoại chụp đêm..." 
+          required 
+          class="flex-1 bg-transparent border-none text-xs sm:text-sm font-bold text-warm-text focus:outline-none placeholder-warm-hint"
+        >
+        <button 
+          type="submit" 
+          class="brutal-button-action px-4 py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs shrink-0 cursor-pointer"
+        >
+          Hỏi AI
+        </button>
+      </form>
+    </div>
+
+    <!-- ACTION BUTTONS -->
+    <div class="flex flex-wrap items-center justify-center gap-3">
+      <a 
+        href="index.html" 
+        class="brutal-button-action px-5 py-3 rounded-2xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-sm border-2 border-warm-text shadow-brutal flex items-center gap-2 cursor-pointer"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+        <span>Quay về Trang chủ</span>
+      </a>
+
+      <a 
+        href="search-results.html" 
+        class="brutal-button-action px-5 py-3 rounded-2xl bg-warm-secondary hover:bg-warm-pastel-amber text-warm-secondary-text font-black text-sm border-2 border-warm-text shadow-brutal flex items-center gap-2 cursor-pointer"
+      >
+        <span>⚡ Xem gợi ý AI mẫu</span>
+      </a>
+
+      <button 
+        type="button" 
+        onclick="checkSystemStatus()" 
+        class="brutal-button-action px-4 py-3 rounded-2xl bg-warm-surface hover:bg-warm-bg text-warm-text font-bold text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs flex items-center gap-1.5 cursor-pointer"
+      >
+        <span>📡 Kiểm tra kết nối API</span>
+      </button>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="py-6 border-t-2 border-warm-border-subtle bg-warm-surface text-center text-xs text-warm-muted font-medium">
+    <div class="max-w-7xl mx-auto px-4">
+      © 2026 AI Shopping Agent. Warm Minimalist Error Screen (SCR-19).
+    </div>
+  </footer>
+
+  <script>
+    function handleSearch(form) {
+      const query = form.querySelector('input').value;
+      window.location.href = 'search-results.html?q=' + encodeURIComponent(query);
+    }
+
+    function checkSystemStatus() {
+      alert('✓ Trạng thái hệ thống: Gemini 1.5 Flash API Online (99.98%) • PostgreSQL Ranking Online • Cache Engine Healthy!');
+    }
+  </script>
+
+</body>
+</html>
