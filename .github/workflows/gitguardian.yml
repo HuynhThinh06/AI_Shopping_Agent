@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0 # Quét toàn bộ lịch sử commit trong PR hoặc push
 
       - name: GitGuardian Scan
-        uses: GitGuardian/ggshield-action@v1.36.0
+        uses: GitGuardian/ggshield-action@v1.55.0
         env:
           GITHUB_PUSH_BEFORE_SHA: ${{ github.event.before }}
           GITHUB_PUSH_BASE_SHA: ${{ github.event.base }}
