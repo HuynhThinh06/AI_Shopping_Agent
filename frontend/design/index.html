@@ -69,7 +69,7 @@
   </script>
   
   <link rel="stylesheet" href="tokens.css">
-  
+  <script src="js/api.js"></script>
   <style>
     /* Custom scrollbar */
     ::-webkit-scrollbar {
@@ -1255,7 +1255,85 @@
         closeDetailModal();
       }
     });
-  </script>
 
+    // ── Dynamic Data Binding via API ─────────────────────────────────────────
+    async function loadDynamicFeaturedProducts() {
+      try {
+        const products = await api.getFeaturedProducts(6);
+        if (!products || products.length === 0) return;
+
+        const grid = document.getElementById('product-grid');
+        if (!grid) return;
+
+        grid.innerHTML = products.map((p, index) => {
+          const specs = parseSpecs(p.specs);
+          const cpu = specs.cpu || specs.CPU || 'Đang cập nhật';
+          const ram = specs.ram || specs.RAM ? (specs.ram || specs.RAM) + 'GB' : '';
+          const storage = specs.storage || specs.Storage ? (specs.storage || specs.Storage) + 'GB' : '';
+          const screen = specs.screen || specs.screen_size || '';
+          const battery = specs.battery || '';
+          const imgUrl = getPrimaryImage(p);
+          const categoryClass = (p.categoryCode || '').toLowerCase().includes('phone') ? 'phone' : 'laptop';
+          const ratingText = p.avgRating ? Number(p.avgRating).toFixed(1) : '4.8';
+          const matchPercent = Math.min(99, 90 + index * 2);
+
+          return `
+            <article class="product-item ${categoryClass} brutal-card-hover bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-brutal flex flex-col justify-between cursor-pointer" onclick="window.location.href='product-detail.html?id=${p.id}'">
+              <div>
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex items-start gap-4">
+                    <div class="w-16 h-16 rounded-2xl bg-white border-2 border-warm-text p-1 shadow-brutal-xs shrink-0 overflow-hidden flex items-center justify-center">
+                      <img src="${imgUrl}" alt="${p.name}" class="w-full h-full object-contain" onerror="this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200&fit=crop'"/>
+                    </div>
+                    <div>
+                      <h3 class="text-base sm:text-lg font-extrabold text-warm-text tracking-tight hover:text-warm-primary transition-colors line-clamp-1">
+                        ${p.name}
+                      </h3>
+                      <p class="text-xs sm:text-sm text-warm-muted font-medium mt-0.5">
+                        ${p.brand ? 'Hãng: ' + p.brand : ''} ${cpu ? '• ' + cpu : ''} ${ram ? '• RAM ' + ram : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-extrabold text-xs shadow-brutal-xs shrink-0">
+                    <span class="text-warm-primary">★</span>
+                    <span>${ratingText}/5 (AI ${matchPercent}%)</span>
+                  </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-warm-border-subtle flex flex-wrap items-center gap-3 text-xs text-warm-text font-bold">
+                  ${screen ? `<span class="px-2 py-0.5 rounded-md bg-warm-surface-soft border border-warm-text/20">🖥 ${screen}</span>` : ''}
+                  ${ram ? `<span class="px-2 py-0.5 rounded-md bg-warm-surface-soft border border-warm-text/20">⚡ RAM ${ram}</span>` : ''}
+                  ${storage ? `<span class="px-2 py-0.5 rounded-md bg-warm-surface-soft border border-warm-text/20">💾 SSD ${storage}</span>` : ''}
+                  ${battery ? `<span class="px-2 py-0.5 rounded-md bg-warm-surface-soft border border-warm-text/20">🔋 ${battery}</span>` : ''}
+                  <span class="text-warm-muted ml-auto font-medium">${p.reviewCount || 0} Đánh giá</span>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3.5 border-t-2 border-warm-text/10 flex items-center justify-between">
+                <div>
+                  <span class="text-lg sm:text-xl font-extrabold text-warm-text">${formatPrice(p.price)}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <a href="product-detail.html?id=${p.id}" class="brutal-button-action px-3 py-1.5 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text text-xs font-bold shadow-brutal-xs hover:bg-warm-subtle inline-block">
+                    Xem chi tiết →
+                  </a>
+                  <a href="product-detail.html?id=${p.id}" class="brutal-button-action px-4 py-1.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-extrabold text-xs shadow-brutal-xs inline-block">
+                    Tư vấn AI
+                  </a>
+                </div>
+              </div>
+            </article>
+          `;
+        }).join('');
+      } catch (e) {
+        console.warn('Cannot load dynamic products, using fallback:', e);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDynamicFeaturedProducts();
+    });
+  </script>
+  <script src="js/api.js"></script>
 </body>
 </html>

@@ -37,6 +37,13 @@ public class ProductService {
         return toDetailDTO(p);
     }
 
+    public List<ProductDetailDTO> getFeaturedProducts(int limit) {
+        Pageable pageable = PageRequest.of(0, Math.min(Math.max(limit, 1), 30), Sort.by("avgRating").descending());
+        return productRepository.findAll(pageable)
+                .map(this::toDetailDTO)
+                .getContent();
+    }
+
     /**
      * [MỚI - B7] Tìm kiếm sản phẩm với filter tùy chọn + phân trang.
      *

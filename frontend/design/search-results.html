@@ -68,7 +68,7 @@
   </script>
   
   <link rel="stylesheet" href="tokens.css">
-  
+  <script src="js/api.js"></script>
   <style>
     /* Custom scrollbar matching warm theme */
     ::-webkit-scrollbar {
@@ -1192,47 +1192,216 @@
     }
 
     function triggerNewSearch() {
-      const q = document.getElementById('header-query-input').value;
-      document.getElementById('current-query-display').innerText = q;
-      const container = document.getElementById('results-container');
-      container.classList.add('opacity-30');
-      setTimeout(() => {
-        container.classList.remove('opacity-30');
-      }, 300);
+      const q = document.getElementById('header-query-input').value.trim();
+      if (!q) return;
+      window.history.pushState({}, '', '?q=' + encodeURIComponent(q));
+      performSearch(q);
     }
 
-    function changeSortOrder(val) {
-      const container = document.getElementById('results-container');
-      container.classList.add('opacity-40');
-      setTimeout(() => {
-        container.classList.remove('opacity-40');
-      }, 200);
-    }
+    async function performSearch(query) {
+      if (!query) return;
+      const currentQueryDisplay = document.getElementById('current-query-display');
+      if (currentQueryDisplay) currentQueryDisplay.innerText = query;
 
-    function setLayoutView(mode) {
-      const btnList = document.getElementById('btn-layout-list');
-      const btnGrid = document.getElementById('btn-layout-grid');
       const container = document.getElementById('results-container');
+      if (!container) return;
 
-      if (mode === 'grid') {
-        container.classList.remove('space-y-5');
-        container.classList.add('grid', 'grid-cols-1', 'md:grid-cols-2', 'gap-5');
-        btnGrid.classList.add('bg-warm-primary', 'text-warm-primary-text');
-        btnGrid.classList.remove('bg-warm-surface', 'text-warm-text');
-        btnList.classList.remove('bg-warm-primary', 'text-warm-primary-text');
-        btnList.classList.add('bg-warm-surface', 'text-warm-text');
-      } else {
-        container.classList.add('space-y-5');
-        container.classList.remove('grid', 'grid-cols-1', 'md:grid-cols-2', 'gap-5');
-        btnList.classList.add('bg-warm-primary', 'text-warm-primary-text');
-        btnList.classList.remove('bg-warm-surface', 'text-warm-text');
-        btnGrid.classList.remove('bg-warm-primary', 'text-warm-primary-text');
-        btnGrid.classList.add('bg-warm-surface', 'text-warm-text');
+      // ── 1. Render Skeleton Loader ──────────────────────────────────────────
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="p-5 bg-warm-pastel-amber border-2 border-warm-text rounded-2xl shadow-brutal flex items-center gap-3">
+            <div class="w-6 h-6 border-3 border-warm-primary-text border-t-transparent rounded-full animate-spin shrink-0"></div>
+            <div>
+              <p class="font-extrabold text-sm text-warm-primary-text">AI đang phân tích yêu cầu bằng Gemini & quét GIN Index...</p>
+              <p class="text-xs text-warm-secondary-text font-medium mt-0.5">Trích xuất ràng buộc ngân sách, cấu hình và tính điểm xếp hạng đa tiêu chí...</p>
+            </div>
+          </div>
+          ${[1, 2, 3].map(() => `
+            <div class="p-6 bg-white border-2 border-warm-text rounded-2xl shadow-brutal animate-pulse space-y-4">
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 bg-warm-subtle rounded-2xl border border-warm-text/20"></div>
+                <div class="flex-1 space-y-2">
+                  <div class="h-5 bg-warm-subtle rounded w-1/3"></div>
+                  <div class="h-3.5 bg-warm-subtle rounded w-1/2"></div>
+                </div>
+                <div class="w-24 h-8 bg-warm-subtle rounded-full"></div>
+              </div>
+              <div class="h-10 bg-warm-subtle rounded-xl w-full"></div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      try {
+        const response = await api.search(query);
+        renderSearchResults(response);
+      } catch (err) {
+        console.error('Search error:', err);
+        container.innerHTML = `
+          <div class="p-8 bg-warm-surface border-2 border-warm-text rounded-2xl shadow-brutal text-center space-y-4">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-red-100 border-2 border-warm-text flex items-center justify-center text-2xl">⚠️</div>
+            <h3 class="text-lg font-black text-warm-text">Không thể kết nối máy chủ AI</h3>
+            <p class="text-xs text-warm-muted max-w-md mx-auto font-medium">${err.message}</p>
+            <button onclick="performSearch('${query.replace(/'/g, "\\'")}')" class="px-4 py-2 rounded-xl bg-warm-primary text-warm-primary-text font-bold text-xs border-2 border-warm-text shadow-brutal-xs">
+              Thử lại ngay
+            </button>
+          </div>
+        `;
       }
     }
 
-    function openDetailModal(title, price, score) {
-      window.location.href = 'product-detail.html?id=1';
+    function renderSearchResults(data) {
+      const container = document.getElementById('results-container');
+      const pillsRow = document.getElementById('criteria-pills-row');
+      const criteria = data.extractedCriteria || {};
+      const results = data.results || [];
+
+      // ── Update Criteria Pills ──────────────────────────────────────────────
+      if (pillsRow) {
+        let pillsHtml = '';
+        if (criteria.categoryCode) {
+          pillsHtml += `
+            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-sky border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
+              <span class="text-warm-muted font-medium">Ngành hàng:</span>
+              <span class="uppercase">${criteria.categoryCode}</span>
+            </div>
+          `;
+        }
+        if (criteria.budgetMax || criteria.budgetMin) {
+          const minText = criteria.budgetMin ? formatPrice(criteria.budgetMin) : '0đ';
+          const maxText = criteria.budgetMax ? formatPrice(criteria.budgetMax) : 'Không giới hạn';
+          pillsHtml += `
+            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-amber border-2 border-warm-text font-extrabold text-warm-secondary-text shadow-brutal-xs">
+              <span class="font-medium text-warm-secondary-text">Ngân sách:</span>
+              <span>${minText} – ${maxText}</span>
+            </div>
+          `;
+        }
+        if (criteria.requiredSpecs) {
+          const reqSpecs = parseSpecs(criteria.requiredSpecs);
+          for (const [key, val] of Object.entries(reqSpecs)) {
+            pillsHtml += `
+              <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-mint border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
+                <span class="text-warm-muted font-medium">${key.toUpperCase()}:</span>
+                <span>${val}</span>
+              </div>
+            `;
+          }
+        }
+        if (criteria.target) {
+          pillsHtml += `
+            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-lavender border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
+              <span class="text-warm-muted font-medium">Mục đích:</span>
+              <span>${criteria.target}</span>
+            </div>
+          `;
+        }
+        pillsRow.innerHTML = pillsHtml || '<span class="text-xs text-warm-muted font-medium">Tìm kiếm tự do</span>';
+      }
+
+      // ── Update Count ───────────────────────────────────────────────────────
+      const totalText = document.querySelector('span.text-warm-secondary-text.bg-warm-secondary');
+      if (totalText) {
+        totalText.innerText = `${results.length} thiết bị`;
+      }
+
+      // ── Render Products ────────────────────────────────────────────────────
+      if (!results || results.length === 0) {
+        container.innerHTML = `
+          <div class="p-10 bg-warm-surface border-2 border-warm-text rounded-3xl shadow-brutal text-center space-y-4">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-warm-pastel-peach border-2 border-warm-text flex items-center justify-center text-3xl">🔍</div>
+            <h3 class="text-lg sm:text-xl font-extrabold text-warm-text">Không tìm thấy sản phẩm hoàn toàn khớp</h3>
+            <p class="text-xs sm:text-sm text-warm-muted max-w-md mx-auto font-medium">
+              Các thông số bạn yêu cầu khá khắt khe hoặc không có trong kho dữ liệu. Hãy thử nới lỏng mức giá hoặc tìm kiếm câu khác nhé!
+            </p>
+            <div class="pt-2">
+              <button onclick="document.getElementById('header-query-input').value='Tìm laptop 15 đến 20 triệu'; triggerNewSearch();" class="px-4 py-2 rounded-xl bg-warm-primary text-warm-primary-text font-extrabold text-xs border-2 border-warm-text shadow-brutal-xs hover:bg-warm-primary-hover">
+                Thử: "Tìm laptop 15 đến 20 triệu"
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = results.map((item, index) => {
+        const specs = parseSpecs(item.specs);
+        const cpu = specs.cpu || specs.CPU || '';
+        const ram = specs.ram || specs.RAM ? (specs.ram || specs.RAM) + 'GB' : '';
+        const storage = specs.storage || specs.Storage ? (specs.storage || specs.Storage) + 'GB' : '';
+        const screen = specs.screen || specs.screen_size || '';
+        const imgUrl = getPrimaryImage(item);
+        const rank = item.rankPosition || (index + 1);
+        const matchPercent = Math.round((item.matchScore || (1 - index * 0.05)) * 100);
+        const reasoning = item.reasoning || 'Thỏa mãn xuất sắc các ràng buộc về cấu hình phần cứng và ngân sách tối ưu của bạn.';
+
+        return `
+          <article class="product-result-card brutal-card-hover bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-brutal flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 sm:gap-4">
+                  <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border-2 border-warm-text p-1 shadow-brutal-xs shrink-0 overflow-hidden flex items-center justify-center">
+                    <img src="${imgUrl}" alt="${item.name}" class="w-full h-full object-contain" onerror="this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200&fit=crop'"/>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="px-2 py-0.5 rounded-md ${rank === 1 ? 'bg-warm-primary text-warm-primary-text' : 'bg-warm-pastel-amber text-warm-secondary-text'} border border-warm-text font-black text-[11px]">
+                        HẠNG #${rank} ĐỀ XUẤT
+                      </span>
+                      <span class="text-xs text-warm-muted font-bold">${item.brand ? 'Hãng: ' + item.brand : ''}</span>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-extrabold text-warm-text hover:text-warm-primary transition-colors cursor-pointer" onclick="window.location.href='product-detail.html?id=${item.id}'">
+                      ${item.name}
+                    </h3>
+                    <p class="text-xs text-warm-muted font-medium mt-0.5">
+                      ${cpu ? 'CPU: ' + cpu : ''} ${ram ? '• RAM: ' + ram : ''} ${storage ? '• Ổ cứng: ' + storage : ''}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="text-right shrink-0">
+                  <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-black text-xs sm:text-sm shadow-brutal-xs">
+                    <span class="text-warm-primary">★</span>
+                    <span>AI Khớp ${matchPercent}%</span>
+                  </div>
+                  <div class="text-[11px] text-warm-muted font-bold mt-1">Đánh giá: ${item.avgRating ? Number(item.avgRating).toFixed(1) : '5.0'} / 5</div>
+                </div>
+              </div>
+
+              <!-- AI Reasoning Box -->
+              <div class="mt-4 p-3.5 rounded-xl bg-warm-surface-soft border border-warm-text/20 text-xs text-warm-text font-medium leading-relaxed">
+                <span class="font-extrabold text-warm-primary-text flex items-center gap-1.5 mb-1">
+                  <span class="w-2.5 h-2.5 rounded-full bg-warm-primary"></span>
+                  Lý do AI Đề xuất:
+                </span>
+                <p class="text-stone-800">${reasoning}</p>
+              </div>
+
+              <!-- Specs Row -->
+              <div class="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold">
+                ${screen ? `<span class="px-2 py-1 rounded-lg bg-warm-bg border border-warm-text/20">🖥 ${screen}</span>` : ''}
+                ${ram ? `<span class="px-2 py-1 rounded-lg bg-warm-bg border border-warm-text/20">⚡ RAM ${ram}</span>` : ''}
+                ${storage ? `<span class="px-2 py-1 rounded-lg bg-warm-bg border border-warm-text/20">💾 SSD ${storage}</span>` : ''}
+                ${cpu ? `<span class="px-2 py-1 rounded-lg bg-warm-bg border border-warm-text/20">⚙️ ${cpu}</span>` : ''}
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3.5 border-t-2 border-warm-text/10 flex items-center justify-between">
+              <div>
+                <span class="text-lg sm:text-2xl font-black text-warm-text">${formatPrice(item.price)}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <a href="product-detail.html?id=${item.id}" class="brutal-button-action px-3.5 py-2 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text font-bold text-xs shadow-brutal-xs hover:bg-warm-subtle inline-block">
+                  Xem thông số chi tiết
+                </a>
+                <a href="product-detail.html?id=${item.id}#ai-summary" class="brutal-button-action px-4 py-2 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-extrabold text-xs border-2 border-warm-text shadow-brutal-xs inline-block">
+                  AI Tóm Tắt Review →
+                </a>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('');
     }
 
     // Keyboard ESC listener
@@ -1250,6 +1419,9 @@
       if (headerInput) headerInput.value = queryParam;
       const currentQueryDisplay = document.getElementById('current-query-display');
       if (currentQueryDisplay) currentQueryDisplay.innerText = queryParam;
+      performSearch(queryParam);
+    } else {
+      performSearch('Tìm laptop 15 đến 25 triệu RAM 16GB');
     }
     updateCompareUI();
   </script>

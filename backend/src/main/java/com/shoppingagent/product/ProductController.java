@@ -56,6 +56,15 @@ public class ProductController {
                 productService.searchProducts(categoryCode, minPrice, maxPrice, keyword, page, safeSize));
     }
 
+    // ── GET /products/featured ──────────────────────────────────────────────
+
+    @GetMapping("/featured")
+    @Operation(summary = "Lấy danh sách sản phẩm nổi bật (sắp xếp theo avg_rating giảm dần)")
+    public ResponseEntity<java.util.List<ProductDetailDTO>> getFeaturedProducts(
+            @RequestParam(defaultValue = "8") int limit) {
+        return ResponseEntity.ok(productService.getFeaturedProducts(limit));
+    }
+
     // ── GET /products/{id} ───────────────────────────────────────────────────
 
     @GetMapping("/{id}")
