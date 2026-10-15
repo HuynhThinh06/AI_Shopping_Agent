@@ -1,0 +1,100 @@
+/**
+ * AI Shopping Agent — Design System Tokens
+ * Style: Warm Soft-Brutalism / Playful Neo-brutalist (Trắng – Vàng ấm + Hard Offset Shadow)
+ */
+
+:root {
+  /* Colors */
+  --color-bg-base: #FAF8F5;
+  --color-bg-alt: #FDFBF7;
+  --color-bg-subtle: #F5EFE6;
+
+  --color-surface-card: #FFFFFF;
+  --color-surface-soft: #FBF9F5;
+
+  --color-border-dark: #292524;
+  --color-border-subtle: #E7DFCE;
+  --color-border-accent: #FDE68A;
+
+  --color-primary: #F59E0B;
+  --color-primary-hover: #D97706;
+  --color-primary-active: #B45309;
+  --color-primary-text: #451A03;
+  --color-accent-honey: #FBBF24;
+
+  --color-secondary-bg: #FEF3C7;
+  --color-secondary-text: #92400E;
+
+  --color-pastel-peach: #FFEDD5;
+  --color-pastel-amber: #FEF3C7;
+  --color-pastel-mint: #DCFCE7;
+  --color-pastel-sky: #E0F2FE;
+  --color-pastel-lavender: #F3E8FF;
+
+  --color-text-main: #292524;
+  --color-text-muted: #78716C;
+  --color-text-subtle: #A8A29E;
+
+  /* Shadows */
+  --shadow-box-sm: 2px 2px 0px var(--color-border-dark);
+  --shadow-box-md: 4px 4px 0px var(--color-border-dark);
+  --shadow-box-lg: 6px 6px 0px var(--color-border-dark);
+  --shadow-box-xl: 8px 8px 0px var(--color-border-dark);
+  --shadow-box-hover: 6px 6px 0px var(--color-border-dark);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-main);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.brutal-card {
+  background-color: #FFFFFF;
+  border: 2px solid #292524;
+  box-shadow: 4px 4px 0px #292524;
+  border-radius: 16px;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brutal-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #292524;
+}
+
+.brutal-btn {
+  background-color: #F59E0B;
+  color: #451A03;
+  border: 2px solid #292524;
+  box-shadow: 2px 2px 0px #292524;
+  border-radius: 12px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.brutal-btn:hover {
+  background-color: #D97706;
+  color: #FFFFFF;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #292524;
+}
+
+.brutal-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
