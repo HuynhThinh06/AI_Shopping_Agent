@@ -91,6 +91,87 @@ const api = {
       throw new Error(`Không gửi được đánh giá (${res.status}): ${err}`);
     }
     return await res.json();
+  },
+
+  // ── Admin: Dashboard KPIs (P1) ────────────────────────────────────────────
+  async getAdminStats() {
+    try {
+      const res = await fetch(`${API_BASE}/admin/stats`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('[API] getAdminStats error, using fallback:', err);
+      return null;
+    }
+  },
+
+  // ── Admin: Reviews Moderation (P1) ────────────────────────────────────────
+  async getAdminReviews(page = 0, size = 15, filter = 'all') {
+    const res = await fetch(`${API_BASE}/admin/reviews?page=${page}&size=${size}&filter=${filter}`);
+    if (!res.ok) throw new Error(`Lỗi tải danh sách review (${res.status})`);
+    return await res.json();
+  },
+
+  async toggleReviewSpam(id) {
+    const res = await fetch(`${API_BASE}/admin/reviews/${id}/toggle-spam`, { method: 'PUT' });
+    if (!res.ok) throw new Error(`Lỗi đổi cờ spam (${res.status})`);
+    return await res.json();
+  },
+
+  async approveReview(id) {
+    const res = await fetch(`${API_BASE}/admin/reviews/${id}/approve`, { method: 'PUT' });
+    if (!res.ok) throw new Error(`Lỗi duyệt review (${res.status})`);
+    return await res.json();
+  },
+
+  async deleteReview(id) {
+    const res = await fetch(`${API_BASE}/admin/reviews/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`Lỗi xóa review (${res.status})`);
+    return true;
+  },
+
+  async triggerProductSummary(productId) {
+    const res = await fetch(`${API_BASE}/admin/reviews/${productId}/summarize`, { method: 'POST' });
+    if (!res.ok) throw new Error(`Lỗi tóm tắt (${res.status})`);
+    return await res.json();
+  },
+
+  // ── Admin: Ranking Weights (P1) ───────────────────────────────────────────
+  async getAdminWeights() {
+    const res = await fetch(`${API_BASE}/admin/weights`);
+    if (!res.ok) throw new Error(`Lỗi tải trọng số ranking (${res.status})`);
+    return await res.json();
+  },
+
+  async updateAdminWeights(categoryCode, weights) {
+    const res = await fetch(`${API_BASE}/admin/weights`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoryCode, weights })
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Lỗi cập nhật trọng số (${res.status}): ${err}`);
+    }
+    return await res.json();
+  },
+
+  // ── Admin: LLM Request Logs (P1) ──────────────────────────────────────────
+  async getAdminLlmLogs(page = 0, size = 20, requestType = '', status = '') {
+    const params = new URLSearchParams({ page, size });
+    if (requestType) params.append('requestType', requestType);
+    if (status) params.append('status', status);
+
+    const res = await fetch(`${API_BASE}/admin/llm-logs?${params.toString()}`);
+    if (!res.ok) throw new Error(`Lỗi tải nhật ký LLM (${res.status})`);
+    return await res.json();
+  },
+
+  // ── Admin: Benchmark (P1) ─────────────────────────────────────────────────
+  async getAdminBenchmark() {
+    const res = await fetch(`${API_BASE}/admin/benchmark`);
+    if (!res.ok) throw new Error(`Lỗi tải dữ liệu benchmark (${res.status})`);
+    return await res.json();
   }
 };
 

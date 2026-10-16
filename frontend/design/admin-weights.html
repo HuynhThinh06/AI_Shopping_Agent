@@ -197,10 +197,10 @@
               1. Chọn ngành hàng áp dụng trọng số:
             </label>
             <div class="grid grid-cols-2 gap-3">
-              <button type="button" class="p-3 rounded-xl border-2 border-warm-text bg-warm-primary text-warm-primary-text font-black text-xs sm:text-sm shadow-brutal-xs flex items-center justify-center gap-2">
+              <button type="button" id="btn-cat-laptop" onclick="selectCategory('laptop')" class="p-3 rounded-xl border-2 border-warm-text bg-warm-primary text-warm-primary-text font-black text-xs sm:text-sm shadow-brutal-xs flex items-center justify-center gap-2">
                 <span>💻</span> Laptop
               </button>
-              <button type="button" class="p-3 rounded-xl border-2 border-warm-border-subtle bg-warm-bg text-warm-text hover:border-warm-text font-bold text-xs sm:text-sm transition-colors flex items-center justify-center gap-2">
+              <button type="button" id="btn-cat-phone" onclick="selectCategory('phone')" class="p-3 rounded-xl border-2 border-warm-border-subtle bg-warm-bg text-warm-text hover:border-warm-text font-bold text-xs sm:text-sm transition-colors flex items-center justify-center gap-2">
                 <span>📱</span> Điện thoại thông minh
               </button>
             </div>
@@ -230,6 +230,7 @@
                 <span id="w-spec-num" class="font-mono font-black text-warm-primary text-sm">50%</span>
               </div>
               <input 
+                id="input-w-spec"
                 type="range" 
                 min="0" 
                 max="100" 
@@ -249,6 +250,7 @@
                 <span id="w-price-num" class="font-mono font-black text-sky-700 text-sm">25%</span>
               </div>
               <input 
+                id="input-w-price"
                 type="range" 
                 min="0" 
                 max="100" 
@@ -268,6 +270,7 @@
                 <span id="w-rating-num" class="font-mono font-black text-emerald-700 text-sm">25%</span>
               </div>
               <input 
+                id="input-w-rating"
                 type="range" 
                 min="0" 
                 max="100" 
@@ -319,40 +322,40 @@
             <!-- Simulation Results List -->
             <div class="space-y-2.5 pt-2">
               <div class="text-xs font-black text-warm-text uppercase tracking-wide">Kết quả Top 3 sau khi cân trọng số:</div>
-              
-              <div class="p-3 rounded-xl bg-warm-bg border-2 border-warm-text shadow-brutal-xs flex items-center justify-between">
-                <div class="flex items-center gap-2.5">
-                  <span class="w-6 h-6 rounded-lg bg-warm-primary text-white font-black text-xs flex items-center justify-center border border-warm-text">1</span>
-                  <div>
-                    <div class="text-xs font-black text-warm-text">Asus Vivobook Pro 15</div>
-                    <div class="text-[10px] text-warm-muted">Spec: 96% | Price: 88% | Rating: 94%</div>
+              <div id="simulation-results-list" class="space-y-2.5">
+                <div class="p-3 rounded-xl bg-warm-bg border-2 border-warm-text shadow-brutal-xs flex items-center justify-between">
+                  <div class="flex items-center gap-2.5">
+                    <span class="w-6 h-6 rounded-lg bg-warm-primary text-white font-black text-xs flex items-center justify-center border border-warm-text">1</span>
+                    <div>
+                      <div class="text-xs font-black text-warm-text">Asus Vivobook Pro 15</div>
+                      <div class="text-[10px] text-warm-muted">Spec: 96% | Price: 88% | Rating: 94%</div>
+                    </div>
                   </div>
+                  <span class="text-xs font-black text-emerald-700 font-mono">94.2%</span>
                 </div>
-                <span class="text-xs font-black text-emerald-700 font-mono">94.2%</span>
-              </div>
 
-              <div class="p-3 rounded-xl bg-warm-bg border-2 border-warm-text shadow-brutal-xs flex items-center justify-between">
-                <div class="flex items-center gap-2.5">
-                  <span class="w-6 h-6 rounded-lg bg-warm-surface text-warm-text font-black text-xs flex items-center justify-center border border-warm-text">2</span>
-                  <div>
-                    <div class="text-xs font-black text-warm-text">Lenovo ThinkPad E16</div>
-                    <div class="text-[10px] text-warm-muted">Spec: 92% | Price: 85% | Rating: 96%</div>
+                <div class="p-3 rounded-xl bg-warm-bg border-2 border-warm-text shadow-brutal-xs flex items-center justify-between">
+                  <div class="flex items-center gap-2.5">
+                    <span class="w-6 h-6 rounded-lg bg-warm-surface text-warm-text font-black text-xs flex items-center justify-center border border-warm-text">2</span>
+                    <div>
+                      <div class="text-xs font-black text-warm-text">Lenovo ThinkPad E16</div>
+                      <div class="text-[10px] text-warm-muted">Spec: 92% | Price: 85% | Rating: 96%</div>
+                    </div>
                   </div>
+                  <span class="text-xs font-black text-emerald-700 font-mono">91.5%</span>
                 </div>
-                <span class="text-xs font-black text-emerald-700 font-mono">91.5%</span>
-              </div>
 
-              <div class="p-3 rounded-xl bg-warm-bg border-2 border-warm-text shadow-brutal-xs flex items-center justify-between">
-                <div class="flex items-center gap-2.5">
-                  <span class="w-6 h-6 rounded-lg bg-warm-surface text-warm-text font-black text-xs flex items-center justify-center border border-warm-text">3</span>
-                  <div>
-                    <div class="text-xs font-black text-warm-text">Acer Swift Go 14 AI</div>
-                    <div class="text-[10px] text-warm-muted">Spec: 85% | Price: 95% | Rating: 88%</div>
+                <div class="p-3 rounded-xl bg-warm-bg border-2 border-warm-text shadow-brutal-xs flex items-center justify-between">
+                  <div class="flex items-center gap-2.5">
+                    <span class="w-6 h-6 rounded-lg bg-warm-surface text-warm-text font-black text-xs flex items-center justify-center border border-warm-text">3</span>
+                    <div>
+                      <div class="text-xs font-black text-warm-text">Acer Swift Go 14 AI</div>
+                      <div class="text-[10px] text-warm-muted">Spec: 85% | Price: 95% | Rating: 88%</div>
+                    </div>
                   </div>
+                  <span class="text-xs font-black text-emerald-700 font-mono">88.2%</span>
                 </div>
-                <span class="text-xs font-black text-emerald-700 font-mono">88.2%</span>
               </div>
-
             </div>
 
           </div>
@@ -365,13 +368,70 @@
 
   </div>
 
+  <script src="js/api.js"></script>
   <script>
+    let currentCategory = 'laptop';
+    let allWeights = {
+      laptop: { spec_match: 0.50, price: 0.25, rating: 0.25 },
+      phone: { spec_match: 0.45, price: 0.35, rating: 0.20 }
+    };
     let adminWeights = { spec: 50, price: 25, rating: 25 };
+
+    async function loadWeights() {
+      try {
+        const data = await api.getAdminWeights();
+        if (data && Object.keys(data).length > 0) {
+          allWeights = data;
+        }
+        applyCategoryToUI(currentCategory);
+      } catch (err) {
+        console.warn('[AdminWeights] Cannot load DB weights, using defaults:', err);
+        applyCategoryToUI(currentCategory);
+      }
+    }
+
+    function selectCategory(cat) {
+      currentCategory = cat;
+      const btnLaptop = document.getElementById('btn-cat-laptop');
+      const btnPhone = document.getElementById('btn-cat-phone');
+
+      if (cat === 'laptop') {
+        btnLaptop.className = 'p-3 rounded-xl border-2 border-warm-text bg-warm-primary text-warm-primary-text font-black text-xs sm:text-sm shadow-brutal-xs flex items-center justify-center gap-2';
+        btnPhone.className = 'p-3 rounded-xl border-2 border-warm-border-subtle bg-warm-bg text-warm-text hover:border-warm-text font-bold text-xs sm:text-sm transition-colors flex items-center justify-center gap-2';
+        document.getElementById('sample-query').value = 'Laptop lập trình Docker, RAM 32GB, dưới 30 triệu';
+      } else {
+        btnPhone.className = 'p-3 rounded-xl border-2 border-warm-text bg-warm-primary text-warm-primary-text font-black text-xs sm:text-sm shadow-brutal-xs flex items-center justify-center gap-2';
+        btnLaptop.className = 'p-3 rounded-xl border-2 border-warm-border-subtle bg-warm-bg text-warm-text hover:border-warm-text font-bold text-xs sm:text-sm transition-colors flex items-center justify-center gap-2';
+        document.getElementById('sample-query').value = 'Điện thoại chụp ảnh ban đêm đẹp, zoom xa, tầm 20 triệu';
+      }
+
+      applyCategoryToUI(cat);
+    }
+
+    function applyCategoryToUI(cat) {
+      const catWeights = allWeights[cat] || { spec_match: 0.5, price: 0.25, rating: 0.25 };
+      adminWeights.spec = Math.round((catWeights.spec_match || 0.5) * 100);
+      adminWeights.price = Math.round((catWeights.price || 0.25) * 100);
+      adminWeights.rating = Math.round((catWeights.rating || 0.25) * 100);
+
+      document.getElementById('input-w-spec').value = adminWeights.spec;
+      document.getElementById('input-w-price').value = adminWeights.price;
+      document.getElementById('input-w-rating').value = adminWeights.rating;
+
+      document.getElementById('w-spec-num').textContent = `${adminWeights.spec}%`;
+      document.getElementById('w-price-num').textContent = `${adminWeights.price}%`;
+      document.getElementById('w-rating-num').textContent = `${adminWeights.rating}%`;
+
+      validateSum();
+    }
 
     function handleWeightChange(type, value) {
       adminWeights[type] = parseInt(value);
       document.getElementById(`w-${type}-num`).textContent = `${value}%`;
+      validateSum();
+    }
 
+    function validateSum() {
       const sum = adminWeights.spec + adminWeights.price + adminWeights.rating;
       const badge = document.getElementById('admin-sum-badge');
       const saveBtn = document.getElementById('btn-save-weights');
@@ -387,19 +447,76 @@
       }
     }
 
-    function runSimulation() {
-      alert('Đã chạy giả lập xếp hạng lại với bộ trọng số mới!');
-    }
-
-    function saveWeights() {
+    async function saveWeights() {
       const sum = adminWeights.spec + adminWeights.price + adminWeights.rating;
       if (sum !== 100) {
         alert('Cảnh báo: Tổng trọng số phải chính xác 100% trước khi lưu!');
         return;
       }
-      alert('Đã lưu cấu hình trọng số xếp hạng vào bảng ranking_weights thành công!');
-    }
-  </script>
 
+      const payload = {
+        spec_match: adminWeights.spec / 100.0,
+        price: adminWeights.price / 100.0,
+        rating: adminWeights.rating / 100.0
+      };
+
+      try {
+        const btn = document.getElementById('btn-save-weights');
+        btn.disabled = true;
+        btn.innerText = 'Đang lưu vào DB...';
+
+        await api.updateAdminWeights(currentCategory, payload);
+        alert(`Đã lưu cấu hình trọng số cho ngành hàng [${currentCategory.toUpperCase()}] vào bảng ranking_weights thành công!`);
+        btn.disabled = false;
+        btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg><span>Lưu Trọng Số Xếp Hạng</span>`;
+      } catch (err) {
+        alert('Lỗi lưu trọng số: ' + err.message);
+        document.getElementById('btn-save-weights').disabled = false;
+      }
+    }
+
+    async function runSimulation() {
+      const query = document.getElementById('sample-query').value.trim();
+      if (!query) return;
+
+      const container = document.getElementById('simulation-results-list');
+      container.innerHTML = `
+        <div class="p-4 text-center text-warm-muted font-bold">
+          <div class="inline-block animate-spin w-4 h-4 border-2 border-warm-text border-t-transparent rounded-full mr-2"></div>
+          Đang chạy xếp hạng Weighted Scoring qua Backend...
+        </div>
+      `;
+
+      try {
+        const resp = await api.search(query);
+        const results = (resp.results || []).slice(0, 3);
+        if (results.length === 0) {
+          container.innerHTML = `<div class="p-3 text-xs text-warm-muted">Không tìm thấy sản phẩm phù hợp.</div>`;
+          return;
+        }
+
+        container.innerHTML = results.map((p, idx) => {
+          const scorePercent = Math.round((p.score || 0.9) * 100);
+          return `
+            <div class="p-3 rounded-xl bg-warm-bg border-2 border-warm-text shadow-brutal-xs flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="w-6 h-6 rounded-lg ${idx === 0 ? 'bg-warm-primary text-white' : 'bg-warm-surface text-warm-text'} font-black text-xs flex items-center justify-center border border-warm-text">${idx + 1}</span>
+                <div>
+                  <div class="text-xs font-black text-warm-text truncate max-w-[200px]">${p.name}</div>
+                  <div class="text-[10px] text-warm-muted">${formatPrice(p.price)} • Rating: ${p.avgRating || 5.0}★</div>
+                </div>
+              </div>
+              <span class="text-xs font-black text-emerald-700 font-mono">${scorePercent}%</span>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.warn('Simulation search error:', err);
+        container.innerHTML = `<div class="p-3 text-xs text-red-600">Lỗi mô phỏng: ${err.message}</div>`;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadWeights);
+  </script>
 </body>
 </html>

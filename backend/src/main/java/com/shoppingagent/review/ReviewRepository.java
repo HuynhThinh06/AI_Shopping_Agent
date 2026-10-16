@@ -54,4 +54,15 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
               AND r.isSpam = FALSE
             """)
     Double calculateAvgRating(@Param("productId") Long productId);
+
+    // ── Admin queries ────────────────────────────────────────────────────────
+    long countByIsSpamTrue();
+
+    long countByIsSpamFalseAndIsActiveTrue();
+
+    Page<Review> findByIsSpamTrue(Pageable pageable);
+
+    Page<Review> findByIsActiveFalse(Pageable pageable);
+
+    Page<Review> findAllByOrderByCreatedAtDesc(Pageable pageable);
 }
