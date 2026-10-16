@@ -3,6 +3,60 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { saveAuthUser } from '../utils/storage';
 import { Sparkles, Lock, Mail, User, Phone, ArrowRight, ShieldCheck } from 'lucide-react';
 
+interface TestAccount {
+  name: string;
+  email: string;
+  phone: string;
+  avatarText: string;
+  role: string;
+  badge: string;
+  badgeColor: string;
+  description: string;
+}
+
+const TEST_ACCOUNTS: TestAccount[] = [
+  {
+    name: 'Trần Tuấn Anh',
+    email: 'tuananh.dev@gmail.com',
+    phone: '0988 123 456',
+    avatarText: 'TA',
+    role: 'Thành viên VIP',
+    badge: 'VIP Buyer',
+    badgeColor: 'bg-amber-100 text-amber-900 border-amber-400',
+    description: 'Gu cân bằng, so sánh sản phẩm, đánh giá chi tiết',
+  },
+  {
+    name: 'Quản trị viên Hệ thống',
+    email: 'admin@shoppingagent.com',
+    phone: '0901 888 999',
+    avatarText: 'AD',
+    role: 'Quản trị viên (Admin)',
+    badge: 'Admin',
+    badgeColor: 'bg-rose-100 text-rose-900 border-rose-400',
+    description: 'Toàn quyền Benchmark GIN Index, LLM Logs, Quản lý sản phẩm',
+  },
+  {
+    name: 'Huỳnh Gia Thịnh',
+    email: 'giathinh.student@hcmut.edu.vn',
+    phone: '0912 345 678',
+    avatarText: 'GT',
+    role: 'Sinh viên IT',
+    badge: 'Student IT',
+    badgeColor: 'bg-blue-100 text-blue-900 border-blue-400',
+    description: 'Gu ngân sách tối ưu ("lap 15 củ học IT"), tìm kiếm giá rẻ',
+  },
+  {
+    name: 'Hoàng Minh',
+    email: 'hoangminh.tech@gmail.com',
+    phone: '0933 678 999',
+    avatarText: 'HM',
+    role: 'Tech Reviewer',
+    badge: 'Specs Gamer',
+    badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-400',
+    description: 'Gu cấu hình khủng, đồ họa render, viết review chi tiết',
+  },
+];
+
 export const AuthPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -11,18 +65,25 @@ export const AuthPage: React.FC = () => {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState('password123');
   const [phone, setPhone] = useState('');
 
-  const handleQuickDemoLogin = () => {
-    saveAuthUser({
-      name: 'Trần Tuấn Anh',
-      email: 'tuananh.dev@gmail.com',
-      phone: '0988 123 456',
-      avatarText: 'TA',
-      role: 'Thành viên VIP',
-    });
-    navigate('/');
+  const handleSelectAccount = (acc: TestAccount, autoLogin = false) => {
+    setName(acc.name);
+    setEmail(acc.email);
+    setPhone(acc.phone);
+    setPassword('password123');
+
+    if (autoLogin) {
+      saveAuthUser({
+        name: acc.name,
+        email: acc.email,
+        phone: acc.phone,
+        avatarText: acc.avatarText,
+        role: acc.role,
+      });
+      navigate('/');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -36,7 +97,7 @@ export const AuthPage: React.FC = () => {
       email: email || 'user@example.com',
       phone: phone || '0900 000 000',
       avatarText: initials,
-      role: 'Thành viên mới',
+      role: email.includes('admin') ? 'Quản trị viên (Admin)' : 'Thành viên mới',
     });
 
     navigate('/');
@@ -84,23 +145,41 @@ export const AuthPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Quick Demo Login Button */}
-        <div className="p-3.5 rounded-2xl bg-warm-pastel-amber border-2 border-warm-text shadow-brutal-xs space-y-2">
-          <div className="flex items-center gap-2 text-xs font-black text-amber-900">
-            <ShieldCheck className="w-4 h-4 text-warm-primary" />
-            <span>Đăng nhập thử nghiệm nhanh:</span>
+        {/* Quick Demo Login Picker */}
+        <div className="p-3.5 rounded-2xl bg-warm-pastel-amber border-2 border-warm-text shadow-brutal-xs space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-black text-amber-950">
+              <ShieldCheck className="w-4 h-4 text-warm-primary" />
+              <span>Tài khoản kiểm thử đã Seed trên DB:</span>
+            </div>
+            <span className="text-[10px] bg-amber-300 text-amber-900 font-extrabold px-1.5 py-0.5 rounded-md border border-amber-900/30">
+              4 Vai trò
+            </span>
           </div>
           <p className="text-[11px] text-warm-muted font-medium">
-            Truy cập ngay với tài khoản mẫu <strong>Tuấn Anh (VIP)</strong> để xem đầy đủ các tính năng cá nhân hóa.
+            Chọn 1 tài khoản bên dưới để đăng nhập tức thì hoặc điền nhanh vào form:
           </p>
-          <button
-            type="button"
-            onClick={handleQuickDemoLogin}
-            className="w-full py-2 rounded-xl bg-warm-surface hover:bg-white text-warm-text font-black text-xs border border-warm-text shadow-brutal-xs flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <span>Đăng nhập 1-Click (Demo Account)</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            {TEST_ACCOUNTS.map((acc) => (
+              <button
+                key={acc.email}
+                type="button"
+                onClick={() => handleSelectAccount(acc, true)}
+                className="p-2 rounded-xl bg-warm-surface hover:bg-white text-left border border-warm-text shadow-brutal-xs cursor-pointer transition-all hover:translate-x-0.5 hover:-translate-y-0.5 group"
+                title={`${acc.description} — Click để đăng nhập ngay`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-black text-warm-text truncate group-hover:text-warm-primary">
+                    {acc.name.split(' ').slice(-2).join(' ')}
+                  </span>
+                  <span className={`text-[9px] font-bold px-1 py-0.2 rounded border ${acc.badgeColor}`}>
+                    {acc.badge}
+                  </span>
+                </div>
+                <div className="text-[10px] text-warm-muted truncate">{acc.email}</div>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Form */}

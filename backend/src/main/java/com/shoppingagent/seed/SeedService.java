@@ -178,4 +178,55 @@ public class SeedService {
         entityManager.persist(crawler);
         return crawler;
     }
+
+    @Transactional
+    public List<User> seedDefaultUsers() {
+        record UserData(String username, String email, String passwordHash, String displayName, String role, boolean isActive) {}
+
+        List<UserData> defaultUsers = List.of(
+            new UserData("admin", "admin@shoppingagent.com", "$2a$10$w8T0pC0sJpUjV/y6aJm6E.b9V7H9pI1jD8kF2lM4nO5pQ6rS7tU8v", "Quản trị viên Hệ thống (Admin)", "admin", true),
+            new UserData("tuananh", "tuananh.dev@gmail.com", "$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2", "Trần Tuấn Anh (VIP)", "user", true),
+            new UserData("giathinh", "giathinh.student@hcmut.edu.vn", "$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2", "Huỳnh Gia Thịnh (Sinh viên IT)", "user", true),
+            new UserData("hoangminh", "hoangminh.tech@gmail.com", "$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2", "Hoàng Minh (Tech Reviewer / Gamer)", "user", true),
+            new UserData("lananh", "lananh.office@company.vn", "$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2", "Nguyễn Lan Anh (Văn phòng)", "user", true),
+            new UserData("khanh_reviewer", "khanh.reviewer@techlab.vn", "$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2", "Trần Quốc Khánh (Chuyên gia Đánh giá)", "user", true),
+            new UserData("spammer_bot", "spambot999@disposable.org", "$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2", "Dịch vụ Quảng cáo 247 (Spam Bot)", "user", false)
+        );
+
+        List<User> result = new java.util.ArrayList<>();
+        result.add(resolveDefaultCrawlerUser());
+
+        for (UserData ud : defaultUsers) {
+            List<User> existing = entityManager.createQuery("SELECT u FROM User u WHERE u.username = :username", User.class)
+                    .setParameter("username", ud.username())
+                    .getResultList();
+            if (existing.isEmpty()) {
+                User user = User.builder()
+                        .username(ud.username())
+                        .email(ud.email())
+                        .passwordHash(ud.passwordHash())
+                        .displayName(ud.displayName())
+                        .role(ud.role())
+                        .isActive(ud.isActive())
+                        .build();
+                entityManager.persist(user);
+                result.add(user);
+            } else {
+                User user = existing.get(0);
+                user.setEmail(ud.email());
+                user.setDisplayName(ud.displayName());
+                user.setRole(ud.role());
+                user.setIsActive(ud.isActive());
+                entityManager.merge(user);
+                result.add(user);
+            }
+        }
+        log.info("Seeded/updated {} test users", result.size());
+        return result;
+    }
+
+    public List<User> getAllUsers() {
+        return entityManager.createQuery("SELECT u FROM User u ORDER BY u.id ASC", User.class)
+                .getResultList();
+    }
 }
