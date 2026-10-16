@@ -1,15 +1,30 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
+
+// P0: Core User Flow
 import { HomePage } from './pages/HomePage';
 import { SearchResultsPage } from './pages/SearchResultsPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
+
+// P1: Admin & Experiment Flow
+import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminBenchmarkPage } from './pages/admin/AdminBenchmarkPage';
 import { AdminLlmLogsPage } from './pages/admin/AdminLlmLogsPage';
 import { AdminWeightsPage } from './pages/admin/AdminWeightsPage';
-import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminProductsPage } from './pages/admin/AdminProductsPage';
 import { AdminReviewsPage } from './pages/admin/AdminReviewsPage';
+
+// P2: Extended User & Admin Features
+import { CategoryPage } from './pages/CategoryPage';
+import { ComparePage } from './pages/ComparePage';
+import { FavoritesPage } from './pages/FavoritesPage';
+import { HistoryPage } from './pages/HistoryPage';
+import { MyReviewsPage } from './pages/MyReviewsPage';
+import { AuthPage } from './pages/AuthPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
+import { AdminProductEditPage } from './pages/admin/AdminProductEditPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 export const App: React.FC = () => {
@@ -17,18 +32,33 @@ export const App: React.FC = () => {
     <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
-          {/* Core User Flow */}
+          {/* P0: Core User Flow */}
           <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchResultsPage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />
 
-          {/* Admin & Experiment Flow */}
+          {/* P2: Extended User Features */}
+          <Route path="/category" element={<CategoryPage />} />
+          <Route path="/category/:code" element={<CategoryPage />} />
+          <Route path="/compare" element={<ComparePage />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
+          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/my-reviews" element={<MyReviewsPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/register" element={<AuthPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+
+          {/* P1 & P2: Admin Control Center */}
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
           <Route path="/admin/benchmark" element={<AdminBenchmarkPage />} />
           <Route path="/admin/llm-logs" element={<AdminLlmLogsPage />} />
           <Route path="/admin/weights" element={<AdminWeightsPage />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
+          <Route path="/admin/products/new" element={<AdminProductEditPage />} />
+          <Route path="/admin/products/:id/edit" element={<AdminProductEditPage />} />
+          <Route path="/admin/categories" element={<AdminCategoriesPage />} />
           <Route path="/admin/reviews" element={<AdminReviewsPage />} />
 
           {/* Fallback 404 */}
