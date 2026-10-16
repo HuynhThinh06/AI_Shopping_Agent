@@ -15,10 +15,11 @@ export async function fetchFeaturedProducts(limit = 8): Promise<Product[]> {
 }
 
 export async function searchProducts(query: string): Promise<SearchResponse> {
+  const trimmed = query.trim();
   const res = await fetch(`${API_BASE}/search`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: query.trim() }),
+    body: JSON.stringify({ queryText: trimmed, query: trimmed }),
   });
   if (!res.ok) {
     const errText = await res.text();
