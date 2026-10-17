@@ -65,6 +65,14 @@ public class ProductController {
         return ResponseEntity.ok(productService.getFeaturedProducts(limit));
     }
 
+    // ── GET /products/compare ────────────────────────────────────────────────
+    @GetMapping("/compare")
+    @Operation(summary = "Lấy danh sách sản phẩm để so sánh đa chiều (2-4 sản phẩm)")
+    public ResponseEntity<java.util.List<ProductDetailDTO>> compareProducts(
+            @RequestParam java.util.List<Long> ids) {
+        return ResponseEntity.ok(productService.getProductsForComparison(ids));
+    }
+
     // ── GET /products/{id} ───────────────────────────────────────────────────
 
     @GetMapping("/{id}")

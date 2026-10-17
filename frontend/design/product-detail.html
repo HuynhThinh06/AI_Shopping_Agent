@@ -396,7 +396,7 @@
             <button 
               type="button" 
               id="btn-add-compare"
-              onclick="toggleCompareProduct('UX3405')" 
+              onclick="toggleCompareProduct()" 
               class="brutal-button-action flex-1 py-3 px-4 rounded-xl bg-warm-secondary hover:bg-warm-honey text-warm-secondary-text font-black text-sm border-2 border-warm-text shadow-brutal-sm flex items-center justify-center gap-2 cursor-pointer"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
@@ -994,27 +994,46 @@
        JAVASCRIPT LOGIC
        ========================================================================= -->
   <script>
-    let isCompared = false;
+    let loadedProduct = null;
     let isWishlisted = false;
 
-    function toggleCompareProduct(sku) {
-      isCompared = !isCompared;
+    function toggleCompareProduct() {
+      if (!loadedProduct) return;
+      if (CompareManager.has(loadedProduct.id)) {
+        CompareManager.remove(loadedProduct.id);
+      } else {
+        CompareManager.add(loadedProduct);
+      }
+      updateProductCompareButton();
+    }
+
+    function updateProductCompareButton() {
       const btn = document.getElementById('btn-add-compare');
       const text = document.getElementById('compare-btn-text');
       const navCount = document.getElementById('nav-compare-count');
       
-      if (isCompared) {
+      const list = CompareManager.getList();
+      if (navCount) {
+        navCount.innerText = list.length;
+      }
+
+      if (!loadedProduct || !btn || !text) return;
+
+      const isComp = CompareManager.has(loadedProduct.id);
+      if (isComp) {
         btn.classList.remove('bg-warm-secondary', 'text-warm-secondary-text');
         btn.classList.add('bg-emerald-500', 'text-white');
         text.innerText = '✓ Đã thêm vào So Sánh';
-        navCount.innerText = '3';
       } else {
         btn.classList.add('bg-warm-secondary', 'text-warm-secondary-text');
         btn.classList.remove('bg-emerald-500', 'text-white');
         text.innerText = 'Thêm vào bảng So sánh';
-        navCount.innerText = '2';
       }
     }
+
+    window.addEventListener('compare-updated', () => {
+      updateProductCompareButton();
+    });
 
     function toggleWishlist() {
       isWishlisted = !isWishlisted;
@@ -1196,6 +1215,9 @@
               <img src="${imgUrl}" alt="${p.name}" class="max-h-[220px] max-w-[300px] object-contain drop-shadow-md" onerror="this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&fit=crop'"/>
             `;
           }
+
+          loadedProduct = p;
+          updateProductCompareButton();
         }
       } catch (err) {
         console.warn('Lỗi khi tải thông tin sản phẩm:', err);
@@ -1325,6 +1347,7 @@
 
     // Khởi chạy khi tải trang
     document.addEventListener('DOMContentLoaded', () => {
+      updateProductCompareButton();
       const urlParams = new URLSearchParams(window.location.search);
       const id = urlParams.get('id') || '1';
       loadProductPage(id);

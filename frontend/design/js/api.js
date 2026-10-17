@@ -172,8 +172,106 @@ const api = {
     const res = await fetch(`${API_BASE}/admin/benchmark`);
     if (!res.ok) throw new Error(`Lỗi tải dữ liệu benchmark (${res.status})`);
     return await res.json();
+  },
+
+  // ── Product Compare (P2) ──────────────────────────────────────────────────
+  async compareProducts(ids) {
+    if (!ids || ids.length === 0) return [];
+    const idList = Array.isArray(ids) ? ids.join(',') : ids;
+    const res = await fetch(`${API_BASE}/products/compare?ids=${idList}`);
+    if (!res.ok) throw new Error(`Lỗi tải dữ liệu so sánh (${res.status})`);
+    return await res.json();
   }
 };
+
+// ── Compare Manager (Persistent State across pages) ─────────────────────────
+const CompareManager = {
+  KEY: 'ai_shopping_compare_items',
+
+  getList() {
+    try {
+      const data = localStorage.getItem(this.KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  add(product) {
+    let list = this.getList();
+    if (list.find(p => p.id === product.id)) {
+      showToast(`Sản phẩm "${product.name}" đã có trong danh sách so sánh!`, 'info');
+      return list;
+    }
+    if (list.length >= 4) {
+      showToast('Bạn chỉ có thể so sánh tối đa 4 sản phẩm cùng lúc!', 'warning');
+      return list;
+    }
+    list.push({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      brand: product.brand,
+      image: getPrimaryImage(product)
+    });
+    localStorage.setItem(this.KEY, JSON.stringify(list));
+    showToast(`Đã thêm "${product.name}" vào so sánh (${list.length}/4)`, 'success');
+    window.dispatchEvent(new CustomEvent('compare-updated', { detail: list }));
+    return list;
+  },
+
+  remove(id) {
+    let list = this.getList().filter(p => p.id !== id);
+    localStorage.setItem(this.KEY, JSON.stringify(list));
+    showToast('Đã bỏ sản phẩm khỏi so sánh.', 'info');
+    window.dispatchEvent(new CustomEvent('compare-updated', { detail: list }));
+    return list;
+  },
+
+  clear() {
+    localStorage.removeItem(this.KEY);
+    window.dispatchEvent(new CustomEvent('compare-updated', { detail: [] }));
+  },
+
+  has(id) {
+    return this.getList().some(p => p.id === id);
+  }
+};
+
+// ── Toast Notification Utility ──────────────────────────────────────────────
+function showToast(message, type = 'info') {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  const bgColors = {
+    success: 'bg-emerald-100 border-emerald-500 text-emerald-900',
+    warning: 'bg-amber-100 border-amber-500 text-amber-900',
+    error: 'bg-red-100 border-red-500 text-red-900',
+    info: 'bg-warm-secondary border-warm-text text-warm-text'
+  };
+
+  toast.className = `p-3.5 rounded-2xl border-2 shadow-brutal-sm font-extrabold text-xs flex items-center justify-between gap-3 pointer-events-auto transition-all transform translate-y-4 opacity-0 ${bgColors[type] || bgColors.info}`;
+  toast.innerHTML = `
+    <span>${message}</span>
+    <button type="button" class="text-xs font-black p-1 hover:opacity-70" onclick="this.parentElement.remove()">✕</button>
+  `;
+
+  container.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.classList.remove('translate-y-4', 'opacity-0');
+  });
+
+  setTimeout(() => {
+    toast.classList.add('opacity-0', 'translate-y-2');
+    setTimeout(() => toast.remove(), 250);
+  }, 3500);
+}
 
 // ── Shared UI Utilities ─────────────────────────────────────────────────────
 

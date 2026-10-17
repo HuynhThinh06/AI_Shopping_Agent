@@ -3,7 +3,6 @@ package com.shoppingagent.admin;
 import com.shoppingagent.admin.dto.*;
 import com.shoppingagent.product.CategoryRepository;
 import com.shoppingagent.product.ProductRepository;
-import com.shoppingagent.review.ReviewFilterService;
 import com.shoppingagent.review.ReviewRepository;
 import com.shoppingagent.review.SummarizerService;
 import com.shoppingagent.shared.entity.*;
@@ -31,7 +30,6 @@ public class AdminService {
     private final LlmRequestLogRepository llmRequestLogRepository;
     private final CategoryRepository categoryRepository;
     private final SummarizerService summarizerService;
-    private final ReviewFilterService reviewFilterService;
 
     // ── 1. Thống kê tổng quan (Dashboard) ───────────────────────────────────
 

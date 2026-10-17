@@ -934,29 +934,30 @@
   <aside id="floating-compare-bar" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4 transition-transform duration-200">
     <div class="bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-brutal-lg flex items-center justify-between gap-4">
       
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-warm-primary border-2 border-warm-text flex items-center justify-center text-warm-primary-text font-black text-xs shadow-brutal-xs">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 rounded-xl bg-warm-primary border-2 border-warm-text flex items-center justify-center text-warm-primary-text font-black text-xs shadow-brutal-xs shrink-0">
           VS
         </div>
-        <div>
+        <div class="min-w-0">
           <span class="font-extrabold text-xs sm:text-sm text-warm-text block">
-            Đang so sánh: <span id="compare-count-text" class="text-warm-secondary-text">2 / 4 thiết bị</span>
+            Đang so sánh: <span id="compare-count-text" class="text-warm-secondary-text">0 / 4 thiết bị</span>
           </span>
-          <span class="text-[11px] text-warm-muted hidden sm:inline">Lenovo ThinkBook 14 G6+ và ASUS Zenbook 14 OLED</span>
+          <span id="compare-names-preview" class="text-[11px] text-warm-muted hidden sm:block truncate max-w-md">Chưa chọn thiết bị nào</span>
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 shrink-0">
         <button 
           type="button" 
           onclick="clearAllCompare()" 
-          class="px-3 py-2 rounded-xl text-xs font-bold text-warm-muted hover:text-warm-text hover:bg-warm-subtle"
+          class="px-3 py-2 rounded-xl text-xs font-bold text-warm-muted hover:text-warm-text hover:bg-warm-subtle cursor-pointer"
         >
           Xóa chọn
         </button>
 
         <!-- CTA Go to SCR-04 Comparison Screen -->
         <a 
+          id="btn-goto-compare"
           href="compare.html" 
           class="brutal-button-action px-4 sm:px-5 py-2 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white border-2 border-warm-text text-xs sm:text-sm font-extrabold shadow-brutal-xs flex items-center gap-1.5 cursor-pointer"
         >
@@ -1107,45 +1108,72 @@
       alert(`Đăng nhập thành công với tài khoản: ${email}`);
       closeAuthModal();
     }
-    let compareItems = [1, 2];
+    let lastSearchResults = [];
 
-    function toggleCompareItem(id, name, price, checkbox) {
-      if (checkbox.checked) {
-        if (!compareItems.includes(id)) {
-          if (compareItems.length >= 4) {
-            alert('Bạn chỉ có thể chọn tối đa 4 thiết bị để so sánh cùng lúc.');
-            checkbox.checked = false;
-            return;
-          }
-          compareItems.push(id);
-        }
+    function toggleCompareFromCard(id) {
+      const product = lastSearchResults.find(p => p.id === id);
+      if (!product) return;
+
+      if (CompareManager.has(id)) {
+        CompareManager.remove(id);
       } else {
-        compareItems = compareItems.filter(item => item !== id);
+        CompareManager.add(product);
       }
       updateCompareUI();
+      updateCardCompareButtons();
+    }
+
+    function updateCardCompareButtons() {
+      lastSearchResults.forEach(p => {
+        const btn = document.getElementById(`btn-compare-${p.id}`);
+        if (btn) {
+          const isComp = CompareManager.has(p.id);
+          if (isComp) {
+            btn.className = 'brutal-button-action px-3 py-2 rounded-xl border-2 border-warm-text text-xs font-black shadow-brutal-xs flex items-center gap-1.5 cursor-pointer bg-emerald-500 text-white';
+            btn.innerHTML = '<span>✓ Đang so sánh</span>';
+          } else {
+            btn.className = 'brutal-button-action px-3 py-2 rounded-xl border-2 border-warm-text text-xs font-black shadow-brutal-xs flex items-center gap-1.5 cursor-pointer bg-warm-secondary text-warm-secondary-text hover:bg-warm-honey';
+            btn.innerHTML = '<span>+ So sánh</span>';
+          }
+        }
+      });
     }
 
     function updateCompareUI() {
       const bar = document.getElementById('floating-compare-bar');
       const countHeader = document.getElementById('header-compare-count');
       const countText = document.getElementById('compare-count-text');
+      const namesPreview = document.getElementById('compare-names-preview');
+      const gotoBtn = document.getElementById('btn-goto-compare');
 
-      if (compareItems.length > 0) {
-        bar.classList.remove('translate-y-32', 'opacity-0');
-        countHeader.innerText = compareItems.length;
-        countText.innerText = `${compareItems.length} / 4 thiết bị`;
+      const list = CompareManager.getList();
+
+      if (list && list.length > 0) {
+        if (bar) bar.classList.remove('translate-y-32', 'opacity-0', 'pointer-events-none');
+        if (countHeader) countHeader.innerText = list.length;
+        if (countText) countText.innerText = `${list.length} / 4 thiết bị`;
+        if (namesPreview) {
+          namesPreview.innerText = list.map(p => p.name).join(' • ');
+        }
+        if (gotoBtn) {
+          gotoBtn.href = `compare.html?ids=${list.map(p => p.id).join(',')}`;
+        }
       } else {
-        bar.classList.add('translate-y-32', 'opacity-0');
-        countHeader.innerText = '0';
+        if (bar) bar.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
+        if (countHeader) countHeader.innerText = '0';
       }
     }
 
     function clearAllCompare() {
-      compareItems = [];
-      const checkboxes = document.querySelectorAll('input[type="checkbox"][id^="compare-"]');
-      checkboxes.forEach(cb => cb.checked = false);
+      CompareManager.clear();
       updateCompareUI();
+      updateCardCompareButtons();
     }
+
+    window.addEventListener('compare-updated', () => {
+      updateCompareUI();
+      updateCardCompareButtons();
+    });
 
     function setAlgorithmPreset(preset, btn) {
       const allBtns = document.querySelectorAll('.algo-preset-btn');
@@ -1255,6 +1283,7 @@
       const pillsRow = document.getElementById('criteria-pills-row');
       const criteria = data.extractedCriteria || {};
       const results = data.results || [];
+      lastSearchResults = results;
 
       // ── Update Criteria Pills ──────────────────────────────────────────────
       if (pillsRow) {
@@ -1390,12 +1419,20 @@
               <div>
                 <span class="text-lg sm:text-2xl font-black text-warm-text">${formatPrice(item.price)}</span>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <button 
+                  type="button"
+                  id="btn-compare-${item.id}"
+                  onclick="toggleCompareFromCard(${item.id})"
+                  class="brutal-button-action px-3 py-2 rounded-xl border-2 border-warm-text text-xs font-black shadow-brutal-xs flex items-center gap-1.5 cursor-pointer ${CompareManager.has(item.id) ? 'bg-emerald-500 text-white' : 'bg-warm-secondary text-warm-secondary-text hover:bg-warm-honey'}"
+                >
+                  <span>${CompareManager.has(item.id) ? '✓ Đang so sánh' : '+ So sánh'}</span>
+                </button>
                 <a href="product-detail.html?id=${item.id}" class="brutal-button-action px-3.5 py-2 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text font-bold text-xs shadow-brutal-xs hover:bg-warm-subtle inline-block">
-                  Xem thông số chi tiết
+                  Xem thông số
                 </a>
                 <a href="product-detail.html?id=${item.id}#ai-summary" class="brutal-button-action px-4 py-2 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-extrabold text-xs border-2 border-warm-text shadow-brutal-xs inline-block">
-                  AI Tóm Tắt Review →
+                  AI Review →
                 </a>
               </div>
             </div>

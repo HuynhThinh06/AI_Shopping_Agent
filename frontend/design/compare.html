@@ -61,6 +61,7 @@
   </script>
 
   <link rel="stylesheet" href="tokens.css">
+  <script src="js/api.js"></script>
 
   <style>
     body {
@@ -185,25 +186,49 @@
       <button 
         type="button" 
         onclick="openAddProductModal()" 
+        id="btn-add-more-compare"
         class="brutal-button-action px-4 py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-sm flex items-center gap-1.5 cursor-pointer shrink-0 self-start sm:self-auto"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
-        <span>+ Thêm máy khác (3/4)</span>
+        <span id="compare-counter-label">+ Thêm máy khác (3/4)</span>
       </button>
     </div>
   </div>
 
 
   <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 mt-2 space-y-8">
+    <!-- 1. LOADING SKELETON STATE -->
+    <div id="compare-loading-state" class="hidden p-8 bg-warm-pastel-amber border-2 border-warm-text rounded-3xl shadow-brutal flex items-center justify-center gap-4">
+      <div class="w-7 h-7 border-3 border-warm-primary-text border-t-transparent rounded-full animate-spin shrink-0"></div>
+      <div>
+        <p class="font-extrabold text-sm text-warm-primary-text">Đang tải và tổng hợp ma trận thông số kỹ thuật...</p>
+        <p class="text-xs text-warm-secondary-text font-medium">AI đang đối chiếu các cấu hình phần cứng và phân tích ưu nhược điểm chuyên sâu.</p>
+      </div>
+    </div>
 
-    <!-- =========================================================================
-         3. AI VERDICT BANNER (Lời khuyên so sánh tổng hợp từ Gemini)
-         ========================================================================= -->
-    <section class="brutal-card p-5 sm:p-6 bg-gradient-to-r from-warm-secondary/30 via-white to-warm-pastel-sky/30 border-2 border-warm-text shadow-brutal-md space-y-3">
+    <!-- 2. EMPTY STATE (Khi danh sách so sánh trống) -->
+    <div id="compare-empty-state" class="hidden p-10 bg-warm-surface border-2 border-warm-text rounded-3xl shadow-brutal text-center space-y-4">
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-warm-pastel-peach border-2 border-warm-text flex items-center justify-center text-3xl">⚖️</div>
+      <h3 class="text-lg sm:text-xl font-black text-warm-text">Bảng So Sánh Đang Trống</h3>
+      <p class="text-xs sm:text-sm text-warm-muted max-w-md mx-auto font-medium">
+        Bạn chưa thêm sản phẩm nào vào ma trận so sánh. Hãy khám phá danh sách hoặc thử tải bộ 3 laptop mẫu để trải nghiệm công cụ phân tích AI.
+      </p>
+      <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
+        <button type="button" onclick="loadDefaultFeaturedDemo()" class="px-4 py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-extrabold text-xs border-2 border-warm-text shadow-brutal-xs cursor-pointer">
+          ⚡ Tải 3 Laptop Mẫu Để So Sánh
+        </button>
+        <a href="search-results.html" class="px-4 py-2.5 rounded-xl bg-warm-surface hover:bg-warm-secondary text-warm-text font-extrabold text-xs border-2 border-warm-text shadow-brutal-xs inline-block">
+          Khám phá danh sách sản phẩm →
+        </a>
+      </div>
+    </div>
+
+    <!-- 3. AI VERDICT BANNER (Dynamic) -->
+    <section id="ai-verdict-section" class="brutal-card p-5 sm:p-6 bg-gradient-to-r from-warm-secondary/30 via-white to-warm-pastel-sky/30 border-2 border-warm-text shadow-brutal-md space-y-3">
       <div class="flex items-center gap-2">
-        <div class="w-7 h-7 rounded-xl bg-warm-primary border-2 border-warm-text flex items-center justify-center font-black text-xs">
+        <div class="w-7 h-7 rounded-xl bg-warm-primary border-2 border-warm-text flex items-center justify-center font-black text-xs text-warm-primary-text">
           ⚡
         </div>
         <h2 class="text-sm sm:text-base font-black text-warm-text uppercase tracking-wide">
@@ -211,27 +236,8 @@
         </h2>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs sm:text-sm">
-        <div class="p-3.5 rounded-xl bg-white border-2 border-warm-text shadow-brutal-xs space-y-1">
-          <span class="font-extrabold text-amber-700 block text-xs">1. Asus Zenbook 14 OLED UX3405</span>
-          <p class="font-medium text-warm-text">
-            <strong>Lựa chọn cân bằng & toàn diện nhất:</strong> Màn hình OLED 120Hz đẹp nhất, trọng lượng nhẹ nhất (1.2kg) và giá mềm nhất (24.99 tr). Phù hợp cho lập trình viên và dân văn phòng di chuyển nhiều.
-          </p>
-        </div>
-
-        <div class="p-3.5 rounded-xl bg-white border-2 border-warm-text shadow-brutal-xs space-y-1">
-          <span class="font-extrabold text-sky-700 block text-xs">2. Apple MacBook Air 13 M3</span>
-          <p class="font-medium text-warm-text">
-            <strong>Pin trâu & Hệ sinh thái mượt mà nhất:</strong> Thời lượng pin vô địch lên tới 18 tiếng, trackpad đỉnh cao, hoàn thiện nhôm nguyên khối sang trọng. Phù hợp nếu bạn đã dùng iPhone/iPad.
-          </p>
-        </div>
-
-        <div class="p-3.5 rounded-xl bg-white border-2 border-warm-text shadow-brutal-xs space-y-1">
-          <span class="font-extrabold text-emerald-700 block text-xs">3. Lenovo ThinkBook 14 G6+</span>
-          <p class="font-medium text-warm-text">
-            <strong>Thực dụng & Dễ nâng cấp nhất:</strong> Có tới 2 khe cắm SSD, đầy đủ cổng mạng LAN RJ45, bàn phím gõ sướng tay và giá chỉ 21.89 tr. Phù hợp cho dân kỹ thuật, IT văn phòng.
-          </p>
-        </div>
+      <div id="ai-verdict-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs sm:text-sm">
+        <!-- Dynamically injected verdict cards -->
       </div>
     </section>
 
@@ -242,315 +248,14 @@
     <div class="brutal-card overflow-hidden bg-white border-2 border-warm-text shadow-brutal-lg">
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse min-w-[760px]">
-          
-          <!-- TABLE HEADER: Product cards side by side -->
-          <thead>
-            <tr class="border-b-2 border-warm-text bg-warm-surface-soft">
-              <!-- Column 0: Label Column -->
-              <th class="p-4 sm:p-5 w-1/4 min-w-[180px] border-r-2 border-warm-text align-top">
-                <span class="text-xs font-bold text-warm-muted uppercase tracking-wider block">Tiêu Chí So Sánh</span>
-                <span class="text-sm font-extrabold text-warm-text mt-1 block">Bảng Chi Tiết</span>
-                <div class="mt-4">
-                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-black border border-emerald-300">
-                    <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
-                    <span>Tô màu xanh = Thông số thắng thế</span>
-                  </span>
-                </div>
-              </th>
-
-              <!-- Product 1: Asus Zenbook 14 -->
-              <th class="p-4 sm:p-5 w-1/4 border-r-2 border-warm-text align-top relative">
-                <button type="button" onclick="removeProduct(1)" class="absolute top-3 right-3 text-warm-muted hover:text-rose-600 font-bold text-xs p-1" title="Bỏ khỏi so sánh">✕</button>
-                <div class="space-y-2">
-                  <span class="px-2 py-0.5 rounded-full bg-warm-primary text-warm-primary-text font-black text-[10px] border border-warm-text">
-                    Top 1 AI Match: 96.5%
-                  </span>
-                  <div class="h-28 flex items-center justify-center py-1">
-                    <svg viewBox="0 0 160 110" class="w-28 drop-shadow-sm">
-                      <rect x="20" y="10" width="120" height="75" rx="8" fill="#292524" />
-                      <rect x="25" y="15" width="110" height="65" rx="4" fill="#F59E0B" />
-                      <path d="M 10 90 L 150 90 L 140 102 L 20 102 Z" fill="#D6D3D1" stroke="#292524" stroke-width="2" />
-                    </svg>
-                  </div>
-                  <h3 class="font-extrabold text-sm sm:text-base text-warm-text leading-snug">
-                    <a href="product-detail.html?id=1" class="hover:text-warm-primary">Asus Zenbook 14 OLED UX3405</a>
-                  </h3>
-                  <div class="pt-1">
-                    <span class="text-base sm:text-lg font-black text-warm-primary">24.990.000đ</span>
-                    <span class="text-xs text-warm-muted line-through block">28.990.000đ</span>
-                  </div>
-                  <div class="pt-2">
-                    <a href="product-detail.html?id=1" class="w-full block text-center py-2 px-3 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-black text-xs border-2 border-warm-text shadow-brutal-xs">
-                      Xem Chi Tiết
-                    </a>
-                  </div>
-                </div>
-              </th>
-
-              <!-- Product 2: MacBook Air M3 -->
-              <th class="p-4 sm:p-5 w-1/4 border-r-2 border-warm-text align-top relative">
-                <button type="button" onclick="removeProduct(2)" class="absolute top-3 right-3 text-warm-muted hover:text-rose-600 font-bold text-xs p-1" title="Bỏ khỏi so sánh">✕</button>
-                <div class="space-y-2">
-                  <span class="px-2 py-0.5 rounded-full bg-warm-pastel-sky text-sky-900 font-black text-[10px] border border-warm-text">
-                    Top Pin: 94.0%
-                  </span>
-                  <div class="h-28 flex items-center justify-center py-1">
-                    <svg viewBox="0 0 160 110" class="w-28 drop-shadow-sm">
-                      <rect x="20" y="10" width="120" height="75" rx="8" fill="#44403C" />
-                      <rect x="25" y="15" width="110" height="65" rx="4" fill="#38BDF8" />
-                      <path d="M 10 90 L 150 90 L 140 102 L 20 102 Z" fill="#E7E5E4" stroke="#292524" stroke-width="2" />
-                    </svg>
-                  </div>
-                  <h3 class="font-extrabold text-sm sm:text-base text-warm-text leading-snug">
-                    <a href="product-detail.html?id=2" class="hover:text-warm-primary">Apple MacBook Air 13 M3</a>
-                  </h3>
-                  <div class="pt-1">
-                    <span class="text-base sm:text-lg font-black text-warm-text">27.490.000đ</span>
-                    <span class="text-xs text-warm-muted line-through block">29.990.000đ</span>
-                  </div>
-                  <div class="pt-2">
-                    <a href="product-detail.html?id=2" class="w-full block text-center py-2 px-3 rounded-xl bg-warm-surface hover:bg-warm-secondary text-warm-text font-black text-xs border-2 border-warm-text shadow-brutal-xs">
-                      Xem Chi Tiết
-                    </a>
-                  </div>
-                </div>
-              </th>
-
-              <!-- Product 3: Lenovo ThinkBook 14 G6+ -->
-              <th class="p-4 sm:p-5 w-1/4 align-top relative">
-                <button type="button" onclick="removeProduct(3)" class="absolute top-3 right-3 text-warm-muted hover:text-rose-600 font-bold text-xs p-1" title="Bỏ khỏi so sánh">✕</button>
-                <div class="space-y-2">
-                  <span class="px-2 py-0.5 rounded-full bg-warm-pastel-amber text-amber-900 font-black text-[10px] border border-warm-text">
-                    Nhiều Cổng: 92.5%
-                  </span>
-                  <div class="h-28 flex items-center justify-center py-1">
-                    <svg viewBox="0 0 160 110" class="w-28 drop-shadow-sm">
-                      <rect x="20" y="10" width="120" height="75" rx="8" fill="#1C1917" />
-                      <rect x="25" y="15" width="110" height="65" rx="4" fill="#34D399" />
-                      <path d="M 10 90 L 150 90 L 140 102 L 20 102 Z" fill="#D6D3D1" stroke="#292524" stroke-width="2" />
-                    </svg>
-                  </div>
-                  <h3 class="font-extrabold text-sm sm:text-base text-warm-text leading-snug">
-                    <a href="product-detail.html?id=3" class="hover:text-warm-primary">Lenovo ThinkBook 14 G6+</a>
-                  </h3>
-                  <div class="pt-1">
-                    <span class="text-base sm:text-lg font-black text-warm-text">21.890.000đ</span>
-                    <span class="text-xs text-warm-muted line-through block">23.990.000đ</span>
-                  </div>
-                  <div class="pt-2">
-                    <a href="product-detail.html?id=3" class="w-full block text-center py-2 px-3 rounded-xl bg-warm-surface hover:bg-warm-secondary text-warm-text font-black text-xs border-2 border-warm-text shadow-brutal-xs">
-                      Xem Chi Tiết
-                    </a>
-                  </div>
-                </div>
-              </th>
-
-            </tr>
+          <!-- Dynamic Thead -->
+          <thead id="compare-thead">
+            <!-- Dynamically populated product columns -->
           </thead>
 
-          <!-- TABLE BODY: Spec rows with AI highlights -->
-          <tbody class="divide-y divide-warm-text/10 text-xs sm:text-sm">
-            
-            <!-- Row: Mức Giá Tốt Nhất -->
-            <tr class="hover:bg-warm-surface-soft/60 transition-colors">
-              <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
-                Giá Bán Tốt Nhất
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text">
-                <span class="text-sm font-extrabold text-warm-primary">24.990.000đ</span>
-                <span class="text-[11px] text-warm-muted block mt-0.5">Tặng balo FPT</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text">
-                <span class="text-sm font-extrabold text-warm-text">27.490.000đ</span>
-                <span class="text-[11px] text-warm-muted block mt-0.5">Cao hơn 2.5 tr</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text bg-emerald-50/50">
-                <div class="flex items-center justify-between">
-                  <span class="text-sm font-extrabold text-emerald-800">21.890.000đ</span>
-                  <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-extrabold text-[10px] border border-emerald-300">Rẻ nhất</span>
-                </div>
-                <span class="text-[11px] text-emerald-700 block mt-0.5">Tiết kiệm 3.1 triệu</span>
-              </td>
-            </tr>
-
-            <!-- Row: Vi Xử Lý CPU -->
-            <tr class="hover:bg-warm-surface-soft/60 transition-colors">
-              <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
-                Vi Xử Lý (CPU)
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text bg-emerald-50/50">
-                <div class="flex items-center justify-between">
-                  <span>Intel Core Ultra 7 155H</span>
-                  <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-extrabold text-[10px] border border-emerald-300">16 Nhân</span>
-                </div>
-                <span class="text-[11px] text-warm-muted block mt-0.5">22 Luồng • NPU AI tích hợp</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text">
-                <div class="flex items-center justify-between">
-                  <span>Apple M3 chip</span>
-                  <span class="px-2 py-0.5 rounded bg-warm-secondary text-warm-secondary-text font-bold text-[10px]">Tối ưu</span>
-                </div>
-                <span class="text-[11px] text-warm-muted block mt-0.5">8 Nhân CPU (4P + 4E)</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text">
-                <span>Intel Core Ultra 5 125H</span>
-                <span class="text-[11px] text-warm-muted block mt-0.5">14 Nhân • 18 Luồng</span>
-              </td>
-            </tr>
-
-            <!-- Row: RAM -->
-            <tr class="hover:bg-warm-surface-soft/60 transition-colors">
-              <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
-                Bộ Nhớ RAM
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text bg-emerald-50/50">
-                <div class="flex items-center justify-between">
-                  <span>16 GB LPDDR5X</span>
-                  <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-extrabold text-[10px] border border-emerald-300">7467 MHz</span>
-                </div>
-                <span class="text-[11px] text-warm-muted block mt-0.5">Hàn chết bo mạch</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text">
-                <span>16 GB Unified Memory</span>
-                <span class="text-[11px] text-warm-muted block mt-0.5">Bộ nhớ hợp nhất 100GB/s</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text">
-                <span>16 GB LPDDR5X</span>
-                <span class="text-[11px] text-warm-muted block mt-0.5">Bus 6400 MHz</span>
-              </td>
-            </tr>
-
-            <!-- Row: Màn Hình (Asus Thắng Tuyệt Đối) -->
-            <tr class="hover:bg-warm-surface-soft/60 transition-colors">
-              <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
-                Màn Hình & Tần Số Quét
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text bg-emerald-50/60">
-                <div class="flex items-center justify-between">
-                  <span class="text-emerald-900 font-black">14" 3K OLED (2880x1800)</span>
-                  <span class="px-2 py-0.5 rounded bg-emerald-200 text-emerald-900 font-black text-[10px] border border-warm-text">Vượt Trội</span>
-                </div>
-                <span class="text-[11px] text-emerald-800 font-semibold block mt-0.5">120Hz • 100% DCI-P3 • Đen tuyệt đối</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text">
-                <span>13.6" Liquid Retina (2560x1664)</span>
-                <span class="text-[11px] text-warm-muted block mt-0.5">Chỉ 60Hz • Tấm nền IPS LED</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text">
-                <span>14.0" 2.8K IPS (2880x1800)</span>
-                <span class="text-[11px] text-warm-muted block mt-0.5">90Hz • Tấm nền IPS chống chói</span>
-              </td>
-            </tr>
-
-            <!-- Row: Ổ Cứng SSD -->
-            <tr class="hover:bg-warm-surface-soft/60 transition-colors">
-              <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
-                Dung Lượng Ổ Cứng
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text bg-emerald-50/50">
-                <div class="flex items-center justify-between">
-                  <span class="font-extrabold text-emerald-900">1 TB NVMe PCIe 4.0</span>
-                  <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-extrabold text-[10px] border border-emerald-300">Lớn Nhất</span>
-                </div>
-                <span class="text-[11px] text-warm-muted block mt-0.5">Gấp 4 lần bản MacBook</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text">
-                <span>256 GB NVMe SSD</span>
-                <span class="text-[11px] text-amber-700 block mt-0.5">Hơi ít, cần mua thêm ổ cứng ngoài</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text">
-                <span>512 GB PCIe 4.0</span>
-                <span class="text-[11px] text-emerald-700 block mt-0.5">Hỗ trợ 2 khe M.2 nâng cấp dễ</span>
-              </td>
-            </tr>
-
-            <!-- Row: Pin Thực Tế (MacBook Thắng) -->
-            <tr class="hover:bg-warm-surface-soft/60 transition-colors">
-              <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
-                Pin & Thời Lượng Thực Tế
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text">
-                <span>75 Wh (Khoảng 8 - 10 tiếng)</span>
-                <span class="text-[11px] text-warm-muted block mt-0.5">Sạc Type-C 65W nhanh</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text bg-emerald-50/60">
-                <div class="flex items-center justify-between">
-                  <span class="text-emerald-900 font-black">52.6 Wh (15 - 18 tiếng)</span>
-                  <span class="px-2 py-0.5 rounded bg-emerald-200 text-emerald-900 font-black text-[10px] border border-warm-text">Trâu Nhất</span>
-                </div>
-                <span class="text-[11px] text-emerald-800 font-semibold block mt-0.5">Sạc MagSafe 3 + Type-C</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text">
-                <span>60 Wh (Khoảng 6 - 8 tiếng)</span>
-                <span class="text-[11px] text-warm-muted block mt-0.5">Sạc Type-C 65W/100W</span>
-              </td>
-            </tr>
-
-            <!-- Row: Trọng Lượng & Cổng Kết Nối -->
-            <tr class="hover:bg-warm-surface-soft/60 transition-colors">
-              <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
-                Trọng Lượng & Cổng
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text bg-emerald-50/50">
-                <div class="flex items-center justify-between">
-                  <span class="font-extrabold text-emerald-900">1.20 kg (Nhẹ nhất)</span>
-                  <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-extrabold text-[10px] border border-emerald-300">Siêu Nhẹ</span>
-                </div>
-                <span class="text-[11px] text-warm-muted block mt-0.5">2x TB4, 1x USB-A, 1x HDMI 2.1</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text border-r-2 border-warm-text">
-                <span>1.24 kg</span>
-                <span class="text-[11px] text-amber-800 block mt-0.5">Chỉ có 2 cổng Thunderbolt / USB 4</span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-warm-text">
-                <span>1.40 kg</span>
-                <span class="text-[11px] text-emerald-700 block mt-0.5">Đủ cổng: LAN RJ45, HDMI, SD Card</span>
-              </td>
-            </tr>
-
-            <!-- Row: ĐỐI CHIẾU ĐÁNH GIÁ AI (PROS & CONS) -->
-            <tr class="bg-warm-surface-soft/40">
-              <td class="p-3.5 sm:p-4 font-black text-warm-text border-r-2 border-warm-text align-top">
-                Đối Chiếu Đánh Giá AI
-              </td>
-              
-              <!-- Pros/Cons Asus -->
-              <td class="p-3.5 sm:p-4 border-r-2 border-warm-text align-top space-y-2">
-                <div class="text-[11px]">
-                  <span class="font-bold text-emerald-700 block">ƯU ĐIỂM:</span>
-                  Màn 3K 120Hz siêu nét, SSD 1TB thoải mái, loa hay, thiết kế mỏng đẹp.
-                </div>
-                <div class="text-[11px]">
-                  <span class="font-bold text-amber-700 block">NHƯỢC ĐIỂM:</span>
-                  Màn gương hơi bóng, RAM không nâng cấp được.
-                </div>
-              </td>
-
-              <!-- Pros/Cons Mac -->
-              <td class="p-3.5 sm:p-4 border-r-2 border-warm-text align-top space-y-2">
-                <div class="text-[11px]">
-                  <span class="font-bold text-emerald-700 block">ƯU ĐIỂM:</span>
-                  Pin siêu trâu dùng 2 ngày, không có quạt nên êm tuyệt đối, touchpad đã nhất.
-                </div>
-                <div class="text-[11px]">
-                  <span class="font-bold text-amber-700 block">NHƯỢC ĐIỂM:</span>
-                  SSD 256GB rất chật chội, màn hình chỉ 60Hz, ít cổng kết nối.
-                </div>
-              </td>
-
-              <!-- Pros/Cons Lenovo -->
-              <td class="p-3.5 sm:p-4 align-top space-y-2">
-                <div class="text-[11px]">
-                  <span class="font-bold text-emerald-700 block">ƯU ĐIỂM:</span>
-                  Giá rẻ nhất, có cổng mạng LAN, bàn phím gõ êm, màn hình nhám không chói.
-                </div>
-                <div class="text-[11px]">
-                  <span class="font-bold text-amber-700 block">NHƯỢC ĐIỂM:</span>
-                  Nặng nhất (1.4kg), tấm nền IPS màu đen không sâu bằng OLED.
-                </div>
-              </td>
-            </tr>
-
+          <!-- Dynamic Tbody -->
+          <tbody id="compare-tbody" class="divide-y divide-warm-text/10 text-xs sm:text-sm">
+            <!-- Dynamically populated spec comparison rows -->
           </tbody>
         </table>
       </div>
@@ -572,29 +277,15 @@
       <div class="relative">
         <input 
           type="text" 
-          placeholder="Gõ tên máy (vd: Acer Swift Go, Dell XPS 13, HP Envy...)" 
+          id="modal-search-input"
+          oninput="debounceModalSearch(this.value)"
+          placeholder="Gõ tên máy (vd: Asus Zenbook, Dell XPS, Lenovo, MacBook...)" 
           class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-3 text-xs sm:text-sm font-bold text-warm-text focus:outline-none focus:bg-white shadow-brutal-xs"
         />
       </div>
 
-      <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
-        <!-- Candidate 1 -->
-        <div class="p-3 rounded-xl border border-warm-text/20 hover:border-warm-text hover:bg-warm-secondary/30 flex items-center justify-between cursor-pointer transition-colors">
-          <div>
-            <span class="font-extrabold text-sm text-warm-text block">Acer Swift Go 14 OLED</span>
-            <span class="text-xs text-warm-muted">Ultra 7 155H • 16GB • 512GB • 14" OLED 90Hz</span>
-          </div>
-          <button type="button" onclick="alert('Đã thêm Acer Swift Go 14 vào slot 4!'); closeAddProductModal();" class="px-3 py-1 rounded-lg bg-warm-primary text-warm-primary-text font-black text-xs border border-warm-text">Thêm</button>
-        </div>
-
-        <!-- Candidate 2 -->
-        <div class="p-3 rounded-xl border border-warm-text/20 hover:border-warm-text hover:bg-warm-secondary/30 flex items-center justify-between cursor-pointer transition-colors">
-          <div>
-            <span class="font-extrabold text-sm text-warm-text block">Dell XPS 13 9340 (2024)</span>
-            <span class="text-xs text-warm-muted">Ultra 7 155H • 16GB • 512GB • 13.4" FHD+</span>
-          </div>
-          <button type="button" onclick="alert('Đã thêm Dell XPS 13 vào slot 4!'); closeAddProductModal();" class="px-3 py-1 rounded-lg bg-warm-primary text-warm-primary-text font-black text-xs border border-warm-text">Thêm</button>
-        </div>
+      <div id="modal-candidates-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+        <p class="text-xs text-warm-muted font-medium py-3 text-center">Gõ từ khóa để tìm sản phẩm thêm vào bảng so sánh...</p>
       </div>
 
       <div class="flex justify-end pt-2">
@@ -667,35 +358,645 @@
 
 
   <script>
-    function removeProduct(id) {
-      if (confirm('Bạn có chắc muốn bỏ sản phẩm này khỏi bảng so sánh?')) {
-        alert('Đã bỏ sản phẩm khỏi so sánh.');
+    let currentProducts = [];
+    let modalDebounceTimer = null;
+
+    // ── 1. Init Comparison Engine ───────────────────────────────────────────
+    async function initComparison() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const idsParam = urlParams.get('ids');
+
+      let targetIds = [];
+      if (idsParam) {
+        targetIds = idsParam.split(',').map(s => s.trim()).filter(Boolean);
+      } else {
+        const stored = CompareManager.getList();
+        if (stored && stored.length > 0) {
+          targetIds = stored.map(p => p.id);
+        }
       }
+
+      if (targetIds.length > 0) {
+        await loadProductsByIds(targetIds);
+      } else {
+        // Fallback default: load 3 featured products so comparison isn't empty on first visit
+        await loadDefaultFeaturedDemo();
+      }
+    }
+
+    // ── 2. Load by IDs ──────────────────────────────────────────────────────
+    async function loadProductsByIds(ids) {
+      showLoading(true);
+      try {
+        const list = await api.compareProducts(ids);
+        currentProducts = list || [];
+        if (currentProducts.length > 0) {
+          // Sync with CompareManager
+          currentProducts.forEach(p => {
+            if (!CompareManager.has(p.id)) {
+              CompareManager.add(p);
+            }
+          });
+          renderComparisonView(currentProducts);
+        } else {
+          showEmpty(true);
+        }
+      } catch (err) {
+        console.error('Lỗi tải dữ liệu so sánh:', err);
+        showToast('Không thể tải dữ liệu so sánh. Hãy thử lại!', 'warning');
+        showEmpty(true);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // ── 3. Fallback: Load 3 Featured Products ────────────────────────────────
+    async function loadDefaultFeaturedDemo() {
+      showLoading(true);
+      try {
+        const featured = await api.getFeaturedProducts(3);
+        if (featured && featured.length > 0) {
+          currentProducts = featured;
+          // Sync with CompareManager
+          currentProducts.forEach(p => CompareManager.add(p));
+          updateUrlIds();
+          renderComparisonView(currentProducts);
+        } else {
+          showEmpty(true);
+        }
+      } catch (err) {
+        console.warn('Lỗi tải sản phẩm mẫu:', err);
+        showEmpty(true);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function showLoading(show) {
+      const loader = document.getElementById('compare-loading-state');
+      const main = document.getElementById('compare-main-container');
+      const empty = document.getElementById('compare-empty-state');
+      if (show) {
+        loader?.classList.remove('hidden');
+        main?.classList.add('hidden');
+        empty?.classList.add('hidden');
+      } else {
+        loader?.classList.add('hidden');
+      }
+    }
+
+    function showEmpty(show) {
+      const main = document.getElementById('compare-main-container');
+      const empty = document.getElementById('compare-empty-state');
+      const counterLabel = document.getElementById('compare-counter-label');
+      if (show) {
+        main?.classList.add('hidden');
+        empty?.classList.remove('hidden');
+        if (counterLabel) counterLabel.innerText = '+ Thêm máy khác (0/4)';
+      } else {
+        empty?.classList.add('hidden');
+        main?.classList.remove('hidden');
+      }
+    }
+
+    function updateUrlIds() {
+      const ids = currentProducts.map(p => p.id).join(',');
+      const newUrl = ids ? `?ids=${ids}` : window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+
+    // ── 4. Main Render Pipeline ─────────────────────────────────────────────
+    function renderComparisonView(products) {
+      if (!products || products.length === 0) {
+        showEmpty(true);
+        return;
+      }
+      showEmpty(false);
+
+      // Update button counter
+      const counterLabel = document.getElementById('compare-counter-label');
+      if (counterLabel) {
+        counterLabel.innerText = `+ Thêm máy khác (${products.length}/4)`;
+      }
+
+      // Compute Highlights
+      const prices = products.map(p => Number(p.price || 0)).filter(pr => pr > 0);
+      const minPrice = prices.length ? Math.min(...prices) : 0;
+
+      const rams = products.map(p => {
+        const specs = parseSpecs(p.specs);
+        const r = parseInt(specs.ram || specs.RAM || '0', 10);
+        return isNaN(r) ? 0 : r;
+      });
+      const maxRam = rams.length ? Math.max(...rams) : 0;
+
+      const storages = products.map(p => {
+        const specs = parseSpecs(p.specs);
+        const s = parseInt(specs.storage || specs.Storage || '0', 10);
+        return isNaN(s) ? 0 : s;
+      });
+      const maxStorage = storages.length ? Math.max(...storages) : 0;
+
+      const ratings = products.map(p => Number(p.avgRating || 0));
+      const maxRating = ratings.length ? Math.max(...ratings) : 0;
+
+      renderThead(products);
+      renderTbody(products, minPrice, maxRam, maxStorage, maxRating);
+      renderAiVerdicts(products, minPrice, maxRam, maxStorage, maxRating);
+    }
+
+    // ── 5. Render Table Thead ───────────────────────────────────────────────
+    function renderThead(products) {
+      const thead = document.getElementById('compare-thead');
+      if (!thead) return;
+
+      const colWidthPercent = Math.floor(75 / products.length);
+
+      let html = `
+        <tr class="border-b-2 border-warm-text bg-warm-surface-soft">
+          <!-- Column 0: Tiêu chí label -->
+          <th class="p-4 sm:p-5 w-1/4 min-w-[170px] border-r-2 border-warm-text align-top">
+            <span class="text-xs font-bold text-warm-muted uppercase tracking-wider block">Tiêu Chí So Sánh</span>
+            <span class="text-sm font-extrabold text-warm-text mt-1 block">Bảng Chi Tiết</span>
+            <div class="mt-4">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-black border border-emerald-300">
+                <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                <span>Tô xanh = Thông số thắng thế</span>
+              </span>
+            </div>
+          </th>
+      `;
+
+      products.forEach((p, idx) => {
+        const imgUrl = getPrimaryImage(p);
+        const isLast = idx === products.length - 1;
+        const borderClass = isLast ? '' : 'border-r-2 border-warm-text';
+        const rating = p.avgRating ? Number(p.avgRating).toFixed(1) : '5.0';
+
+        html += `
+          <th class="p-4 sm:p-5 align-top relative ${borderClass}" style="width: ${colWidthPercent}%">
+            <button 
+              type="button" 
+              onclick="removeProduct(${p.id})" 
+              class="absolute top-3 right-3 w-6 h-6 rounded-lg bg-warm-bg hover:bg-rose-100 border border-warm-text/20 text-warm-muted hover:text-rose-600 font-bold text-xs flex items-center justify-center cursor-pointer transition-colors" 
+              title="Bỏ máy này khỏi so sánh"
+            >
+              ✕
+            </button>
+            <div class="space-y-2 pr-6 sm:pr-0">
+              <span class="px-2 py-0.5 rounded-full bg-warm-primary text-warm-primary-text font-black text-[10px] border border-warm-text inline-block">
+                Top #${idx + 1} • ★ ${rating}
+              </span>
+              
+              <div class="h-28 flex items-center justify-center py-1">
+                <img 
+                  src="${imgUrl}" 
+                  alt="${p.name}" 
+                  class="max-h-24 max-w-full object-contain drop-shadow-xs"
+                  onerror="this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200&fit=crop'"
+                />
+              </div>
+
+              <h3 class="font-extrabold text-xs sm:text-sm text-warm-text leading-snug line-clamp-2 min-h-[2.5rem]">
+                <a href="product-detail.html?id=${p.id}" class="hover:text-warm-primary transition-colors">
+                  ${p.name}
+                </a>
+              </h3>
+
+              <div class="pt-1">
+                <span class="text-sm sm:text-base font-black text-warm-primary block">
+                  ${formatPrice(p.price)}
+                </span>
+                <span class="text-[11px] text-warm-muted font-bold">
+                  SKU: ${p.sku || 'PRD-' + p.id}
+                </span>
+              </div>
+
+              <div class="pt-2">
+                <a 
+                  href="product-detail.html?id=${p.id}" 
+                  class="w-full block text-center py-2 px-3 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs border-2 border-warm-text shadow-brutal-xs transition-all"
+                >
+                  Xem Chi Tiết →
+                </a>
+              </div>
+            </div>
+          </th>
+        `;
+      });
+
+      html += `</tr>`;
+      thead.innerHTML = html;
+    }
+
+    // ── 6. Render Table Tbody ───────────────────────────────────────────────
+    function renderTbody(products, minPrice, maxRam, maxStorage, maxRating) {
+      const tbody = document.getElementById('compare-tbody');
+      if (!tbody) return;
+
+      const specsList = products.map(p => parseSpecs(p.specs));
+
+      // Row 1: Giá bán
+      let rPrice = `
+        <tr class="hover:bg-warm-surface-soft/60 transition-colors">
+          <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
+            Giá Bán Tốt Nhất
+          </td>
+      `;
+      products.forEach((p, idx) => {
+        const isCheapest = minPrice > 0 && Number(p.price) === minPrice;
+        const diff = Number(p.price) - minPrice;
+        const isLast = idx === products.length - 1;
+        const border = isLast ? '' : 'border-r-2 border-warm-text';
+        rPrice += `
+          <td class="p-3.5 sm:p-4 font-bold text-warm-text ${border} ${isCheapest ? 'bg-emerald-50/60' : ''}">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-sm font-extrabold ${isCheapest ? 'text-emerald-800' : 'text-warm-text'}">${formatPrice(p.price)}</span>
+              ${isCheapest ? '<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-extrabold text-[10px] border border-emerald-300 shrink-0">Rẻ nhất</span>' : ''}
+            </div>
+            ${!isCheapest && diff > 0 ? `<span class="text-[11px] text-warm-muted block mt-0.5">+${formatPrice(diff)}</span>` : '<span class="text-[11px] text-emerald-700 block mt-0.5">Tiết kiệm tối đa</span>'}
+          </td>
+        `;
+      });
+      rPrice += `</tr>`;
+
+      // Row 2: Thương hiệu & Dòng máy
+      let rBrand = `
+        <tr class="hover:bg-warm-surface-soft/60 transition-colors">
+          <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
+            Thương Hiệu & Ngành Hàng
+          </td>
+      `;
+      products.forEach((p, idx) => {
+        const isLast = idx === products.length - 1;
+        const border = isLast ? '' : 'border-r-2 border-warm-text';
+        rBrand += `
+          <td class="p-3.5 sm:p-4 font-bold text-warm-text ${border}">
+            <span class="uppercase tracking-wide text-xs block font-black text-warm-primary-text">${p.brand || 'Khác'}</span>
+            <span class="text-[11px] text-warm-muted block mt-0.5">${(p.categoryCode || 'laptop').toUpperCase()}</span>
+          </td>
+        `;
+      });
+      rBrand += `</tr>`;
+
+      // Row 3: Vi Xử Lý CPU
+      let rCpu = `
+        <tr class="hover:bg-warm-surface-soft/60 transition-colors">
+          <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
+            Vi Xử Lý (CPU)
+          </td>
+      `;
+      specsList.forEach((s, idx) => {
+        const cpu = s.cpu || s.CPU || 'Đang cập nhật';
+        const isLast = idx === products.length - 1;
+        const border = isLast ? '' : 'border-r-2 border-warm-text';
+        rCpu += `
+          <td class="p-3.5 sm:p-4 font-bold text-warm-text ${border}">
+            <span>${cpu}</span>
+            <span class="text-[11px] text-warm-muted block mt-0.5">Xử lý tác vụ & tích hợp AI Engine</span>
+          </td>
+        `;
+      });
+      rCpu += `</tr>`;
+
+      // Row 4: RAM
+      let rRam = `
+        <tr class="hover:bg-warm-surface-soft/60 transition-colors">
+          <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
+            Bộ Nhớ RAM
+          </td>
+      `;
+      specsList.forEach((s, idx) => {
+        const ramVal = parseInt(s.ram || s.RAM || '0', 10);
+        const isMax = maxRam > 0 && ramVal === maxRam;
+        const isLast = idx === products.length - 1;
+        const border = isLast ? '' : 'border-r-2 border-warm-text';
+        rRam += `
+          <td class="p-3.5 sm:p-4 font-bold text-warm-text ${border} ${isMax ? 'bg-emerald-50/60' : ''}">
+            <div class="flex items-center justify-between gap-1">
+              <span>${ramVal ? ramVal + ' GB' : (s.ram || s.RAM || '16 GB')}</span>
+              ${isMax ? '<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-extrabold text-[10px] border border-emerald-300 shrink-0">RAM lớn</span>' : ''}
+            </div>
+            <span class="text-[11px] ${isMax ? 'text-emerald-700' : 'text-warm-muted'} block mt-0.5">Đa nhiệm mượt mà</span>
+          </td>
+        `;
+      });
+      rRam += `</tr>`;
+
+      // Row 5: Màn hình
+      let rScreen = `
+        <tr class="hover:bg-warm-surface-soft/60 transition-colors">
+          <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
+            Màn Hình & Tần Số Quét
+          </td>
+      `;
+      specsList.forEach((s, idx) => {
+        const screen = s.screen || s.screen_size || '14.0 inch';
+        const isOled = screen.toLowerCase().includes('oled') || screen.toLowerCase().includes('120hz') || screen.toLowerCase().includes('3k');
+        const isLast = idx === products.length - 1;
+        const border = isLast ? '' : 'border-r-2 border-warm-text';
+        rScreen += `
+          <td class="p-3.5 sm:p-4 font-bold text-warm-text ${border} ${isOled ? 'bg-emerald-50/60' : ''}">
+            <div class="flex items-center justify-between gap-1">
+              <span class="${isOled ? 'text-emerald-900 font-black' : ''}">${screen}</span>
+              ${isOled ? '<span class="px-2 py-0.5 rounded bg-emerald-200 text-emerald-900 font-black text-[10px] border border-warm-text shrink-0">Nổi Bật</span>' : ''}
+            </div>
+            <span class="text-[11px] ${isOled ? 'text-emerald-800 font-semibold' : 'text-warm-muted'} block mt-0.5">${isOled ? 'Độ chuẩn màu và tương phản cao' : 'Chuẩn hiển thị sắc nét'}</span>
+          </td>
+        `;
+      });
+      rScreen += `</tr>`;
+
+      // Row 6: Ổ cứng SSD
+      let rStorage = `
+        <tr class="hover:bg-warm-surface-soft/60 transition-colors">
+          <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
+            Ổ Cứng Lưu Trữ (SSD)
+          </td>
+      `;
+      specsList.forEach((s, idx) => {
+        const storageVal = parseInt(s.storage || s.Storage || '0', 10);
+        const isMax = maxStorage > 0 && storageVal === maxStorage;
+        const isLast = idx === products.length - 1;
+        const border = isLast ? '' : 'border-r-2 border-warm-text';
+        rStorage += `
+          <td class="p-3.5 sm:p-4 font-bold text-warm-text ${border} ${isMax ? 'bg-emerald-50/60' : ''}">
+            <div class="flex items-center justify-between gap-1">
+              <span>${storageVal ? storageVal + ' GB SSD' : (s.storage || s.Storage || '512 GB SSD')}</span>
+              ${isMax ? '<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-extrabold text-[10px] border border-emerald-300 shrink-0">Lưu trữ lớn</span>' : ''}
+            </div>
+            <span class="text-[11px] text-warm-muted block mt-0.5">Tốc độ mở app và khởi động siêu tốc</span>
+          </td>
+        `;
+      });
+      rStorage += `</tr>`;
+
+      // Row 7: Đánh giá người dùng
+      let rRating = `
+        <tr class="hover:bg-warm-surface-soft/60 transition-colors">
+          <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
+            Đánh Giá Người Dùng
+          </td>
+      `;
+      products.forEach((p, idx) => {
+        const rVal = Number(p.avgRating || 0);
+        const isTopRated = maxRating > 0 && rVal === maxRating;
+        const isLast = idx === products.length - 1;
+        const border = isLast ? '' : 'border-r-2 border-warm-text';
+        rRating += `
+          <td class="p-3.5 sm:p-4 font-bold text-warm-text ${border} ${isTopRated ? 'bg-emerald-50/60' : ''}">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-amber-600 font-black">★ ${rVal.toFixed(1)} / 5</span>
+              ${isTopRated ? '<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-extrabold text-[10px] border border-emerald-300 shrink-0">Top Review</span>' : ''}
+            </div>
+            <span class="text-[11px] text-warm-muted block mt-0.5">Dựa trên ${p.reviewCount || 100}+ nhận xét thực tế</span>
+          </td>
+        `;
+      });
+      rRating += `</tr>`;
+
+      // Row 8: Tóm tắt Đánh Giá AI (Ưu & Nhược điểm)
+      let rProsCons = `
+        <tr class="hover:bg-warm-surface-soft/60 transition-colors">
+          <td class="p-3.5 sm:p-4 font-bold text-warm-muted border-r-2 border-warm-text bg-warm-bg/30">
+            Tóm Tắt Đánh Giá AI
+          </td>
+      `;
+      products.forEach((p, idx) => {
+        const isCheapest = minPrice > 0 && Number(p.price) === minPrice;
+        const isTopRated = maxRating > 0 && Number(p.avgRating || 0) === maxRating;
+        const isLast = idx === products.length - 1;
+        const border = isLast ? '' : 'border-r-2 border-warm-text';
+
+        let pros = [];
+        let cons = [];
+
+        if (isCheapest) pros.push('Giá thành rẻ nhất trong phân khúc so sánh');
+        if (isTopRated) pros.push('Điểm đánh giá cộng đồng cao nhất');
+        if (p.name.toLowerCase().includes('oled')) pros.push('Màn hình OLED sắc nét, độ sâu tuyệt đối');
+        if (p.name.toLowerCase().includes('macbook')) {
+          pros.push('Thời lượng pin vô địch, trackpad và loa cực tốt');
+          cons.push('Giá bán cao, khó nâng cấp linh kiện sau này');
+        } else {
+          pros.push('Dễ nâng cấp, tương thích phần mềm Windows toàn diện');
+          cons.push('Thời lượng pin ở mức vừa phải (7-9 tiếng)');
+        }
+
+        if (pros.length === 0) pros.push('Cấu hình cân bằng, hiệu năng ổn định');
+        if (cons.length === 0) cons.push('Không có nhược điểm chí mạng ở mức giá này');
+
+        rProsCons += `
+          <td class="p-3.5 sm:p-4 align-top space-y-2 ${border}">
+            <div class="text-[11px]">
+              <span class="font-bold text-emerald-700 block">ƯU ĐIỂM:</span>
+              ${pros.join('; ')}.
+            </div>
+            <div class="text-[11px]">
+              <span class="font-bold text-amber-700 block">NHƯỢC ĐIỂM:</span>
+              ${cons.join('; ')}.
+            </div>
+          </td>
+        `;
+      });
+      rProsCons += `</tr>`;
+
+      tbody.innerHTML = rPrice + rBrand + rCpu + rRam + rScreen + rStorage + rRating + rProsCons;
+    }
+
+    // ── 7. Render AI Verdict Cards ──────────────────────────────────────────
+    function renderAiVerdicts(products, minPrice, maxRam, maxStorage, maxRating) {
+      const grid = document.getElementById('ai-verdict-grid');
+      if (!grid) return;
+
+      const colors = [
+        { text: 'text-amber-700', border: 'border-warm-text' },
+        { text: 'text-sky-700', border: 'border-warm-text' },
+        { text: 'text-emerald-700', border: 'border-warm-text' },
+        { text: 'text-purple-700', border: 'border-warm-text' }
+      ];
+
+      grid.className = `grid grid-cols-1 md:grid-cols-${Math.min(products.length, 4)} gap-3 pt-1 text-xs sm:text-sm`;
+
+      let html = '';
+      products.forEach((p, idx) => {
+        const theme = colors[idx % colors.length];
+        const isCheapest = minPrice > 0 && Number(p.price) === minPrice;
+        const isTopRated = maxRating > 0 && Number(p.avgRating || 0) === maxRating;
+
+        let roleTitle = 'Lựa chọn cân bằng & toàn diện nhất';
+        let desc = 'Sở hữu cấu hình chuẩn mực, đáp ứng mượt mà cả học tập lẫn làm việc văn phòng hàng ngày.';
+
+        if (isCheapest) {
+          roleTitle = 'Lựa chọn tiết kiệm chi phí số 1';
+          desc = `Mức giá tốt nhất trong số các máy đang chọn (${formatPrice(p.price)}), đem lại tỷ lệ hiệu năng / giá tiền (p/p) cao nhất.`;
+        } else if (p.name.toLowerCase().includes('macbook')) {
+          roleTitle = 'Pin trâu & Hệ sinh thái mượt mà nhất';
+          desc = 'Thời lượng pin vô đối, thiết kế nhôm nguyên khối siêu bền và bàn rê chuột trackpad chuẩn mực.';
+        } else if (isTopRated) {
+          roleTitle = 'Được cộng đồng đánh giá uy tín nhất';
+          desc = `Đạt điểm đánh giá kỷ lục ${Number(p.avgRating || 5).toFixed(1)}/5 sao, hạn chế tối đa các lỗi vặt trong sử dụng dài hạn.`;
+        } else if (p.name.toLowerCase().includes('oled')) {
+          roleTitle = 'Trải nghiệm thị giác & Màn hình đỉnh nhất';
+          desc = 'Tấm nền OLED cao cấp cho màu đen sâu thẳm, rất phù hợp cho thiết kế đồ họa và giải trí phim ảnh.';
+        }
+
+        html += `
+          <div class="p-3.5 rounded-xl bg-white border-2 border-warm-text shadow-brutal-xs space-y-1">
+            <span class="font-extrabold ${theme.text} block text-xs">${idx + 1}. ${p.name}</span>
+            <p class="font-medium text-warm-text">
+              <strong>${roleTitle}:</strong> ${desc}
+            </p>
+          </div>
+        `;
+      });
+
+      grid.innerHTML = html;
+    }
+
+    // ── 8. Actions: Remove, Clear, Add ──────────────────────────────────────
+    function removeProduct(id) {
+      CompareManager.remove(id);
+      currentProducts = currentProducts.filter(p => p.id !== id);
+      updateUrlIds();
+      renderComparisonView(currentProducts);
     }
 
     function clearAllCompare() {
       if (confirm('Bạn có muốn xóa toàn bộ sản phẩm đang so sánh?')) {
-        window.location.href = 'search-results.html';
+        CompareManager.clear();
+        currentProducts = [];
+        updateUrlIds();
+        showEmpty(true);
+        showToast('Đã dọn sạch bảng so sánh.', 'info');
       }
     }
 
+    // ── 9. Modal Search & Add ───────────────────────────────────────────────
     function openAddProductModal() {
-      document.getElementById('add-product-modal').classList.remove('hidden');
+      if (currentProducts.length >= 4) {
+        showToast('Bảng so sánh đã đủ 4 sản phẩm tối đa!', 'warning');
+        return;
+      }
+      document.getElementById('add-product-modal')?.classList.remove('hidden');
+      const input = document.getElementById('modal-search-input');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      loadModalQuickCandidates();
     }
 
     function closeAddProductModal() {
-      document.getElementById('add-product-modal').classList.add('hidden');
+      document.getElementById('add-product-modal')?.classList.add('hidden');
     }
 
-    // Auth Modal controls
+    function debounceModalSearch(val) {
+      clearTimeout(modalDebounceTimer);
+      modalDebounceTimer = setTimeout(() => {
+        executeModalSearch(val.trim());
+      }, 300);
+    }
+
+    async function loadModalQuickCandidates() {
+      const listContainer = document.getElementById('modal-candidates-list');
+      if (!listContainer) return;
+      try {
+        const featured = await api.getFeaturedProducts(6);
+        renderModalCandidates(featured || []);
+      } catch (err) {
+        listContainer.innerHTML = '<p class="text-xs text-warm-muted py-2 text-center">Hãy nhập tên máy để tìm kiếm...</p>';
+      }
+    }
+
+    async function executeModalSearch(keyword) {
+      const listContainer = document.getElementById('modal-candidates-list');
+      if (!listContainer) return;
+
+      if (!keyword) {
+        loadModalQuickCandidates();
+        return;
+      }
+
+      listContainer.innerHTML = '<p class="text-xs text-warm-muted py-2 text-center">Đang tìm kiếm sản phẩm...</p>';
+      try {
+        const res = await api.search(keyword);
+        const results = res.results || [];
+        renderModalCandidates(results);
+      } catch (err) {
+        listContainer.innerHTML = `<p class="text-xs text-rose-600 py-2 text-center">Lỗi tìm kiếm: ${err.message}</p>`;
+      }
+    }
+
+    function renderModalCandidates(items) {
+      const listContainer = document.getElementById('modal-candidates-list');
+      if (!listContainer) return;
+
+      const currentIds = currentProducts.map(p => p.id);
+      const candidates = items.filter(p => !currentIds.includes(p.id));
+
+      if (candidates.length === 0) {
+        listContainer.innerHTML = '<p class="text-xs text-warm-muted py-3 text-center">Không tìm thấy sản phẩm phù hợp hoặc sản phẩm đã có trong bảng.</p>';
+        return;
+      }
+
+      listContainer.innerHTML = candidates.map(item => {
+        const specs = parseSpecs(item.specs);
+        const cpu = specs.cpu || specs.CPU || '';
+        const ram = specs.ram || specs.RAM ? specs.ram + 'GB' : '';
+        const storage = specs.storage || specs.Storage ? specs.storage + 'GB' : '';
+        const screen = specs.screen || specs.screen_size || '';
+        const sub = [cpu, ram, storage, screen].filter(Boolean).join(' • ');
+
+        return `
+          <div class="p-3 rounded-xl border border-warm-text/20 hover:border-warm-text hover:bg-warm-secondary/30 flex items-center justify-between gap-3 transition-colors">
+            <div class="min-w-0 flex-1">
+              <span class="font-extrabold text-xs sm:text-sm text-warm-text block truncate">${item.name}</span>
+              <span class="text-[11px] text-warm-muted block truncate">${sub || 'Chính hãng'}</span>
+              <span class="text-xs font-black text-warm-primary block mt-0.5">${formatPrice(item.price)}</span>
+            </div>
+            <button 
+              type="button" 
+              onclick="addProductFromModal(${item.id})" 
+              class="px-3 py-1.5 rounded-lg bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-black text-xs border border-warm-text shadow-brutal-xs shrink-0 cursor-pointer"
+            >
+              + Thêm
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function addProductFromModal(id) {
+      if (currentProducts.length >= 4) {
+        showToast('Đã đạt tối đa 4 sản phẩm so sánh!', 'warning');
+        closeAddProductModal();
+        return;
+      }
+
+      try {
+        const p = await api.getProduct(id);
+        if (p) {
+          CompareManager.add(p);
+          currentProducts.push(p);
+          updateUrlIds();
+          renderComparisonView(currentProducts);
+          closeAddProductModal();
+          showToast(`Đã thêm "${p.name}" vào bảng so sánh!`, 'success');
+        }
+      } catch (err) {
+        showToast(`Không thể thêm sản phẩm (${err.message})`, 'error');
+      }
+    }
+
+    // ── 10. Auth Modal Controls ─────────────────────────────────────────────
     function openAuthModal(mode = 'login') {
       const modal = document.getElementById('auth-modal');
-      modal.classList.remove('hidden');
+      modal?.classList.remove('hidden');
       switchAuthTab(mode);
     }
     function closeAuthModal() {
       const modal = document.getElementById('auth-modal');
-      modal.classList.add('hidden');
+      modal?.classList.add('hidden');
     }
     function switchAuthTab(mode) {
       const tabLogin = document.getElementById('auth-tab-login');
@@ -704,36 +1005,36 @@
       const submitBtn = document.getElementById('auth-submit-btn');
 
       if (mode === 'register') {
-        tabRegister.classList.add('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
-        tabRegister.classList.remove('hover:bg-warm-secondary');
-        tabLogin.classList.remove('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
-        tabLogin.classList.add('hover:bg-warm-secondary');
-        fieldName.classList.remove('hidden');
-        submitBtn.innerText = 'Tạo Tài Khoản Mới';
+        tabRegister?.classList.add('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
+        tabRegister?.classList.remove('hover:bg-warm-secondary');
+        tabLogin?.classList.remove('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
+        tabLogin?.classList.add('hover:bg-warm-secondary');
+        fieldName?.classList.remove('hidden');
+        if (submitBtn) submitBtn.innerText = 'Tạo Tài Khoản Mới';
       } else {
-        tabLogin.classList.add('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
-        tabLogin.classList.remove('hover:bg-warm-secondary');
-        tabRegister.classList.remove('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
-        tabRegister.classList.add('hover:bg-warm-secondary');
-        fieldName.classList.add('hidden');
-        submitBtn.innerText = 'Đăng Nhập Ngay';
+        tabLogin?.classList.add('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
+        tabLogin?.classList.remove('hover:bg-warm-secondary');
+        tabRegister?.classList.remove('bg-warm-primary', 'text-warm-primary-text', 'font-black', 'shadow-brutal-xs');
+        tabRegister?.classList.add('hover:bg-warm-secondary');
+        fieldName?.classList.add('hidden');
+        if (submitBtn) submitBtn.innerText = 'Đăng Nhập Ngay';
       }
     }
     function fillDemoAccount(role) {
       const email = document.getElementById('auth-input-email');
       const pass = document.getElementById('auth-input-password');
       if (role === 'admin') {
-        email.value = 'admin@shoppingagent.vn';
-        pass.value = 'admin123456';
+        if (email) email.value = 'admin@shoppingagent.vn';
+        if (pass) pass.value = 'admin123456';
       } else {
-        email.value = 'user.demo@gmail.com';
-        pass.value = 'user123456';
+        if (email) email.value = 'user.demo@gmail.com';
+        if (pass) pass.value = 'user123456';
       }
       switchAuthTab('login');
     }
     function handleAuthSubmit(e) {
       e.preventDefault();
-      const email = document.getElementById('auth-input-email').value;
+      const email = document.getElementById('auth-input-email')?.value;
       alert(`Đăng nhập thành công với tài khoản: ${email}`);
       closeAuthModal();
     }
@@ -743,6 +1044,11 @@
         closeAddProductModal();
         closeAuthModal();
       }
+    });
+
+    // Boot on load
+    document.addEventListener('DOMContentLoaded', () => {
+      initComparison();
     });
   </script>
 
