@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,6 +36,22 @@ public class ProductService {
         Product p = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
         return toDetailDTO(p);
+    }
+
+    public List<ProductDetailDTO> getFeaturedProducts(int limit) {
+        Pageable pageable = PageRequest.of(0, Math.min(Math.max(limit, 1), 30), Sort.by("avgRating").descending());
+        return productRepository.findAll(pageable)
+                .map(this::toDetailDTO)
+                .getContent();
+    }
+
+    public List<ProductDetailDTO> getProductsForComparison(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return productRepository.findAllById(ids).stream()
+                .map(this::toDetailDTO)
+                .collect(Collectors.toList());
     }
 
     /**

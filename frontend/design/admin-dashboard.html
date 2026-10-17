@@ -277,7 +277,7 @@
               ⚡
             </div>
           </div>
-          <div class="text-2xl sm:text-3xl font-black text-warm-text tracking-tight font-mono">1,248</div>
+          <div id="kpi-queries" class="text-2xl sm:text-3xl font-black text-warm-text tracking-tight font-mono">1,248</div>
           <div class="flex items-center gap-1.5 mt-2 text-xs font-bold text-emerald-700">
             <span>↑ +18.4%</span>
             <span class="text-warm-muted font-normal">so với hôm qua</span>
@@ -292,7 +292,7 @@
               ⏱
             </div>
           </div>
-          <div class="text-2xl sm:text-3xl font-black text-warm-text tracking-tight font-mono">412 ms</div>
+          <div id="kpi-latency" class="text-2xl sm:text-3xl font-black text-warm-text tracking-tight font-mono">412 ms</div>
           <div class="flex items-center gap-1.5 mt-2 text-xs font-bold text-emerald-700">
             <span>↓ -35 ms</span>
             <span class="text-warm-muted font-normal">nhanh hơn nhờ Prompt Cache</span>
@@ -307,8 +307,8 @@
               📦
             </div>
           </div>
-          <div class="text-2xl sm:text-3xl font-black text-warm-text tracking-tight font-mono">142 máy</div>
-          <div class="flex items-center gap-1.5 mt-2 text-xs font-bold text-warm-muted">
+          <div id="kpi-products" class="text-2xl sm:text-3xl font-black text-warm-text tracking-tight font-mono">142 máy</div>
+          <div id="kpi-products-breakdown" class="flex items-center gap-1.5 mt-2 text-xs font-bold text-warm-muted">
             <span class="font-extrabold text-warm-text">86 Laptop</span>
             <span>•</span>
             <span class="font-extrabold text-warm-text">56 Phone</span>
@@ -323,8 +323,8 @@
               💵
             </div>
           </div>
-          <div class="text-2xl sm:text-3xl font-black text-warm-text tracking-tight font-mono">$14.28</div>
-          <div class="flex items-center gap-1.5 mt-2 text-xs font-bold text-warm-muted">
+          <div id="kpi-cost" class="text-2xl sm:text-3xl font-black text-warm-text tracking-tight font-mono">$14.28</div>
+          <div id="kpi-tokens" class="flex items-center gap-1.5 mt-2 text-xs font-bold text-warm-muted">
             <span>5.2M tokens</span>
             <span>•</span>
             <span class="text-emerald-700 font-extrabold">92% Flash</span>
@@ -485,8 +485,8 @@
                 <th class="py-2.5 px-3 text-right">Trạng thái</th>
               </tr>
             </thead>
-            <tbody class="divide-y-2 divide-warm-border-subtle font-medium">
-              
+            <tbody id="recent-queries-tbody" class="divide-y-2 divide-warm-border-subtle font-medium">
+              <!-- Sẽ được nạp động từ API /api/admin/stats -->
               <tr class="hover:bg-warm-bg/70 transition-colors">
                 <td class="py-3 px-3 font-mono text-warm-muted">14:32:05</td>
                 <td class="py-3 px-3 font-bold text-warm-text max-w-xs truncate">
@@ -503,58 +503,6 @@
                   <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px]">200 OK</span>
                 </td>
               </tr>
-
-              <tr class="hover:bg-warm-bg/70 transition-colors">
-                <td class="py-3 px-3 font-mono text-warm-muted">14:28:41</td>
-                <td class="py-3 px-3 font-bold text-warm-text max-w-xs truncate">
-                  "Điện thoại chụp đêm đẹp, zoom xa, tầm 20tr"
-                </td>
-                <td class="py-3 px-3">
-                  <span class="px-2 py-0.5 rounded bg-warm-pastel-sky border border-warm-text text-[10px] font-bold text-sky-900">
-                    Camera: OIS+Tele | Price: ~20M
-                  </span>
-                </td>
-                <td class="py-3 px-3 font-bold text-emerald-800">Xiaomi 14T Pro (95%)</td>
-                <td class="py-3 px-3 font-mono">380ms</td>
-                <td class="py-3 px-3 text-right">
-                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px]">200 OK</span>
-                </td>
-              </tr>
-
-              <tr class="hover:bg-warm-bg/70 transition-colors">
-                <td class="py-3 px-3 font-mono text-warm-muted">14:15:19</td>
-                <td class="py-3 px-3 font-bold text-warm-text max-w-xs truncate">
-                  "Laptop văn phòng siêu nhẹ dưới 1.3kg pin 15 tiếng"
-                </td>
-                <td class="py-3 px-3">
-                  <span class="px-2 py-0.5 rounded bg-warm-pastel-mint border border-warm-text text-[10px] font-bold text-emerald-900">
-                    Weight: ≤1.3kg | Pin: ≥15h
-                  </span>
-                </td>
-                <td class="py-3 px-3 font-bold text-emerald-800">MacBook Air M2 (91%)</td>
-                <td class="py-3 px-3 font-mono">395ms</td>
-                <td class="py-3 px-3 text-right">
-                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px]">200 OK</span>
-                </td>
-              </tr>
-
-              <tr class="hover:bg-warm-bg/70 transition-colors">
-                <td class="py-3 px-3 font-mono text-warm-muted">14:02:11</td>
-                <td class="py-3 px-3 font-bold text-warm-text max-w-xs truncate">
-                  "Gaming laptop RTX 4070 màn 2K 165Hz tản nhiệt mát"
-                </td>
-                <td class="py-3 px-3">
-                  <span class="px-2 py-0.5 rounded bg-warm-pastel-peach border border-warm-text text-[10px] font-bold text-amber-900">
-                    GPU: RTX 4070 | Screen: 2K 165Hz
-                  </span>
-                </td>
-                <td class="py-3 px-3 font-bold text-emerald-800">Acer Predator Helios 16 (92%)</td>
-                <td class="py-3 px-3 font-mono">450ms</td>
-                <td class="py-3 px-3 text-right">
-                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px]">200 OK</span>
-                </td>
-              </tr>
-
             </tbody>
           </table>
         </div>
@@ -565,5 +513,76 @@
 
   </div>
 
+  <script src="js/api.js"></script>
+  <script>
+    async function initDashboard() {
+      try {
+        const stats = await api.getAdminStats();
+        if (!stats) return;
+
+        // Cập nhật 4 KPIs
+        const kpiQueries = document.getElementById('kpi-queries');
+        if (kpiQueries) kpiQueries.textContent = stats.totalSearches.toLocaleString('vi-VN');
+
+        const kpiLatency = document.getElementById('kpi-latency');
+        if (kpiLatency) kpiLatency.textContent = `${stats.avgLatencyMs} ms`;
+
+        const kpiProducts = document.getElementById('kpi-products');
+        if (kpiProducts) kpiProducts.textContent = `${stats.totalProducts} máy`;
+
+        const kpiBreakdown = document.getElementById('kpi-products-breakdown');
+        if (kpiBreakdown) {
+          kpiBreakdown.innerHTML = `
+            <span class="font-extrabold text-warm-text">${stats.laptopProducts} Laptop</span>
+            <span>•</span>
+            <span class="font-extrabold text-warm-text">${stats.phoneProducts} Phone</span>
+          `;
+        }
+
+        const kpiCost = document.getElementById('kpi-cost');
+        if (kpiCost) kpiCost.textContent = `$${stats.estimatedCostUsd.toFixed(2)}`;
+
+        const kpiTokens = document.getElementById('kpi-tokens');
+        if (kpiTokens) {
+          const mTokens = (stats.totalTokens / 1000000).toFixed(1);
+          kpiTokens.innerHTML = `
+            <span>${mTokens}M tokens</span>
+            <span>•</span>
+            <span class="text-emerald-700 font-extrabold">92% Flash</span>
+          `;
+        }
+
+        // Cập nhật bảng Live Stream Queries
+        const tbody = document.getElementById('recent-queries-tbody');
+        if (tbody && stats.recentQueries && stats.recentQueries.length > 0) {
+          tbody.innerHTML = stats.recentQueries.map(q => {
+            const timeStr = q.createdAt ? new Date(q.createdAt).toLocaleTimeString('vi-VN') : 'Vừa xong';
+            return `
+              <tr class="hover:bg-warm-bg/70 transition-colors">
+                <td class="py-3 px-3 font-mono text-warm-muted">${timeStr}</td>
+                <td class="py-3 px-3 font-bold text-warm-text max-w-xs truncate" title="${q.queryText}">
+                  "${q.queryText}"
+                </td>
+                <td class="py-3 px-3">
+                  <span class="px-2 py-0.5 rounded bg-warm-pastel-amber border border-warm-text text-[10px] font-bold">
+                    ${q.criteriaSummary || 'N/A'}
+                  </span>
+                </td>
+                <td class="py-3 px-3 font-bold text-emerald-800">${q.topRecommendation}</td>
+                <td class="py-3 px-3 font-mono">${q.latencyMs}ms</td>
+                <td class="py-3 px-3 text-right">
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px]">${q.status}</span>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (err) {
+        console.error('[Dashboard] Init failed:', err);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', initDashboard);
+  </script>
 </body>
 </html>

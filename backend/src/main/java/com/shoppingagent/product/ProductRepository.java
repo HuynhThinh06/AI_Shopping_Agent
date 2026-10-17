@@ -62,4 +62,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("keyword")      String   keyword,
             Pageable pageable
     );
+
+    long countByIsActiveTrue();
+
+    @Query("SELECT COUNT(p) FROM Product p JOIN p.category c WHERE LOWER(c.code) = LOWER(:code) AND p.isActive = TRUE")
+    long countByCategoryCode(@Param("code") String code);
 }

@@ -12,9 +12,9 @@ import java.util.Optional;
 @Repository
 public interface RankingWeightRepository extends JpaRepository<RankingWeight, Integer> {
 
-    @Query("SELECT rw FROM RankingWeight rw JOIN rw.category c WHERE LOWER(c.code) = LOWER(:code)")
-    List<RankingWeight> findByCategoryCode(@Param("code") String code);
+    @Query("SELECT rw FROM RankingWeight rw JOIN FETCH rw.category c WHERE LOWER(c.code) = LOWER(:categoryCode)")
+    List<RankingWeight> findByCategoryCode(@Param("categoryCode") String categoryCode);
 
-    @Query("SELECT rw FROM RankingWeight rw JOIN rw.category c WHERE LOWER(c.code) = LOWER(:code) AND LOWER(rw.criteria) = LOWER(:criteria)")
-    Optional<RankingWeight> findByCategoryCodeAndCriteria(@Param("code") String code, @Param("criteria") String criteria);
+    @Query("SELECT rw FROM RankingWeight rw JOIN rw.category c WHERE LOWER(c.code) = LOWER(:categoryCode) AND LOWER(rw.criteria) = LOWER(:criteria)")
+    Optional<RankingWeight> findByCategoryCodeAndCriteria(@Param("categoryCode") String categoryCode, @Param("criteria") String criteria);
 }

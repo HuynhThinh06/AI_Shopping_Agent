@@ -61,7 +61,7 @@
   </script>
 
   <link rel="stylesheet" href="tokens.css">
-
+  <script src="js/api.js"></script>
   <style>
     body {
       background-color: #FAF8F5;
@@ -291,30 +291,30 @@
         <!-- Header Info -->
         <div class="space-y-3">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="px-2.5 py-1 rounded-lg bg-warm-secondary text-warm-secondary-text font-black text-xs border border-warm-text/30">
+            <span id="product-category-badge" class="px-2.5 py-1 rounded-lg bg-warm-secondary text-warm-secondary-text font-black text-xs border border-warm-text/30">
               ASUS ZENBOOK SERIES
             </span>
-            <span class="text-xs font-bold text-warm-muted">Mã SKU: UX3405MA-PP152W</span>
+            <span id="product-sku" class="text-xs font-bold text-warm-muted">Mã SKU: UX3405MA-PP152W</span>
             <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[11px] border border-emerald-300">
-              Còn hàng tại 3 hệ thống
+              Chính hãng
             </span>
           </div>
 
-          <h1 class="text-2xl sm:text-3xl font-extrabold text-warm-text tracking-tight leading-tight">
+          <h1 id="product-title" class="text-2xl sm:text-3xl font-extrabold text-warm-text tracking-tight leading-tight">
             Laptop Asus Zenbook 14 OLED UX3405MA
           </h1>
-          <p class="text-sm font-semibold text-warm-muted leading-relaxed">
-            Intel Core Ultra 7 155H • RAM 16GB LPDDR5X • SSD 1TB NVMe • Màn hình 14.0" 3K (2880 x 1800) OLED 120Hz 500nits 100% DCI-P3 • Trọng lượng 1.2 kg
+          <p id="product-subtitle" class="text-sm font-semibold text-warm-muted leading-relaxed">
+            Đang tải thông số kỹ thuật...
           </p>
 
           <!-- Ratings & Verification Bar -->
           <div class="flex flex-wrap items-center gap-4 pt-1">
             <div class="flex items-center gap-1.5 bg-warm-surface px-3 py-1 rounded-xl border border-warm-text/30 shadow-brutal-xs">
-              <div class="flex text-amber-500">
+              <div class="flex text-amber-500" id="product-rating-stars">
                 ★★★★★
               </div>
-              <span class="font-black text-sm text-warm-text">4.8 / 5</span>
-              <span class="text-xs text-warm-muted">(142 đánh giá xác thực)</span>
+              <span id="product-rating-num" class="font-black text-sm text-warm-text">4.8 / 5</span>
+              <span id="product-review-count" class="text-xs text-warm-muted">(142 đánh giá xác thực)</span>
             </div>
 
             <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-300">
@@ -332,7 +332,7 @@
             <div>
               <span class="text-xs font-bold text-warm-muted uppercase tracking-wider block">Giá tham khảo tốt nhất hôm nay</span>
               <div class="flex items-baseline gap-3 mt-1">
-                <span class="text-3xl sm:text-4xl font-black text-warm-primary tracking-tight">24.990.000đ</span>
+                <span id="product-price" class="text-3xl sm:text-4xl font-black text-warm-primary tracking-tight">24.990.000đ</span>
                 <span class="text-base sm:text-lg font-bold text-warm-muted line-through">28.990.000đ</span>
                 <span class="px-2.5 py-0.5 rounded-lg bg-red-100 text-red-700 font-extrabold text-xs border border-red-300">-14%</span>
               </div>
@@ -396,7 +396,7 @@
             <button 
               type="button" 
               id="btn-add-compare"
-              onclick="toggleCompareProduct('UX3405')" 
+              onclick="toggleCompareProduct()" 
               class="brutal-button-action flex-1 py-3 px-4 rounded-xl bg-warm-secondary hover:bg-warm-honey text-warm-secondary-text font-black text-sm border-2 border-warm-text shadow-brutal-sm flex items-center justify-center gap-2 cursor-pointer"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
@@ -458,16 +458,16 @@
         <div>
           <div class="flex items-center gap-2">
             <span class="w-3 h-3 rounded-full bg-emerald-500 border border-warm-text animate-pulse"></span>
-            <span class="text-xs font-black uppercase tracking-wider text-warm-secondary-text bg-warm-secondary px-2.5 py-0.5 rounded-md border border-warm-text">
-              Gemini 3.8 Flash NLP Summarizer
+            <span id="ai-cache-badge" class="text-xs font-black uppercase tracking-wider text-warm-secondary-text bg-warm-secondary px-2.5 py-0.5 rounded-md border border-warm-text">
+              Gemini NLP Summarizer
             </span>
-            <span class="text-xs font-bold text-warm-muted">• Cập nhật 2 giờ trước</span>
+            <span id="ai-update-time" class="text-xs font-bold text-warm-muted">• Tự động đồng bộ</span>
           </div>
           <h2 class="text-xl sm:text-2xl font-extrabold text-warm-text tracking-tight mt-1.5">
             Bản Tóm Tắt Đánh Giá Độc Lập Từ Trí Tuệ Nhân Tạo
           </h2>
           <p class="text-xs sm:text-sm font-medium text-warm-muted mt-1">
-            Tổng hợp và loại trừ đánh giá spam từ <span class="font-bold text-warm-text">142 người dùng thực tế</span> đã mua sản phẩm tại Việt Nam.
+            Tổng hợp và loại trừ đánh giá spam từ <span id="ai-verified-count" class="font-bold text-warm-text">người dùng thực tế</span> đã mua sản phẩm tại Việt Nam.
           </p>
         </div>
 
@@ -499,22 +499,10 @@
             <h3 class="font-black text-base text-emerald-950">Ưu Điểm Nổi Bật</h3>
           </div>
 
-          <ul class="space-y-2.5 text-xs sm:text-sm font-semibold text-emerald-900">
+          <ul id="ai-pros-list" class="space-y-2.5 text-xs sm:text-sm font-semibold text-emerald-900">
             <li class="flex items-start gap-2">
               <span class="font-bold text-emerald-600 mt-0.5">✔</span>
-              <span><strong class="font-bold">Màn hình 3K OLED xuất sắc:</strong> Tần số quét 120Hz, màu đen sâu, chuẩn 100% DCI-P3 cho dân thiết kế và xem phim cực đã.</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="font-bold text-emerald-600 mt-0.5">✔</span>
-              <span><strong class="font-bold">Thời lượng pin ấn tượng:</strong> Viên pin 75Wh kết hợp chip Intel Core Ultra 7 tối ưu tốt, đạt 8 - 10 tiếng văn phòng liên tục.</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="font-bold text-emerald-600 mt-0.5">✔</span>
-              <span><strong class="font-bold">Mỏng nhẹ & Hoàn thiện cao cấp:</strong> Trọng lượng chỉ 1.2kg, vỏ nhôm nguyên khối cứng cáp chuẩn độ bền quân đội MIL-STD-810H.</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="font-bold text-emerald-600 mt-0.5">✔</span>
-              <span><strong class="font-bold">Bàn phím & Loa tốt:</strong> Hành trình phím nảy 1.4mm gõ êm, hệ thống loa Harman Kardon to rõ không rè.</span>
+              <span>Đang phân tích ưu điểm từ phản hồi người dùng...</span>
             </li>
           </ul>
         </div>
@@ -528,18 +516,10 @@
             <h3 class="font-black text-base text-amber-950">Nhược Điểm Cần Lưu Ý</h3>
           </div>
 
-          <ul class="space-y-2.5 text-xs sm:text-sm font-semibold text-amber-950">
+          <ul id="ai-cons-list" class="space-y-2.5 text-xs sm:text-sm font-semibold text-amber-950">
             <li class="flex items-start gap-2">
               <span class="font-bold text-amber-700 mt-0.5">✖</span>
-              <span><strong class="font-bold">RAM hàn chết trên bo mạch (Onboard):</strong> Không nâng cấp được về sau, khuyến nghị người dùng chọn đúng bản 16GB hoặc 32GB ngay từ đầu.</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="font-bold text-amber-700 mt-0.5">✖</span>
-              <span><strong class="font-bold">Màn hình gương dễ bám vân tay:</strong> Khi làm việc ngoài trời hoặc phòng có nhiều đèn tuýp ngược sáng sẽ hơi bị lóa nhẹ.</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="font-bold text-amber-700 mt-0.5">✖</span>
-              <span><strong class="font-bold">Nhiệt độ khi tải nặng:</strong> Khi render video dài, quạt chạy nghe rõ tiếng và đáy máy hơi ấm (khoảng 42°C).</span>
+              <span>Đang phân tích nhược điểm cần cân nhắc...</span>
             </li>
           </ul>
         </div>
@@ -553,15 +533,10 @@
             <h3 class="font-black text-base text-sky-950">Lời Khuyên Của AI Cho Bạn</h3>
           </div>
 
-          <div class="space-y-2 text-xs sm:text-sm font-semibold text-sky-950">
+          <div id="ai-verdict-content" class="space-y-2 text-xs sm:text-sm font-semibold text-sky-950">
             <div class="p-2.5 rounded-xl bg-white/80 border border-sky-300">
-              <span class="font-bold text-emerald-700 block">NÊN MUA NẾU:</span>
-              Bạn là lập trình viên web/mobile, sinh viên IT, chuyên viên văn phòng cao cấp, hoặc người làm sáng tạo nội dung cần một chiếc máy di động, màn hình đỉnh cao và pin trâu.
-            </div>
-
-            <div class="p-2.5 rounded-xl bg-white/80 border border-rose-300">
-              <span class="font-bold text-rose-700 block">KHÔNG PHÙ HỢP NẾU:</span>
-              Bạn cần chơi game AAA đồ họa nặng hoặc dựng hình 3D Blender thường xuyên (nên cân nhắc dòng Laptop Gaming có card đồ họa rời RTX 4060 như Legion 5).
+              <span class="font-bold text-sky-900 block mb-1">ĐÁNH GIÁ CHUNG:</span>
+              <p id="ai-verdict-text">AI đang tổng hợp ý kiến đánh giá...</p>
             </div>
           </div>
         </div>
@@ -741,7 +716,7 @@
       </div>
 
       <!-- Review Items List -->
-      <div class="space-y-4 mt-2">
+      <div id="reviews-list" class="space-y-4 mt-2">
         
         <!-- Review 1 -->
         <div class="p-4 rounded-xl bg-warm-surface-soft border border-warm-text/20 space-y-2">
@@ -936,18 +911,18 @@
 
         <div>
           <label class="font-bold text-warm-text block mb-1">Họ và tên của bạn:</label>
-          <input type="text" placeholder="Nguyễn Văn A" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 text-xs font-bold text-warm-text focus:outline-none focus:bg-white" />
+          <input type="text" id="review-input-name" placeholder="Nguyễn Văn A" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 text-xs font-bold text-warm-text focus:outline-none focus:bg-white" />
         </div>
 
         <div>
           <label class="font-bold text-warm-text block mb-1">Chia sẻ trải nghiệm thực tế (Ưu & Nhược điểm):</label>
-          <textarea rows="4" placeholder="Máy dùng tốt ở điểm nào, có điểm gì bạn chưa ưng ý..." class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 text-xs font-bold text-warm-text focus:outline-none focus:bg-white"></textarea>
+          <textarea id="review-input-content" rows="4" placeholder="Máy dùng tốt ở điểm nào, có điểm gì bạn chưa ưng ý..." class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 text-xs font-bold text-warm-text focus:outline-none focus:bg-white"></textarea>
         </div>
       </div>
 
       <div class="flex justify-end gap-2 pt-2">
         <button type="button" onclick="closeWriteReviewModal()" class="px-4 py-2 rounded-xl border-2 border-warm-text font-bold text-xs bg-warm-surface hover:bg-warm-subtle">Hủy</button>
-        <button type="button" onclick="alert('Cảm ơn bạn đã gửi đánh giá! AI Moderation sẽ kiểm duyệt trong giây lát.'); closeWriteReviewModal();" class="px-5 py-2 rounded-xl border-2 border-warm-text font-extrabold text-xs bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text shadow-brutal-xs">Gửi Đánh Giá</button>
+        <button type="button" id="btn-submit-review" onclick="submitCustomerReview()" class="px-5 py-2 rounded-xl border-2 border-warm-text font-extrabold text-xs bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text shadow-brutal-xs">Gửi Đánh Giá</button>
       </div>
     </div>
   </div>
@@ -1019,27 +994,46 @@
        JAVASCRIPT LOGIC
        ========================================================================= -->
   <script>
-    let isCompared = false;
+    let loadedProduct = null;
     let isWishlisted = false;
 
-    function toggleCompareProduct(sku) {
-      isCompared = !isCompared;
+    function toggleCompareProduct() {
+      if (!loadedProduct) return;
+      if (CompareManager.has(loadedProduct.id)) {
+        CompareManager.remove(loadedProduct.id);
+      } else {
+        CompareManager.add(loadedProduct);
+      }
+      updateProductCompareButton();
+    }
+
+    function updateProductCompareButton() {
       const btn = document.getElementById('btn-add-compare');
       const text = document.getElementById('compare-btn-text');
       const navCount = document.getElementById('nav-compare-count');
       
-      if (isCompared) {
+      const list = CompareManager.getList();
+      if (navCount) {
+        navCount.innerText = list.length;
+      }
+
+      if (!loadedProduct || !btn || !text) return;
+
+      const isComp = CompareManager.has(loadedProduct.id);
+      if (isComp) {
         btn.classList.remove('bg-warm-secondary', 'text-warm-secondary-text');
         btn.classList.add('bg-emerald-500', 'text-white');
         text.innerText = '✓ Đã thêm vào So Sánh';
-        navCount.innerText = '3';
       } else {
         btn.classList.add('bg-warm-secondary', 'text-warm-secondary-text');
         btn.classList.remove('bg-emerald-500', 'text-white');
         text.innerText = 'Thêm vào bảng So sánh';
-        navCount.innerText = '2';
       }
     }
+
+    window.addEventListener('compare-updated', () => {
+      updateProductCompareButton();
+    });
 
     function toggleWishlist() {
       isWishlisted = !isWishlisted;
@@ -1154,6 +1148,209 @@
         closeWriteReviewModal();
         closeAuthModal();
       }
+    });
+
+    // ── Dynamic Data Binding via API ─────────────────────────────────────────
+    let currentProductId = 1;
+    let selectedReviewRating = 5;
+
+    function setRating(val) {
+      selectedReviewRating = val;
+      const stars = document.querySelectorAll('#rating-stars span');
+      stars.forEach((s, idx) => {
+        if (idx < val) {
+          s.classList.add('text-amber-500');
+          s.classList.remove('text-stone-300');
+        } else {
+          s.classList.remove('text-amber-500');
+          s.classList.add('text-stone-300');
+        }
+      });
+    }
+
+    async function loadProductPage(id) {
+      currentProductId = id;
+
+      // 1. Lấy thông tin chi tiết sản phẩm
+      try {
+        const p = await api.getProduct(id);
+        if (p) {
+          document.title = `${p.name} — Chi tiết & AI Tóm tắt | AI Shopping Agent`;
+          const titleEl = document.getElementById('product-title');
+          if (titleEl) titleEl.innerText = p.name;
+
+          const priceEl = document.getElementById('product-price');
+          if (priceEl) priceEl.innerText = formatPrice(p.price);
+
+          const skuEl = document.getElementById('product-sku');
+          if (skuEl) skuEl.innerText = `Mã SKU: ${p.sku || ('PRD-' + p.id)}`;
+
+          const catBadge = document.getElementById('product-category-badge');
+          if (catBadge) catBadge.innerText = (p.categoryCode || 'SẢN PHẨM').toUpperCase();
+
+          const ratingNum = document.getElementById('product-rating-num');
+          if (ratingNum) ratingNum.innerText = `${p.avgRating ? Number(p.avgRating).toFixed(1) : '5.0'} / 5`;
+
+          const reviewCountEl = document.getElementById('product-review-count');
+          if (reviewCountEl) reviewCountEl.innerText = `(${p.reviewCount || 0} đánh giá xác thực)`;
+
+          const verifiedCount = document.getElementById('ai-verified-count');
+          if (verifiedCount) verifiedCount.innerText = `${p.reviewCount || 0} người dùng thực tế`;
+
+          // Format Specs Subtitle
+          const specs = parseSpecs(p.specs);
+          const cpu = specs.cpu || specs.CPU || '';
+          const ram = specs.ram || specs.RAM ? 'RAM ' + (specs.ram || specs.RAM) + 'GB' : '';
+          const storage = specs.storage || specs.Storage ? 'SSD ' + (specs.storage || specs.Storage) + 'GB' : '';
+          const screen = specs.screen || specs.screen_size || '';
+          const subText = [cpu, ram, storage, screen].filter(Boolean).join(' • ');
+          const subtitleEl = document.getElementById('product-subtitle');
+          if (subtitleEl) subtitleEl.innerText = subText || 'Thông số chuẩn hóa hỗ trợ bộ lọc AI';
+
+          // Image Viewport
+          const imgUrl = getPrimaryImage(p);
+          const viewport = document.getElementById('main-product-viewport');
+          if (viewport && imgUrl) {
+            viewport.innerHTML = `
+              <img src="${imgUrl}" alt="${p.name}" class="max-h-[220px] max-w-[300px] object-contain drop-shadow-md" onerror="this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&fit=crop'"/>
+            `;
+          }
+
+          loadedProduct = p;
+          updateProductCompareButton();
+        }
+      } catch (err) {
+        console.warn('Lỗi khi tải thông tin sản phẩm:', err);
+      }
+
+      // 2. Lấy tóm tắt AI (Summarizer)
+      try {
+        const summary = await api.getProductSummary(id);
+        if (summary) {
+          const cacheBadge = document.getElementById('ai-cache-badge');
+          if (cacheBadge) {
+            if (summary.cached) {
+              cacheBadge.innerText = '⚡ Cached (0 token, 5ms)';
+              cacheBadge.classList.add('bg-emerald-100', 'text-emerald-800');
+            } else {
+              cacheBadge.innerText = '✨ Mới phân tích bằng Gemini';
+              cacheBadge.classList.add('bg-amber-100', 'text-amber-800');
+            }
+          }
+
+          const prosList = document.getElementById('ai-pros-list');
+          if (prosList && summary.pros && summary.pros.length > 0) {
+            prosList.innerHTML = summary.pros.map(pro => `
+              <li class="flex items-start gap-2">
+                <span class="font-bold text-emerald-600 mt-0.5">✔</span>
+                <span>${pro}</span>
+              </li>
+            `).join('');
+          }
+
+          const consList = document.getElementById('ai-cons-list');
+          if (consList && summary.cons && summary.cons.length > 0) {
+            consList.innerHTML = summary.cons.map(con => `
+              <li class="flex items-start gap-2">
+                <span class="font-bold text-amber-700 mt-0.5">✖</span>
+                <span>${con}</span>
+              </li>
+            `).join('');
+          }
+
+          const verdictText = document.getElementById('ai-verdict-text');
+          if (verdictText && summary.overallAssessment) {
+            verdictText.innerText = summary.overallAssessment;
+          }
+        }
+      } catch (err) {
+        console.warn('Lỗi khi lấy AI Summary:', err);
+        const verdictText = document.getElementById('ai-verdict-text');
+        if (verdictText) verdictText.innerText = 'Chưa có đủ đánh giá hợp lệ để AI tổng hợp ưu nhược điểm.';
+      }
+
+      // 3. Lấy danh sách đánh giá của người dùng
+      try {
+        const res = await api.getReviews(id, 0, 10);
+        const reviews = res.content || [];
+        const reviewsContainer = document.getElementById('reviews-list');
+        if (reviewsContainer && reviews.length > 0) {
+          reviewsContainer.innerHTML = reviews.map(r => {
+            const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString('vi-VN') : 'Gần đây';
+            const name = r.reviewerName || 'Khách hàng';
+            const initials = name.split(' ').map(n => n[0]).slice(-2).join('').toUpperCase();
+            return `
+              <div class="p-4 rounded-xl bg-warm-surface-soft border border-warm-text/20 space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-full bg-warm-pastel-amber border border-warm-text font-black text-xs flex items-center justify-center text-warm-secondary-text">${initials}</span>
+                    <span class="font-extrabold text-sm text-warm-text">${name}</span>
+                    <span class="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">✓ Đã xác thực mua hàng</span>
+                  </div>
+                  <span class="text-xs text-warm-muted">${dateStr}</span>
+                </div>
+                <div class="flex text-amber-500 text-xs">${renderStars(r.rating)}</div>
+                <p class="text-xs sm:text-sm font-medium text-warm-text leading-relaxed">
+                  ${r.content}
+                </p>
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (err) {
+        console.warn('Lỗi khi lấy danh sách review:', err);
+      }
+    }
+
+    async function submitCustomerReview() {
+      const nameInput = document.getElementById('review-input-name');
+      const contentInput = document.getElementById('review-input-content');
+      const reviewerName = nameInput ? nameInput.value.trim() : '';
+      const content = contentInput ? contentInput.value.trim() : '';
+
+      if (!reviewerName) {
+        alert('Vui lòng nhập họ và tên của bạn.');
+        return;
+      }
+      if (!content || content.length < 10) {
+        alert('Nội dung đánh giá cần tối thiểu 10 ký tự.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-submit-review');
+      if (btn) {
+        btn.innerText = 'Đang gửi...';
+        btn.disabled = true;
+      }
+
+      try {
+        await api.createReview(currentProductId, {
+          reviewerName,
+          rating: selectedReviewRating,
+          content
+        });
+
+        alert('Đánh giá của bạn đã được gửi thành công! Hệ thống tự động kích hoạt cập nhật avgRating và tóm tắt AI.');
+        closeWriteReviewModal();
+        if (contentInput) contentInput.value = '';
+        // Reload lại dữ liệu sản phẩm
+        loadProductPage(currentProductId);
+      } catch (err) {
+        alert('Lỗi gửi review: ' + err.message);
+      } finally {
+        if (btn) {
+          btn.innerText = 'Gửi Đánh Giá';
+          btn.disabled = false;
+        }
+      }
+    }
+
+    // Khởi chạy khi tải trang
+    document.addEventListener('DOMContentLoaded', () => {
+      updateProductCompareButton();
+      const urlParams = new URLSearchParams(window.location.search);
+      const id = urlParams.get('id') || '1';
+      loadProductPage(id);
     });
   </script>
 

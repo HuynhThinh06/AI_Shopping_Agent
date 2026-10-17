@@ -26,4 +26,10 @@ public interface LlmLogRepository extends JpaRepository<LlmRequestLog, Long> {
 
     @Query("SELECT COALESCE(SUM(l.tokensUsed), 0L) FROM LlmRequestLog l")
     Long getTotalTokensUsed();
+
+    @Query("SELECT l FROM LlmRequestLog l WHERE LOWER(l.requestType) = LOWER(:requestType) ORDER BY l.createdAt DESC")
+    Page<LlmRequestLog> findByRequestType(@org.springframework.data.repository.query.Param("requestType") String requestType, Pageable pageable);
+
+    @Query("SELECT l FROM LlmRequestLog l WHERE LOWER(l.status) = LOWER(:status) ORDER BY l.createdAt DESC")
+    Page<LlmRequestLog> findByStatus(@org.springframework.data.repository.query.Param("status") String status, Pageable pageable);
 }

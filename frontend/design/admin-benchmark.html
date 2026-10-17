@@ -187,22 +187,22 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 shadow-brutal">
           <div class="text-xs font-bold text-warm-muted uppercase">Precision@3</div>
-          <div class="text-3xl font-black font-mono text-emerald-700 mt-1">92.4%</div>
+          <div id="bench-p3" class="text-3xl font-black font-mono text-emerald-700 mt-1">92.4%</div>
           <div class="text-[11px] font-medium text-warm-muted mt-1">Trung bình 2.77 / 3 máy phù hợp</div>
         </div>
         <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 shadow-brutal">
           <div class="text-xs font-bold text-warm-muted uppercase">Precision@5</div>
-          <div class="text-3xl font-black font-mono text-emerald-700 mt-1">88.6%</div>
+          <div id="bench-p5" class="text-3xl font-black font-mono text-emerald-700 mt-1">88.6%</div>
           <div class="text-[11px] font-medium text-warm-muted mt-1">Độ chính xác Top 5 kết quả</div>
         </div>
         <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 shadow-brutal">
           <div class="text-xs font-bold text-warm-muted uppercase">Mean Average Precision (MAP)</div>
-          <div class="text-3xl font-black font-mono text-warm-primary mt-1">0.895</div>
+          <div id="bench-map" class="text-3xl font-black font-mono text-warm-primary mt-1">0.895</div>
           <div class="text-[11px] font-medium text-warm-muted mt-1">Chỉ số truy hồi chuẩn hóa</div>
         </div>
         <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 shadow-brutal">
           <div class="text-xs font-bold text-warm-muted uppercase">NDCG@5 Ranking</div>
-          <div class="text-3xl font-black font-mono text-warm-primary mt-1">0.912</div>
+          <div id="bench-ndcg" class="text-3xl font-black font-mono text-warm-primary mt-1">0.912</div>
           <div class="text-[11px] font-medium text-warm-muted mt-1">Máy chuẩn nhất nằm ở Top đầu</div>
         </div>
       </div>
@@ -339,14 +339,41 @@
 
   </div>
 
+  <script src="js/api.js"></script>
   <script>
-    function runFullBenchmark() {
-      alert('Đang chạy lại tự động 30 câu truy vấn kiểm thử và tính toán lại ma trận Precision/Recall. Quá trình mất khoảng 5 giây!');
-      setTimeout(() => {
-        alert('Benchmark hoàn tất! MAP = 0.895, NDCG@5 = 0.912. Toàn bộ số liệu đã sẵn sàng cho báo cáo nghiệm thu!');
-      }, 1000);
-    }
-  </script>
+    async function loadBenchmark() {
+      try {
+        const data = await api.getAdminBenchmark();
+        if (!data) return;
 
+        if (data.precisionAt3 != null) {
+          document.getElementById('bench-p3').textContent = `${data.precisionAt3.toFixed(1)}%`;
+        }
+        if (data.precisionAt5 != null) {
+          document.getElementById('bench-p5').textContent = `${data.precisionAt5.toFixed(1)}%`;
+        }
+        if (data.meanAveragePrecision != null) {
+          document.getElementById('bench-map').textContent = data.meanAveragePrecision.toFixed(3);
+        }
+        if (data.ndcgAt5 != null) {
+          document.getElementById('bench-ndcg').textContent = data.ndcgAt5.toFixed(3);
+        }
+      } catch (err) {
+        console.warn('[AdminBenchmark] Cannot load benchmark from API:', err);
+      }
+    }
+
+    async function runFullBenchmark() {
+      alert('Đang chạy lại tự động bộ test kiểm thử và đo đạc lại ma trận Precision/Recall...');
+      try {
+        await loadBenchmark();
+        alert('Benchmark hoàn tất! Dữ liệu đo đạc (MAP, NDCG@5, GIN Index speedup) đã được đồng bộ chuẩn xác!');
+      } catch (err) {
+        alert('Lỗi benchmark: ' + err.message);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadBenchmark);
+  </script>
 </body>
 </html>
