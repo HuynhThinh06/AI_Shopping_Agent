@@ -395,115 +395,64 @@
 
         <!-- Filter 1: Mức giá -->
         <div>
-          <label class="block text-xs font-extrabold text-warm-text mb-2">Khoảng giá mong muốn:</label>
-          <div class="grid grid-cols-2 gap-2 text-xs mb-3">
-            <button type="button" class="filter-chip-price px-2.5 py-1.5 rounded-xl border border-warm-text bg-warm-bg font-bold text-warm-text shadow-brutal-xs hover:bg-warm-secondary">15 - 20 triệu</button>
-            <button type="button" class="filter-chip-price px-2.5 py-1.5 rounded-xl border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-extrabold shadow-brutal-xs">20 - 25 triệu ✓</button>
-            <button type="button" class="filter-chip-price px-2.5 py-1.5 rounded-xl border border-warm-text bg-warm-bg font-bold text-warm-text shadow-brutal-xs hover:bg-warm-secondary">25 - 30 triệu</button>
-            <button type="button" class="filter-chip-price px-2.5 py-1.5 rounded-xl border border-warm-text bg-warm-bg font-bold text-warm-text shadow-brutal-xs hover:bg-warm-secondary">Trên 30 triệu</button>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-extrabold text-warm-text">Khoảng giá mong muốn:</label>
+            <span id="active-price-text" class="text-[11px] font-bold text-warm-secondary-text"></span>
+          </div>
+          <div id="filter-price-presets" class="grid grid-cols-2 gap-2 text-xs mb-3">
+            <!-- Dynamically populated price preset chips -->
           </div>
           <div class="flex items-center gap-2 text-xs font-mono">
-            <input type="text" value="20.000.000" class="w-full bg-warm-bg border border-warm-text rounded-lg px-2 py-1 text-center font-bold">
+            <input 
+              type="text" 
+              id="filter-min-price-input" 
+              placeholder="Từ (đ)" 
+              oninput="handleCustomPriceInput()" 
+              class="w-full bg-warm-bg border border-warm-text rounded-lg px-2 py-1 text-center font-bold text-warm-text"
+            >
             <span>–</span>
-            <input type="text" value="25.000.000" class="w-full bg-warm-bg border border-warm-text rounded-lg px-2 py-1 text-center font-bold">
+            <input 
+              type="text" 
+              id="filter-max-price-input" 
+              placeholder="Đến (đ)" 
+              oninput="handleCustomPriceInput()" 
+              class="w-full bg-warm-bg border border-warm-text rounded-lg px-2 py-1 text-center font-bold text-warm-text"
+            >
           </div>
         </div>
 
         <!-- Filter 2: Thương hiệu (Brands) -->
         <div class="pt-4 border-t border-warm-border-subtle">
-          <label class="block text-xs font-extrabold text-warm-text mb-2">Thương hiệu:</label>
-          <div class="space-y-1.5 text-xs font-medium">
-            <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/50 cursor-pointer">
-              <span class="flex items-center gap-2">
-                <input type="checkbox" checked class="accent-warm-primary w-4 h-4 rounded">
-                <span class="font-bold text-warm-text">Lenovo</span>
-              </span>
-              <span class="text-warm-muted text-[11px]">4 máy</span>
-            </label>
-            <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/50 cursor-pointer">
-              <span class="flex items-center gap-2">
-                <input type="checkbox" checked class="accent-warm-primary w-4 h-4 rounded">
-                <span class="font-bold text-warm-text">ASUS</span>
-              </span>
-              <span class="text-warm-muted text-[11px]">3 máy</span>
-            </label>
-            <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/50 cursor-pointer">
-              <span class="flex items-center gap-2">
-                <input type="checkbox" checked class="accent-warm-primary w-4 h-4 rounded">
-                <span class="font-bold text-warm-text">Apple (MacBook)</span>
-              </span>
-              <span class="text-warm-muted text-[11px]">2 máy</span>
-            </label>
-            <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/50 cursor-pointer">
-              <span class="flex items-center gap-2">
-                <input type="checkbox" class="accent-warm-primary w-4 h-4 rounded">
-                <span class="text-warm-text">Acer</span>
-              </span>
-              <span class="text-warm-muted text-[11px]">2 máy</span>
-            </label>
-            <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/50 cursor-pointer">
-              <span class="flex items-center gap-2">
-                <input type="checkbox" class="accent-warm-primary w-4 h-4 rounded">
-                <span class="text-warm-text">Dell / HP</span>
-              </span>
-              <span class="text-warm-muted text-[11px]">3 máy</span>
-            </label>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-extrabold text-warm-text">Thương hiệu:</label>
+            <span id="filter-brand-count-info" class="text-[11px] text-warm-muted font-bold"></span>
+          </div>
+          <div id="filter-brands-container" class="space-y-1.5 text-xs font-medium max-h-52 overflow-y-auto pr-1">
+            <!-- Dynamically populated brands based on detected category and results -->
           </div>
         </div>
 
         <!-- Filter 3: Dung lượng RAM -->
         <div class="pt-4 border-t border-warm-border-subtle">
           <label class="block text-xs font-extrabold text-warm-text mb-2">Dung lượng RAM:</label>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <button type="button" class="px-3 py-1.5 rounded-xl border border-warm-text bg-warm-bg font-bold text-warm-text shadow-brutal-xs hover:bg-warm-secondary">8GB</button>
-            <button type="button" class="px-3 py-1.5 rounded-xl border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-extrabold shadow-brutal-xs">16GB (Chuẩn) ✓</button>
-            <button type="button" class="px-3 py-1.5 rounded-xl border border-warm-text bg-warm-bg font-bold text-warm-text shadow-brutal-xs hover:bg-warm-secondary">32GB</button>
+          <div id="filter-ram-container" class="flex flex-wrap gap-2 text-xs">
+            <!-- Dynamically populated RAM chips -->
           </div>
         </div>
 
         <!-- Filter 4: Vi xử lý (Processor) -->
         <div class="pt-4 border-t border-warm-border-subtle">
           <label class="block text-xs font-extrabold text-warm-text mb-2">Thế hệ Chip xử lý:</label>
-          <div class="space-y-1.5 text-xs">
-            <label class="flex items-center gap-2 cursor-pointer font-bold text-warm-text">
-              <input type="checkbox" checked class="accent-warm-primary w-4 h-4">
-              <span>Intel Core Ultra (Gen 14 / AI Boost)</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer font-bold text-warm-text">
-              <input type="checkbox" checked class="accent-warm-primary w-4 h-4">
-              <span>Apple Silicon (M2 / M3)</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer text-warm-text">
-              <input type="checkbox" class="accent-warm-primary w-4 h-4">
-              <span>AMD Ryzen 7 / 8000 Series</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer text-warm-text">
-              <input type="checkbox" class="accent-warm-primary w-4 h-4">
-              <span>Intel Core i5 / i7 Gen 13</span>
-            </label>
+          <div id="filter-chips-container" class="space-y-1.5 text-xs">
+            <!-- Dynamically populated processor checkboxes -->
           </div>
         </div>
 
         <!-- Filter 5: Đặc điểm nổi bật -->
         <div class="pt-4 border-t border-warm-border-subtle">
           <label class="block text-xs font-extrabold text-warm-text mb-2">Tính năng ưu tiên:</label>
-          <div class="space-y-1.5 text-xs">
-            <label class="flex items-center gap-2 cursor-pointer font-bold text-warm-text">
-              <input type="checkbox" checked class="accent-warm-primary w-4 h-4">
-              <span>Pin trâu trên 8 tiếng (Học tập & Dev)</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer font-bold text-warm-text">
-              <input type="checkbox" checked class="accent-warm-primary w-4 h-4">
-              <span>Màn hình 100% sRGB / 2.8K nét</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer text-warm-text">
-              <input type="checkbox" class="accent-warm-primary w-4 h-4">
-              <span>Mỏng nhẹ dưới 1.4kg</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer text-warm-text">
-              <input type="checkbox" class="accent-warm-primary w-4 h-4">
-              <span>Vỏ nhôm nguyên khối</span>
-            </label>
+          <div id="filter-features-container" class="space-y-1.5 text-xs">
+            <!-- Dynamically populated feature checkboxes -->
           </div>
         </div>
 
@@ -1108,16 +1057,123 @@
       alert(`Đăng nhập thành công với tài khoản: ${email}`);
       closeAuthModal();
     }
-    let lastSearchResults = [];
+    // ── Application State ──────────────────────────────────────────────────────
+    let rawSearchResults = [];     // Raw products from API
+    let lastSearchResults = [];    // Scored, filtered & sorted products currently displayed
+    let currentCriteria = {};       // Extracted criteria from Gemini
+    let currentCategory = 'laptop'; // 'laptop' or 'phone' (auto-detected)
+    let currentAlgoPreset = 'balanced'; // 'balanced' | 'spec' | 'price' | 'review'
+    let currentSortOrder = 'score'; // 'score' | 'price_asc' | 'price_desc' | 'rating'
+    let currentLayout = 'list';     // 'list' | 'grid'
 
+    // Active filter state
+    let activePricePresetIndex = null;
+    let customMinPrice = null;
+    let customMaxPrice = null;
+    const selectedBrands = new Set();
+    const selectedRams = new Set();
+    const selectedChips = new Set();
+    const selectedFeatures = new Set();
+
+    // ── Category-Aware Facets Configuration ────────────────────────────────────
+    const CATEGORY_FACETS = {
+      phone: {
+        name: 'Điện thoại',
+        pricePresets: [
+          { label: '< 5 triệu', min: 0, max: 5000000 },
+          { label: '5 - 10 triệu', min: 5000000, max: 10000000 },
+          { label: '10 - 15 triệu', min: 10000000, max: 15000000 },
+          { label: '15 - 20 triệu', min: 15000000, max: 20000000 },
+          { label: 'Trên 20 triệu', min: 20000000, max: null }
+        ],
+        rams: ['4GB', '6GB', '8GB', '12GB', '16GB'],
+        chips: [
+          { id: 'apple_a', label: 'Apple A-Series Bionic', keywords: ['apple', 'bionic', 'a15', 'a16', 'a17', 'a18'] },
+          { id: 'snapdragon', label: 'Snapdragon (Qualcomm)', keywords: ['snapdragon', 'qualcomm', '8 gen', '7 gen', '778', '695', '870', '888'] },
+          { id: 'dimensity', label: 'MediaTek Dimensity / Helio', keywords: ['dimensity', 'helio', 'mediatek', 'mtk'] },
+          { id: 'exynos', label: 'Samsung Exynos', keywords: ['exynos'] }
+        ],
+        features: [
+          { id: 'camera', label: 'Camera 50MP / 108MP / OIS', keywords: ['50mp', '108mp', '200mp', 'ois', 'camera', 'ống kính'] },
+          { id: 'battery', label: 'Pin 5000mAh & Sạc nhanh', keywords: ['5000mah', '6000mah', 'sạc nhanh', '67w', '80w', '120w', '45w'] },
+          { id: 'screen', label: 'Màn hình AMOLED 120Hz', keywords: ['amoled', '120hz', 'oled', 'super amoled'] },
+          { id: 'waterproof', label: 'Kháng nước & Bụi IP68', keywords: ['ip68', 'ip67', 'chống nước', 'kháng nước'] }
+        ]
+      },
+      laptop: {
+        name: 'Laptop',
+        pricePresets: [
+          { label: '< 15 triệu', min: 0, max: 15000000 },
+          { label: '15 - 20 triệu', min: 15000000, max: 20000000 },
+          { label: '20 - 25 triệu', min: 20000000, max: 25000000 },
+          { label: '25 - 30 triệu', min: 25000000, max: 30000000 },
+          { label: 'Trên 30 triệu', min: 30000000, max: null }
+        ],
+        rams: ['8GB', '16GB', '32GB', '64GB'],
+        chips: [
+          { id: 'intel_ultra', label: 'Intel Core Ultra (Gen 14 / AI Boost)', keywords: ['ultra', 'core ultra', '125h', '155h', '165h'] },
+          { id: 'apple_m', label: 'Apple Silicon (M1 / M2 / M3 / M4)', keywords: ['m1', 'm2', 'm3', 'm4', 'apple silicon'] },
+          { id: 'amd_ryzen', label: 'AMD Ryzen 7 / 8000 Series', keywords: ['ryzen', 'amd', '7840', '8845', '7735', '7535'] },
+          { id: 'intel_core', label: 'Intel Core i5 / i7 (Gen 12 / 13)', keywords: ['core i5', 'core i7', 'i5', 'i7', '13500', '12500', '13700'] }
+        ],
+        features: [
+          { id: 'battery', label: 'Pin trâu trên 8 tiếng (Học tập & Dev)', keywords: ['pin', '8h', '10h', '70wh', '75wh', 'pin trâu'] },
+          { id: 'screen', label: 'Màn hình 100% sRGB / 2.8K nét', keywords: ['srgb', '2.8k', 'oled', 'retina', '120hz', 'ips'] },
+          { id: 'lightweight', label: 'Mỏng nhẹ dưới 1.4kg', keywords: ['mỏng nhẹ', '1.2kg', '1.3kg', '1.4kg', 'nhẹ'] },
+          { id: 'aluminum', label: 'Vỏ nhôm nguyên khối', keywords: ['nhôm', 'kim loại', 'vỏ nhôm', 'nguyên khối'] }
+        ]
+      }
+    };
+
+    // ── Helper: Format & Parse Numbers ─────────────────────────────────────────
+    function formatNumberRaw(num) {
+      if (num == null || isNaN(num)) return '';
+      return new Intl.NumberFormat('vi-VN').format(num);
+    }
+    function parseNumberRaw(str) {
+      if (!str) return NaN;
+      return parseInt(str.toString().replace(/\D/g, ''), 10);
+    }
+
+    // ── Category Detection ─────────────────────────────────────────────────────
+    function detectCategory(criteria, query, results) {
+      const catCode = (criteria && criteria.categoryCode ? criteria.categoryCode : '').toLowerCase();
+      if (catCode.includes('phone') || catCode.includes('thoai') || catCode.includes('mobile')) {
+        return 'phone';
+      }
+      if (catCode.includes('laptop') || catCode.includes('may tinh') || catCode.includes('macbook')) {
+        return 'laptop';
+      }
+      const q = (query || '').toLowerCase();
+      if (q.includes('điện thoại') || q.includes('dien thoai') || q.includes('phone') || q.includes('iphone') || q.includes('smartphone')) {
+        return 'phone';
+      }
+      if (q.includes('laptop') || q.includes('máy tính xách tay') || q.includes('may tinh') || q.includes('macbook')) {
+        return 'laptop';
+      }
+      if (results && results.length > 0) {
+        const firstName = (results[0].name || '').toLowerCase();
+        if (firstName.includes('điện thoại') || firstName.includes('phone') || firstName.includes('galaxy') || firstName.includes('iphone') || firstName.includes('redmi')) {
+          return 'phone';
+        }
+      }
+      return 'laptop';
+    }
+
+    // ── Compare Manager Integration ────────────────────────────────────────────
     function toggleCompareFromCard(id) {
-      const product = lastSearchResults.find(p => p.id === id);
+      const product = lastSearchResults.find(p => (p.productId || p.id) === id);
       if (!product) return;
+
+      const compProduct = {
+        ...product,
+        id: product.productId || product.id
+      };
 
       if (CompareManager.has(id)) {
         CompareManager.remove(id);
       } else {
-        CompareManager.add(product);
+        CompareManager.add(compProduct);
       }
       updateCompareUI();
       updateCardCompareButtons();
@@ -1125,9 +1181,10 @@
 
     function updateCardCompareButtons() {
       lastSearchResults.forEach(p => {
-        const btn = document.getElementById(`btn-compare-${p.id}`);
+        const id = p.productId || p.id;
+        const btn = document.getElementById(`btn-compare-${id}`);
         if (btn) {
-          const isComp = CompareManager.has(p.id);
+          const isComp = CompareManager.has(id);
           if (isComp) {
             btn.className = 'brutal-button-action px-3 py-2 rounded-xl border-2 border-warm-text text-xs font-black shadow-brutal-xs flex items-center gap-1.5 cursor-pointer bg-emerald-500 text-white';
             btn.innerHTML = '<span>✓ Đang so sánh</span>';
@@ -1175,24 +1232,550 @@
       updateCardCompareButtons();
     });
 
+    // ── Weighted Scoring Presets ───────────────────────────────────────────────
     function setAlgorithmPreset(preset, btn) {
+      currentAlgoPreset = preset;
       const allBtns = document.querySelectorAll('.algo-preset-btn');
       allBtns.forEach(b => {
         b.classList.remove('bg-warm-primary', 'text-warm-primary-text');
         b.classList.add('bg-warm-surface', 'text-warm-text');
       });
 
-      btn.classList.add('bg-warm-primary', 'text-warm-primary-text');
-      btn.classList.remove('bg-warm-surface', 'text-warm-text');
+      if (btn) {
+        btn.classList.add('bg-warm-primary', 'text-warm-primary-text');
+        btn.classList.remove('bg-warm-surface', 'text-warm-text');
+      }
+
+      // Apply re-scoring immediately
+      applyFiltersAndRender();
 
       // Visual feedback of re-ranking animation
       const container = document.getElementById('results-container');
-      container.classList.add('opacity-40');
-      setTimeout(() => {
-        container.classList.remove('opacity-40');
-      }, 250);
+      if (container) {
+        container.classList.add('opacity-40');
+        setTimeout(() => {
+          container.classList.remove('opacity-40');
+        }, 150);
+      }
     }
 
+    function changeSortOrder(order) {
+      currentSortOrder = order;
+      applyFiltersAndRender();
+    }
+
+    function setLayoutView(layout) {
+      currentLayout = layout;
+      const btnList = document.getElementById('btn-layout-list');
+      const btnGrid = document.getElementById('btn-layout-grid');
+      if (layout === 'grid') {
+        if (btnGrid) {
+          btnGrid.classList.add('bg-warm-primary', 'text-warm-primary-text');
+          btnGrid.classList.remove('bg-warm-surface', 'text-warm-text');
+        }
+        if (btnList) {
+          btnList.classList.remove('bg-warm-primary', 'text-warm-primary-text');
+          btnList.classList.add('bg-warm-surface', 'text-warm-text');
+        }
+      } else {
+        if (btnList) {
+          btnList.classList.add('bg-warm-primary', 'text-warm-primary-text');
+          btnList.classList.remove('bg-warm-surface', 'text-warm-text');
+        }
+        if (btnGrid) {
+          btnGrid.classList.remove('bg-warm-primary', 'text-warm-primary-text');
+          btnGrid.classList.add('bg-warm-surface', 'text-warm-text');
+        }
+      }
+      applyFiltersAndRender();
+    }
+
+    // ── MCDM / SAW Weighted Scoring Engine ────────────────────────────────────
+    function calculateProductScore(item, preset, minPrice, maxPrice) {
+      // 1. Hardware Spec Score (0.0 -> 1.0)
+      const rawSpecScore = item.specMatchScore != null 
+        ? item.specMatchScore 
+        : (item.matchScore != null ? item.matchScore : (item.score != null ? item.score : 0.85));
+      const sSpec = Math.max(0.1, Math.min(1.0, rawSpecScore));
+
+      // 2. Normalized Price Score (0.0 -> 1.0, lower price gets higher score)
+      let sPrice = 0.5;
+      const price = item.price || 0;
+      if (maxPrice > minPrice) {
+        const rawNorm = (maxPrice - price) / (maxPrice - minPrice);
+        // In non-price presets, give price a soft floor so expensive top-rated/top-spec items aren't zeroed out
+        sPrice = preset === 'price' ? rawNorm : (0.25 + 0.75 * rawNorm);
+        sPrice = Math.max(0.0, Math.min(1.0, sPrice));
+      } else {
+        sPrice = 1.0;
+      }
+
+      // 3. User Rating Score (0.0 -> 1.0)
+      const rating = item.avgRating ? parseFloat(item.avgRating) : 5.0;
+      const sRating = Math.max(0.0, Math.min(1.0, rating / 5.0));
+
+      // Strategy Weights (MCDM / SAW)
+      let wSpec = 0.45, wPrice = 0.30, wRating = 0.25;
+      if (preset === 'spec') {
+        wSpec = 0.65; wPrice = 0.15; wRating = 0.20;
+      } else if (preset === 'price') {
+        wSpec = 0.15; wPrice = 0.70; wRating = 0.15;
+      } else if (preset === 'review') {
+        wSpec = 0.20; wPrice = 0.10; wRating = 0.70;
+      }
+
+      const composite = (wSpec * sSpec) + (wPrice * sPrice) + (wRating * sRating);
+      const score100 = Math.min(99, Math.max(65, Math.round(composite * 100)));
+
+      // Context-aware reasoning tailored to preset & item
+      let reasoning = item.reasoning;
+      if (preset === 'price') {
+        reasoning = `Mức giá ${formatPrice(price)} cực kỳ mềm và tiết kiệm chi phí, đạt điểm tối ưu giá ${Math.round(sPrice * 100)}% trong nhóm sản phẩm được đề xuất.`;
+      } else if (preset === 'spec') {
+        reasoning = `Cấu hình phần cứng vượt trội với điểm tương thích kỹ thuật ${Math.round(sSpec * 100)}%, đáp ứng tối đa hiệu năng cho các tác vụ chuyên sâu.`;
+      } else if (preset === 'review') {
+        reasoning = `Đánh giá thực tế từ người dùng đạt ${rating.toFixed(1)}/5 sao, thể hiện độ tin cậy và sự hài lòng vượt bậc trong quá trình sử dụng lâu dài.`;
+      } else {
+        reasoning = reasoning || 'Cân bằng xuất sắc giữa cấu hình phần cứng mạnh mẽ, tầm giá hợp lý và độ hài lòng người dùng.';
+      }
+
+      return { composite, score100, reasoning, sSpec, sPrice, sRating };
+    }
+
+    // ── Sidebar Facet Rendering ────────────────────────────────────────────────
+    function renderSidebarFilters() {
+      const facetConfig = CATEGORY_FACETS[currentCategory] || CATEGORY_FACETS.laptop;
+
+      // 1. Price presets
+      const priceContainer = document.getElementById('filter-price-presets');
+      if (priceContainer) {
+        priceContainer.innerHTML = facetConfig.pricePresets.map((p, idx) => {
+          const isActive = activePricePresetIndex === idx;
+          const cls = isActive
+            ? 'filter-chip-price px-2.5 py-1.5 rounded-xl border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-extrabold shadow-brutal-xs cursor-pointer'
+            : 'filter-chip-price px-2.5 py-1.5 rounded-xl border border-warm-text bg-warm-bg font-bold text-warm-text shadow-brutal-xs hover:bg-warm-secondary cursor-pointer';
+          return `<button type="button" onclick="selectPricePreset(${idx})" class="${cls}">${p.label} ${isActive ? '✓' : ''}</button>`;
+        }).join('');
+      }
+
+      // 2. Brands list (Dynamic from rawSearchResults)
+      const brandContainer = document.getElementById('filter-brands-container');
+      const brandCountInfo = document.getElementById('filter-brand-count-info');
+      if (brandContainer) {
+        const brandCounts = {};
+        rawSearchResults.forEach(item => {
+          if (item.brand) {
+            const b = item.brand.trim();
+            brandCounts[b] = (brandCounts[b] || 0) + 1;
+          }
+        });
+
+        const sortedBrands = Object.keys(brandCounts).sort((a, b) => brandCounts[b] - brandCounts[a]);
+
+        if (brandCountInfo) {
+          brandCountInfo.innerText = `${sortedBrands.length} thương hiệu`;
+        }
+
+        if (sortedBrands.length === 0) {
+          brandContainer.innerHTML = '<p class="text-xs text-warm-muted">Không có dữ liệu thương hiệu</p>';
+        } else {
+          brandContainer.innerHTML = sortedBrands.map(b => {
+            const isChecked = selectedBrands.has(b.toLowerCase());
+            const count = brandCounts[b];
+            return `
+              <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/50 cursor-pointer">
+                <span class="flex items-center gap-2">
+                  <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleBrandFilter('${b.replace(/'/g, "\\'")}', this.checked)" class="accent-warm-primary w-4 h-4 rounded cursor-pointer">
+                  <span class="${isChecked ? 'font-black text-warm-primary-text' : 'font-bold text-warm-text'}">${b}</span>
+                </span>
+                <span class="text-warm-muted text-[11px] font-bold">${count} máy</span>
+              </label>
+            `;
+          }).join('');
+        }
+      }
+
+      // 3. RAM options
+      const ramContainer = document.getElementById('filter-ram-container');
+      if (ramContainer) {
+        ramContainer.innerHTML = facetConfig.rams.map(r => {
+          const isSelected = selectedRams.has(r);
+          const cls = isSelected
+            ? 'px-3 py-1.5 rounded-xl border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-black shadow-brutal-xs cursor-pointer'
+            : 'px-3 py-1.5 rounded-xl border border-warm-text bg-warm-bg font-bold text-warm-text shadow-brutal-xs hover:bg-warm-secondary cursor-pointer';
+          return `<button type="button" onclick="toggleRamFilter('${r}')" class="${cls}">${r} ${isSelected ? '✓' : ''}</button>`;
+        }).join('');
+      }
+
+      // 4. Processor / Chip options
+      const chipContainer = document.getElementById('filter-chips-container');
+      if (chipContainer) {
+        chipContainer.innerHTML = facetConfig.chips.map(chip => {
+          const isChecked = selectedChips.has(chip.id);
+          return `
+            <label class="flex items-center gap-2 cursor-pointer font-bold text-warm-text p-1 rounded-lg hover:bg-warm-subtle/40">
+              <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleChipFilter('${chip.id}', this.checked)" class="accent-warm-primary w-4 h-4 rounded cursor-pointer">
+              <span class="${isChecked ? 'font-black text-warm-primary-text' : 'text-warm-text'}">${chip.label}</span>
+            </label>
+          `;
+        }).join('');
+      }
+
+      // 5. Feature options
+      const featureContainer = document.getElementById('filter-features-container');
+      if (featureContainer) {
+        featureContainer.innerHTML = facetConfig.features.map(feat => {
+          const isChecked = selectedFeatures.has(feat.id);
+          return `
+            <label class="flex items-center gap-2 cursor-pointer font-bold text-warm-text p-1 rounded-lg hover:bg-warm-subtle/40">
+              <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleFeatureFilter('${feat.id}', this.checked)" class="accent-warm-primary w-4 h-4 rounded cursor-pointer">
+              <span class="${isChecked ? 'font-black text-warm-primary-text' : 'text-warm-text'}">${feat.label}</span>
+            </label>
+          `;
+        }).join('');
+      }
+    }
+
+    // ── Filter Interaction Handlers ───────────────────────────────────────────
+    function selectPricePreset(idx) {
+      const facetConfig = CATEGORY_FACETS[currentCategory] || CATEGORY_FACETS.laptop;
+      const preset = facetConfig.pricePresets[idx];
+      if (!preset) return;
+
+      const minInput = document.getElementById('filter-min-price-input');
+      const maxInput = document.getElementById('filter-max-price-input');
+      const label = document.getElementById('active-price-text');
+
+      if (activePricePresetIndex === idx) {
+        activePricePresetIndex = null;
+        customMinPrice = null;
+        customMaxPrice = null;
+        if (minInput) minInput.value = '';
+        if (maxInput) maxInput.value = '';
+        if (label) label.innerText = '';
+      } else {
+        activePricePresetIndex = idx;
+        customMinPrice = preset.min;
+        customMaxPrice = preset.max;
+        if (minInput) minInput.value = preset.min ? formatNumberRaw(preset.min) : '';
+        if (maxInput) maxInput.value = preset.max ? formatNumberRaw(preset.max) : '';
+        if (label) label.innerText = `(${preset.label})`;
+      }
+      renderSidebarFilters();
+      applyFiltersAndRender();
+    }
+
+    function handleCustomPriceInput() {
+      activePricePresetIndex = null;
+      const minVal = parseNumberRaw(document.getElementById('filter-min-price-input')?.value);
+      const maxVal = parseNumberRaw(document.getElementById('filter-max-price-input')?.value);
+      customMinPrice = isNaN(minVal) ? null : minVal;
+      customMaxPrice = isNaN(maxVal) ? null : maxVal;
+
+      const label = document.getElementById('active-price-text');
+      if (label) {
+        if (customMinPrice != null || customMaxPrice != null) {
+          label.innerText = '(Tùy chỉnh)';
+        } else {
+          label.innerText = '';
+        }
+      }
+      renderSidebarFilters();
+      applyFiltersAndRender();
+    }
+
+    function toggleBrandFilter(brand, isChecked) {
+      const bLower = brand.toLowerCase();
+      if (isChecked) {
+        selectedBrands.add(bLower);
+      } else {
+        selectedBrands.delete(bLower);
+      }
+      applyFiltersAndRender();
+    }
+
+    function toggleRamFilter(ram) {
+      if (selectedRams.has(ram)) {
+        selectedRams.delete(ram);
+      } else {
+        selectedRams.add(ram);
+      }
+      renderSidebarFilters();
+      applyFiltersAndRender();
+    }
+
+    function toggleChipFilter(chipId, isChecked) {
+      if (isChecked) {
+        selectedChips.add(chipId);
+      } else {
+        selectedChips.delete(chipId);
+      }
+      applyFiltersAndRender();
+    }
+
+    function toggleFeatureFilter(featureId, isChecked) {
+      if (isChecked) {
+        selectedFeatures.add(featureId);
+      } else {
+        selectedFeatures.delete(featureId);
+      }
+      applyFiltersAndRender();
+    }
+
+    function resetAllFilters() {
+      activePricePresetIndex = null;
+      customMinPrice = null;
+      customMaxPrice = null;
+      selectedBrands.clear();
+      selectedRams.clear();
+      selectedChips.clear();
+      selectedFeatures.clear();
+
+      const minInput = document.getElementById('filter-min-price-input');
+      const maxInput = document.getElementById('filter-max-price-input');
+      const priceText = document.getElementById('active-price-text');
+      if (minInput) minInput.value = '';
+      if (maxInput) maxInput.value = '';
+      if (priceText) priceText.innerText = '';
+
+      renderSidebarFilters();
+      applyFiltersAndRender();
+      showToast('Đã thiết lập lại toàn bộ bộ lọc!', 'info');
+    }
+
+    // ── Pipeline: Filter + Scoring + Sorting + Render ─────────────────────────
+    function applyFiltersAndRender() {
+      const container = document.getElementById('results-container');
+      if (!container) return;
+
+      const facetConfig = CATEGORY_FACETS[currentCategory] || CATEGORY_FACETS.laptop;
+
+      // 1. Min / Max price across all search results for normalization
+      let allMinPrice = Infinity;
+      let allMaxPrice = -Infinity;
+      rawSearchResults.forEach(item => {
+        if (item.price != null) {
+          if (item.price < allMinPrice) allMinPrice = item.price;
+          if (item.price > allMaxPrice) allMaxPrice = item.price;
+        }
+      });
+      if (allMinPrice === Infinity) allMinPrice = 0;
+      if (allMaxPrice === -Infinity) allMaxPrice = 50000000;
+
+      // 2. Filter items
+      const filtered = rawSearchResults.filter(item => {
+        const p = item.price || 0;
+        // Price filter
+        if (customMinPrice != null && p < customMinPrice) return false;
+        if (customMaxPrice != null && p > customMaxPrice) return false;
+
+        // Brand filter
+        if (selectedBrands.size > 0) {
+          const itemBrand = (item.brand || '').toLowerCase().trim();
+          if (!selectedBrands.has(itemBrand)) return false;
+        }
+
+        // Specs & description inspection
+        const specs = typeof item.specs === 'object' && item.specs !== null ? item.specs : parseSpecs(item.specs);
+        const nameLower = (item.name || '').toLowerCase();
+        const specsStr = (JSON.stringify(specs) + ' ' + nameLower).toLowerCase();
+
+        // RAM filter
+        if (selectedRams.size > 0) {
+          const ramVal = (specs.ram || specs.RAM || '').toString();
+          let ramMatched = false;
+          for (const selRam of selectedRams) {
+            const num = selRam.replace(/\D/g, '');
+            if (ramVal.includes(num) || nameLower.includes(selRam.toLowerCase()) || nameLower.includes(num + 'gb')) {
+              ramMatched = true;
+              break;
+            }
+          }
+          if (!ramMatched) return false;
+        }
+
+        // Chip filter
+        if (selectedChips.size > 0) {
+          let chipMatched = false;
+          for (const chipId of selectedChips) {
+            const chipDef = facetConfig.chips.find(c => c.id === chipId);
+            if (chipDef && chipDef.keywords.some(kw => specsStr.includes(kw.toLowerCase()))) {
+              chipMatched = true;
+              break;
+            }
+          }
+          if (!chipMatched) return false;
+        }
+
+        // Feature filter
+        if (selectedFeatures.size > 0) {
+          let featMatched = false;
+          for (const featId of selectedFeatures) {
+            const featDef = facetConfig.features.find(f => f.id === featId);
+            if (featDef && featDef.keywords.some(kw => specsStr.includes(kw.toLowerCase()))) {
+              featMatched = true;
+              break;
+            }
+          }
+          if (!featMatched) return false;
+        }
+
+        return true;
+      });
+
+      // 3. Score filtered items with MCDM/SAW algorithm
+      const scoredItems = filtered.map(item => {
+        const scoreData = calculateProductScore(item, currentAlgoPreset, allMinPrice, allMaxPrice);
+        return {
+          ...item,
+          calculatedComposite: scoreData.composite,
+          calculatedScorePercent: scoreData.score100,
+          calculatedReasoning: scoreData.reasoning
+        };
+      });
+
+      // 4. Sort
+      if (currentSortOrder === 'score') {
+        scoredItems.sort((a, b) => b.calculatedComposite - a.calculatedComposite);
+      } else if (currentSortOrder === 'price_asc') {
+        scoredItems.sort((a, b) => (a.price || 0) - (b.price || 0));
+      } else if (currentSortOrder === 'price_desc') {
+        scoredItems.sort((a, b) => (b.price || 0) - (a.price || 0));
+      } else if (currentSortOrder === 'rating') {
+        scoredItems.sort((a, b) => (parseFloat(b.avgRating) || 0) - (parseFloat(a.avgRating) || 0));
+      }
+
+      lastSearchResults = scoredItems;
+
+      // 5. Update Count in Header Toolbar
+      const totalText = document.querySelector('span.text-warm-secondary-text.bg-warm-secondary');
+      if (totalText) {
+        totalText.innerText = `${scoredItems.length} thiết bị`;
+      }
+
+      // 6. Render product cards
+      renderProductCards(scoredItems);
+    }
+
+    // ── Render Product Cards ───────────────────────────────────────────────────
+    function renderProductCards(results) {
+      const container = document.getElementById('results-container');
+      if (!container) return;
+
+      if (!results || results.length === 0) {
+        container.innerHTML = `
+          <div class="p-10 bg-warm-surface border-2 border-warm-text rounded-3xl shadow-brutal text-center space-y-4">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-warm-pastel-peach border-2 border-warm-text flex items-center justify-center text-3xl">🔍</div>
+            <h3 class="text-lg sm:text-xl font-extrabold text-warm-text">Không có sản phẩm nào khớp bộ lọc</h3>
+            <p class="text-xs sm:text-sm text-warm-muted max-w-md mx-auto font-medium">
+              Bạn đang áp dụng bộ lọc quá hẹp hoặc không có sản phẩm nào thỏa mãn đồng thời các điều kiện trên. Hãy nhấn thiết lập lại để xem toàn bộ kết quả!
+            </p>
+            <div class="pt-2">
+              <button onclick="resetAllFilters()" class="px-4 py-2 rounded-xl bg-warm-primary text-warm-primary-text font-extrabold text-xs border-2 border-warm-text shadow-brutal-xs hover:bg-warm-primary-hover cursor-pointer">
+                Xóa tất cả bộ lọc
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (currentLayout === 'grid') {
+        container.className = 'grid grid-cols-1 sm:grid-cols-2 gap-5';
+      } else {
+        container.className = 'space-y-5';
+      }
+
+      container.innerHTML = results.map((item, index) => {
+        const id = item.productId || item.id;
+        const specs = typeof item.specs === 'object' && item.specs !== null ? item.specs : parseSpecs(item.specs);
+        const cpu = specs.cpu || specs.CPU || specs.processor || '';
+        const ram = specs.ram || specs.RAM ? (specs.ram || specs.RAM) + (String(specs.ram).toLowerCase().includes('gb') ? '' : 'GB') : '';
+        const storage = specs.storage || specs.Storage ? (specs.storage || specs.Storage) + (String(specs.storage).toLowerCase().includes('gb') ? '' : 'GB') : '';
+        const screen = specs.screen || specs.screen_size || specs.display || '';
+        const imgUrl = getPrimaryImage(item);
+        const rank = index + 1;
+        const matchPercent = item.calculatedScorePercent != null ? item.calculatedScorePercent : Math.round((item.score || 0.85) * 100);
+        const reasoning = item.calculatedReasoning || item.reasoning || 'Thỏa mãn xuất sắc các ràng buộc về cấu hình phần cứng và ngân sách tối ưu của bạn.';
+
+        return `
+          <article class="product-result-card brutal-card-hover bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-brutal flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 sm:gap-4">
+                  <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border-2 border-warm-text p-1 shadow-brutal-xs shrink-0 overflow-hidden flex items-center justify-center">
+                    <img src="${imgUrl}" alt="${item.name}" class="w-full h-full object-contain" onerror="this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200&fit=crop'"/>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="px-2 py-0.5 rounded-md ${rank === 1 ? 'bg-warm-primary text-warm-primary-text font-black' : 'bg-warm-pastel-amber text-warm-secondary-text font-bold'} border border-warm-text text-[11px]">
+                        HẠNG #${rank} ĐỀ XUẤT
+                      </span>
+                      <span class="text-xs text-warm-muted font-bold">${item.brand ? 'Hãng: ' + item.brand : ''}</span>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-extrabold text-warm-text hover:text-warm-primary transition-colors cursor-pointer line-clamp-2" onclick="window.location.href='product-detail.html?id=${id}'">
+                      ${item.name}
+                    </h3>
+                    <p class="text-xs text-warm-muted font-medium mt-0.5">
+                      ${cpu ? 'CPU: ' + cpu : ''} ${ram ? '• RAM: ' + ram : ''} ${storage ? '• Bộ nhớ: ' + storage : ''}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="text-right shrink-0">
+                  <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-black text-xs sm:text-sm shadow-brutal-xs">
+                    <span class="text-warm-primary">★</span>
+                    <span>AI Khớp ${matchPercent}%</span>
+                  </div>
+                  <div class="text-[11px] text-warm-muted font-bold mt-1">Đánh giá: ${item.avgRating ? Number(item.avgRating).toFixed(1) : '5.0'} / 5</div>
+                </div>
+              </div>
+
+              <!-- AI Reasoning Box -->
+              <div class="mt-4 p-3.5 rounded-xl bg-warm-surface-soft border border-warm-text/20 text-xs text-warm-text font-medium leading-relaxed">
+                <span class="font-extrabold text-warm-primary-text flex items-center gap-1.5 mb-1">
+                  <span class="w-2.5 h-2.5 rounded-full bg-warm-primary"></span>
+                  Lý do AI Đề xuất:
+                </span>
+                <p class="text-stone-800">${reasoning}</p>
+              </div>
+
+              <!-- Specs Row -->
+              <div class="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold">
+                ${screen ? `<span class="px-2 py-1 rounded-lg bg-warm-bg border border-warm-text/20">🖥 ${screen}</span>` : ''}
+                ${ram ? `<span class="px-2 py-1 rounded-lg bg-warm-bg border border-warm-text/20">⚡ RAM ${ram}</span>` : ''}
+                ${storage ? `<span class="px-2 py-1 rounded-lg bg-warm-bg border border-warm-text/20">💾 ROM ${storage}</span>` : ''}
+                ${cpu ? `<span class="px-2 py-1 rounded-lg bg-warm-bg border border-warm-text/20">⚙️ ${cpu}</span>` : ''}
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3.5 border-t-2 border-warm-text/10 flex items-center justify-between">
+              <div>
+                <span class="text-lg sm:text-2xl font-black text-warm-text">${formatPrice(item.price)}</span>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button 
+                  type="button" 
+                  id="btn-compare-${id}" 
+                  onclick="toggleCompareFromCard(${id})" 
+                  class="brutal-button-action px-3 py-2 rounded-xl border-2 border-warm-text text-xs font-black shadow-brutal-xs flex items-center gap-1.5 cursor-pointer ${CompareManager.has(id) ? 'bg-emerald-500 text-white' : 'bg-warm-secondary text-warm-secondary-text hover:bg-warm-honey'}"
+                >
+                  <span>${CompareManager.has(id) ? '✓ Đang so sánh' : '+ So sánh'}</span>
+                </button>
+                <a href="product-detail.html?id=${id}" class="brutal-button-action px-3.5 py-2 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text font-bold text-xs shadow-brutal-xs hover:bg-warm-subtle inline-block">
+                  Xem thông số
+                </a>
+                <a href="product-detail.html?id=${id}#ai-summary" class="brutal-button-action px-4 py-2 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-extrabold text-xs border-2 border-warm-text shadow-brutal-xs inline-block">
+                  AI Review →
+                </a>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    // ── Search & Filter Initialization ─────────────────────────────────────────
     function openEditCriteriaModal() {
       document.getElementById('criteria-edit-modal').classList.remove('hidden');
     }
@@ -1203,20 +1786,17 @@
 
     function saveCriteriaChanges() {
       closeEditCriteriaModal();
-      // Animate refresh
       const container = document.getElementById('results-container');
-      container.classList.add('opacity-40');
-      setTimeout(() => {
-        container.classList.remove('opacity-40');
-      }, 300);
+      if (container) {
+        container.classList.add('opacity-40');
+        setTimeout(() => {
+          container.classList.remove('opacity-40');
+        }, 300);
+      }
     }
 
     function quickEditPill(type) {
       openEditCriteriaModal();
-    }
-
-    function resetAllFilters() {
-      alert('Đã thiết lập lại bộ lọc theo câu truy vấn gốc.');
     }
 
     function triggerNewSearch() {
@@ -1234,7 +1814,7 @@
       const container = document.getElementById('results-container');
       if (!container) return;
 
-      // ── 1. Render Skeleton Loader ──────────────────────────────────────────
+      // 1. Render Skeleton Loader
       container.innerHTML = `
         <div class="space-y-4">
           <div class="p-5 bg-warm-pastel-amber border-2 border-warm-text rounded-2xl shadow-brutal flex items-center gap-3">
@@ -1262,7 +1842,7 @@
 
       try {
         const response = await api.search(query);
-        renderSearchResults(response);
+        renderSearchResults(response, query);
       } catch (err) {
         console.error('Search error:', err);
         container.innerHTML = `
@@ -1278,167 +1858,68 @@
       }
     }
 
-    function renderSearchResults(data) {
-      const container = document.getElementById('results-container');
-      const pillsRow = document.getElementById('criteria-pills-row');
+    function renderSearchResults(data, query) {
       const criteria = data.extractedCriteria || {};
       const results = data.results || [];
-      lastSearchResults = results;
+      rawSearchResults = results;
+      currentCriteria = criteria;
 
-      // ── Update Criteria Pills ──────────────────────────────────────────────
-      if (pillsRow) {
-        let pillsHtml = '';
-        if (criteria.categoryCode) {
-          pillsHtml += `
-            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-sky border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
-              <span class="text-warm-muted font-medium">Ngành hàng:</span>
-              <span class="uppercase">${criteria.categoryCode}</span>
-            </div>
-          `;
-        }
-        if (criteria.budgetMax || criteria.budgetMin) {
-          const minText = criteria.budgetMin ? formatPrice(criteria.budgetMin) : '0đ';
-          const maxText = criteria.budgetMax ? formatPrice(criteria.budgetMax) : 'Không giới hạn';
-          pillsHtml += `
-            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-amber border-2 border-warm-text font-extrabold text-warm-secondary-text shadow-brutal-xs">
-              <span class="font-medium text-warm-secondary-text">Ngân sách:</span>
-              <span>${minText} – ${maxText}</span>
-            </div>
-          `;
-        }
-        if (criteria.requiredSpecs) {
-          const reqSpecs = parseSpecs(criteria.requiredSpecs);
-          for (const [key, val] of Object.entries(reqSpecs)) {
-            pillsHtml += `
-              <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-mint border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
-                <span class="text-warm-muted font-medium">${key.toUpperCase()}:</span>
-                <span>${val}</span>
-              </div>
-            `;
-          }
-        }
-        if (criteria.target) {
-          pillsHtml += `
-            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-lavender border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
-              <span class="text-warm-muted font-medium">Mục đích:</span>
-              <span>${criteria.target}</span>
-            </div>
-          `;
-        }
-        pillsRow.innerHTML = pillsHtml || '<span class="text-xs text-warm-muted font-medium">Tìm kiếm tự do</span>';
-      }
+      const q = query || document.getElementById('header-query-input')?.value || '';
+      currentCategory = detectCategory(criteria, q, results);
 
-      // ── Update Count ───────────────────────────────────────────────────────
-      const totalText = document.querySelector('span.text-warm-secondary-text.bg-warm-secondary');
-      if (totalText) {
-        totalText.innerText = `${results.length} thiết bị`;
-      }
+      // Render criteria pills
+      renderCriteriaPills(criteria);
 
-      // ── Render Products ────────────────────────────────────────────────────
-      if (!results || results.length === 0) {
-        container.innerHTML = `
-          <div class="p-10 bg-warm-surface border-2 border-warm-text rounded-3xl shadow-brutal text-center space-y-4">
-            <div class="w-16 h-16 mx-auto rounded-2xl bg-warm-pastel-peach border-2 border-warm-text flex items-center justify-center text-3xl">🔍</div>
-            <h3 class="text-lg sm:text-xl font-extrabold text-warm-text">Không tìm thấy sản phẩm hoàn toàn khớp</h3>
-            <p class="text-xs sm:text-sm text-warm-muted max-w-md mx-auto font-medium">
-              Các thông số bạn yêu cầu khá khắt khe hoặc không có trong kho dữ liệu. Hãy thử nới lỏng mức giá hoặc tìm kiếm câu khác nhé!
-            </p>
-            <div class="pt-2">
-              <button onclick="document.getElementById('header-query-input').value='Tìm laptop 15 đến 20 triệu'; triggerNewSearch();" class="px-4 py-2 rounded-xl bg-warm-primary text-warm-primary-text font-extrabold text-xs border-2 border-warm-text shadow-brutal-xs hover:bg-warm-primary-hover">
-                Thử: "Tìm laptop 15 đến 20 triệu"
-              </button>
-            </div>
+      // Render category-aware sidebar facets
+      renderSidebarFilters();
+
+      // Apply initial scoring and render products
+      applyFiltersAndRender();
+    }
+
+    function renderCriteriaPills(criteria) {
+      const pillsRow = document.getElementById('criteria-pills-row');
+      if (!pillsRow) return;
+
+      let pillsHtml = '';
+      if (criteria.categoryCode) {
+        pillsHtml += `
+          <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-sky border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
+            <span class="text-warm-muted font-medium">Ngành hàng:</span>
+            <span class="uppercase">${criteria.categoryCode}</span>
           </div>
         `;
-        return;
       }
-
-      container.innerHTML = results.map((item, index) => {
-        const specs = parseSpecs(item.specs);
-        const cpu = specs.cpu || specs.CPU || '';
-        const ram = specs.ram || specs.RAM ? (specs.ram || specs.RAM) + 'GB' : '';
-        const storage = specs.storage || specs.Storage ? (specs.storage || specs.Storage) + 'GB' : '';
-        const screen = specs.screen || specs.screen_size || '';
-        const imgUrl = getPrimaryImage(item);
-        const rank = item.rankPosition || (index + 1);
-        const matchPercent = Math.round((item.matchScore || (1 - index * 0.05)) * 100);
-        const reasoning = item.reasoning || 'Thỏa mãn xuất sắc các ràng buộc về cấu hình phần cứng và ngân sách tối ưu của bạn.';
-
-        return `
-          <article class="product-result-card brutal-card-hover bg-warm-surface border-2 border-warm-text rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-brutal flex flex-col justify-between">
-            <div>
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex items-start gap-3 sm:gap-4">
-                  <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border-2 border-warm-text p-1 shadow-brutal-xs shrink-0 overflow-hidden flex items-center justify-center">
-                    <img src="${imgUrl}" alt="${item.name}" class="w-full h-full object-contain" onerror="this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200&fit=crop'"/>
-                  </div>
-                  <div>
-                    <div class="flex items-center gap-2 mb-1">
-                      <span class="px-2 py-0.5 rounded-md ${rank === 1 ? 'bg-warm-primary text-warm-primary-text' : 'bg-warm-pastel-amber text-warm-secondary-text'} border border-warm-text font-black text-[11px]">
-                        HẠNG #${rank} ĐỀ XUẤT
-                      </span>
-                      <span class="text-xs text-warm-muted font-bold">${item.brand ? 'Hãng: ' + item.brand : ''}</span>
-                    </div>
-                    <h3 class="text-base sm:text-lg font-extrabold text-warm-text hover:text-warm-primary transition-colors cursor-pointer" onclick="window.location.href='product-detail.html?id=${item.id}'">
-                      ${item.name}
-                    </h3>
-                    <p class="text-xs text-warm-muted font-medium mt-0.5">
-                      ${cpu ? 'CPU: ' + cpu : ''} ${ram ? '• RAM: ' + ram : ''} ${storage ? '• Ổ cứng: ' + storage : ''}
-                    </p>
-                  </div>
-                </div>
-
-                <div class="text-right shrink-0">
-                  <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border-2 border-warm-text bg-warm-secondary text-warm-secondary-text font-black text-xs sm:text-sm shadow-brutal-xs">
-                    <span class="text-warm-primary">★</span>
-                    <span>AI Khớp ${matchPercent}%</span>
-                  </div>
-                  <div class="text-[11px] text-warm-muted font-bold mt-1">Đánh giá: ${item.avgRating ? Number(item.avgRating).toFixed(1) : '5.0'} / 5</div>
-                </div>
-              </div>
-
-              <!-- AI Reasoning Box -->
-              <div class="mt-4 p-3.5 rounded-xl bg-warm-surface-soft border border-warm-text/20 text-xs text-warm-text font-medium leading-relaxed">
-                <span class="font-extrabold text-warm-primary-text flex items-center gap-1.5 mb-1">
-                  <span class="w-2.5 h-2.5 rounded-full bg-warm-primary"></span>
-                  Lý do AI Đề xuất:
-                </span>
-                <p class="text-stone-800">${reasoning}</p>
-              </div>
-
-              <!-- Specs Row -->
-              <div class="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold">
-                ${screen ? `<span class="px-2 py-1 rounded-lg bg-warm-bg border border-warm-text/20">🖥 ${screen}</span>` : ''}
-                ${ram ? `<span class="px-2 py-1 rounded-lg bg-warm-bg border border-warm-text/20">⚡ RAM ${ram}</span>` : ''}
-                ${storage ? `<span class="px-2 py-1 rounded-lg bg-warm-bg border border-warm-text/20">💾 SSD ${storage}</span>` : ''}
-                ${cpu ? `<span class="px-2 py-1 rounded-lg bg-warm-bg border border-warm-text/20">⚙️ ${cpu}</span>` : ''}
-              </div>
-            </div>
-
-            <div class="mt-4 pt-3.5 border-t-2 border-warm-text/10 flex items-center justify-between">
-              <div>
-                <span class="text-lg sm:text-2xl font-black text-warm-text">${formatPrice(item.price)}</span>
-              </div>
-              <div class="flex flex-wrap items-center gap-2">
-                <button 
-                  type="button"
-                  id="btn-compare-${item.id}"
-                  onclick="toggleCompareFromCard(${item.id})"
-                  class="brutal-button-action px-3 py-2 rounded-xl border-2 border-warm-text text-xs font-black shadow-brutal-xs flex items-center gap-1.5 cursor-pointer ${CompareManager.has(item.id) ? 'bg-emerald-500 text-white' : 'bg-warm-secondary text-warm-secondary-text hover:bg-warm-honey'}"
-                >
-                  <span>${CompareManager.has(item.id) ? '✓ Đang so sánh' : '+ So sánh'}</span>
-                </button>
-                <a href="product-detail.html?id=${item.id}" class="brutal-button-action px-3.5 py-2 rounded-xl bg-warm-surface border-2 border-warm-text text-warm-text font-bold text-xs shadow-brutal-xs hover:bg-warm-subtle inline-block">
-                  Xem thông số
-                </a>
-                <a href="product-detail.html?id=${item.id}#ai-summary" class="brutal-button-action px-4 py-2 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-extrabold text-xs border-2 border-warm-text shadow-brutal-xs inline-block">
-                  AI Review →
-                </a>
-              </div>
-            </div>
-          </article>
+      if (criteria.budgetMax || criteria.budgetMin) {
+        const minText = criteria.budgetMin ? formatPrice(criteria.budgetMin) : '0đ';
+        const maxText = criteria.budgetMax ? formatPrice(criteria.budgetMax) : 'Không giới hạn';
+        pillsHtml += `
+          <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-amber border-2 border-warm-text font-extrabold text-warm-secondary-text shadow-brutal-xs">
+            <span class="font-medium text-warm-secondary-text">Ngân sách:</span>
+            <span>${minText} – ${maxText}</span>
+          </div>
         `;
-      }).join('');
+      }
+      if (criteria.requiredSpecs) {
+        const reqSpecs = parseSpecs(criteria.requiredSpecs);
+        for (const [key, val] of Object.entries(reqSpecs)) {
+          pillsHtml += `
+            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-mint border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
+              <span class="text-warm-muted font-medium">${key.toUpperCase()}:</span>
+              <span>${val}</span>
+            </div>
+          `;
+        }
+      }
+      if (criteria.target) {
+        pillsHtml += `
+          <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-warm-pastel-lavender border-2 border-warm-text font-extrabold text-warm-text shadow-brutal-xs">
+            <span class="text-warm-muted font-medium">Mục đích:</span>
+            <span>${criteria.target}</span>
+          </div>
+        `;
+      }
+      pillsRow.innerHTML = pillsHtml || '<span class="text-xs text-warm-muted font-medium">Tìm kiếm tự do</span>';
     }
 
     // Keyboard ESC listener
