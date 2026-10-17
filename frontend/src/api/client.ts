@@ -1,5 +1,24 @@
+import axios from 'axios';
 import type { Category, Product, SearchResponse, SummaryDTO, Review } from '../types';
 
+// ── Axios Client for React app ─────────────────────────────────────────────
+export const apiClient = axios.create({
+  baseURL: '/api',
+  timeout: 45000, // 45s cho các cuộc gọi AI LLM
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('[API Error]:', error?.response?.data || error.message);
+    return Promise.reject(error);
+  }
+);
+
+// ── Native Fetch Helper Functions ──────────────────────────────────────────
 const API_BASE = 'http://localhost:8080/api';
 
 export async function fetchCategories(): Promise<Category[]> {
