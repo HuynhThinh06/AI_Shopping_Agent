@@ -209,19 +209,18 @@
 
       <!-- FILTER TOOLBAR -->
       <div class="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 shadow-brutal flex flex-wrap items-center justify-between gap-3">
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2" id="type-filter-buttons">
           <span class="text-xs font-bold text-warm-muted">Loại Request:</span>
-          <button class="px-3 py-1 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs border border-warm-text shadow-brutal-xs">Tất cả (1,248)</button>
-          <button class="px-3 py-1 rounded-xl bg-white hover:bg-warm-secondary text-warm-text font-bold text-xs border border-warm-text shadow-brutal-xs">extract_query (1,180)</button>
-          <button class="px-3 py-1 rounded-xl bg-white hover:bg-warm-secondary text-warm-text font-bold text-xs border border-warm-text shadow-brutal-xs">summarize_review (68)</button>
+          <button onclick="setLogTypeFilter('')" id="btn-type-all" class="px-3 py-1 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs border border-warm-text shadow-brutal-xs">Tất cả</button>
+          <button onclick="setLogTypeFilter('extract_query')" id="btn-type-extract" class="px-3 py-1 rounded-xl bg-white hover:bg-warm-secondary text-warm-text font-bold text-xs border border-warm-text shadow-brutal-xs">extract_query</button>
+          <button onclick="setLogTypeFilter('summarize_review')" id="btn-type-summary" class="px-3 py-1 rounded-xl bg-white hover:bg-warm-secondary text-warm-text font-bold text-xs border border-warm-text shadow-brutal-xs">summarize_review</button>
         </div>
 
         <div class="flex items-center gap-2">
-          <select class="px-3 py-1.5 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none">
-            <option>Tất cả trạng thái HTTP</option>
-            <option>200 OK (1,245)</option>
-            <option>429 Rate Limit (2)</option>
-            <option>500 Error (1)</option>
+          <select id="select-status-filter" onchange="setStatusFilter(this.value)" class="px-3 py-1.5 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none">
+            <option value="">Tất cả trạng thái HTTP</option>
+            <option value="200 OK">200 OK</option>
+            <option value="FAILED">FAILED</option>
           </select>
         </div>
       </div>
@@ -236,74 +235,14 @@
                 <th class="py-3 px-3">Thời gian</th>
                 <th class="py-3 px-3">Loại Request</th>
                 <th class="py-3 px-3">Model</th>
-                <th class="py-3 px-3">Tokens (In / Out)</th>
+                <th class="py-3 px-3">Tokens Tiêu Thụ</th>
                 <th class="py-3 px-3">Latency</th>
                 <th class="py-3 px-3 text-center">HTTP Status</th>
                 <th class="py-3 px-3 text-right">Chi tiết Payload</th>
               </tr>
             </thead>
-            <tbody class="divide-y-2 divide-warm-border-subtle font-medium">
-              
-              <!-- LOG 1 -->
-              <tr class="hover:bg-warm-bg/70 transition-colors">
-                <td class="py-3.5 px-3 font-mono font-bold text-warm-text">#REQ-9421</td>
-                <td class="py-3.5 px-3 font-mono text-warm-muted">14:32:05</td>
-                <td class="py-3.5 px-3">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-warm-pastel-amber border border-warm-text text-warm-secondary-text">extract_query</span>
-                </td>
-                <td class="py-3.5 px-3 font-mono text-warm-text font-bold">gemini-1.5-flash</td>
-                <td class="py-3.5 px-3 font-mono text-warm-muted">450 in / 120 out</td>
-                <td class="py-3.5 px-3 font-mono font-bold text-emerald-700">420 ms</td>
-                <td class="py-3.5 px-3 text-center">
-                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px]">200 OK</span>
-                </td>
-                <td class="py-3.5 px-3 text-right">
-                  <button type="button" onclick="openPayloadModal('REQ-9421')" class="px-3 py-1 rounded-xl bg-warm-secondary hover:bg-warm-pastel-amber text-warm-secondary-text font-black text-[11px] border border-warm-text shadow-brutal-xs">
-                    Xem JSON
-                  </button>
-                </td>
-              </tr>
-
-              <!-- LOG 2 -->
-              <tr class="hover:bg-warm-bg/70 transition-colors">
-                <td class="py-3.5 px-3 font-mono font-bold text-warm-text">#REQ-9420</td>
-                <td class="py-3.5 px-3 font-mono text-warm-muted">14:28:41</td>
-                <td class="py-3.5 px-3">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-warm-pastel-amber border border-warm-text text-warm-secondary-text">extract_query</span>
-                </td>
-                <td class="py-3.5 px-3 font-mono text-warm-text font-bold">gemini-1.5-flash</td>
-                <td class="py-3.5 px-3 font-mono text-warm-muted">380 in / 95 out</td>
-                <td class="py-3.5 px-3 font-mono font-bold text-emerald-700">380 ms</td>
-                <td class="py-3.5 px-3 text-center">
-                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px]">200 OK</span>
-                </td>
-                <td class="py-3.5 px-3 text-right">
-                  <button type="button" onclick="openPayloadModal('REQ-9420')" class="px-3 py-1 rounded-xl bg-warm-secondary hover:bg-warm-pastel-amber text-warm-secondary-text font-black text-[11px] border border-warm-text shadow-brutal-xs">
-                    Xem JSON
-                  </button>
-                </td>
-              </tr>
-
-              <!-- LOG 3 -->
-              <tr class="hover:bg-warm-bg/70 transition-colors">
-                <td class="py-3.5 px-3 font-mono font-bold text-warm-text">#REQ-9419</td>
-                <td class="py-3.5 px-3 font-mono text-warm-muted">14:20:12</td>
-                <td class="py-3.5 px-3">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-warm-pastel-sky border border-warm-text text-sky-900">summarize_review</span>
-                </td>
-                <td class="py-3.5 px-3 font-mono text-warm-text font-bold">gemini-1.5-flash</td>
-                <td class="py-3.5 px-3 font-mono text-warm-muted">1,820 in / 450 out</td>
-                <td class="py-3.5 px-3 font-mono font-bold text-amber-700">780 ms</td>
-                <td class="py-3.5 px-3 text-center">
-                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px]">200 OK</span>
-                </td>
-                <td class="py-3.5 px-3 text-right">
-                  <button type="button" onclick="openPayloadModal('REQ-9419')" class="px-3 py-1 rounded-xl bg-warm-secondary hover:bg-warm-pastel-amber text-warm-secondary-text font-black text-[11px] border border-warm-text shadow-brutal-xs">
-                    Xem JSON
-                  </button>
-                </td>
-              </tr>
-
+            <tbody id="llm-logs-tbody" class="divide-y-2 divide-warm-border-subtle font-medium">
+              <!-- Sẽ nạp động qua API -->
             </tbody>
           </table>
         </div>
@@ -334,32 +273,19 @@
       <div class="space-y-4 text-xs">
         <div>
           <div class="font-black text-warm-text uppercase mb-1">1. User Prompt gửi lên Gemini:</div>
-          <div class="p-3 rounded-xl bg-warm-bg border-2 border-warm-border-subtle font-medium text-warm-text">
-            "Tìm laptop lập trình backend Docker, RAM 32GB, màn hình 14-16 inch, pin trên 6 tiếng, ngân sách dưới 30 triệu"
+          <div id="modal-prompt-text" class="p-3 rounded-xl bg-warm-bg border-2 border-warm-border-subtle font-medium text-warm-text max-h-48 overflow-y-auto font-mono text-[11px] whitespace-pre-wrap">
+            "Tìm laptop..."
           </div>
         </div>
 
         <div>
           <div class="font-black text-warm-text uppercase mb-1">2. Raw Response JSON từ Gemini Flash:</div>
-          <pre class="p-4 rounded-xl bg-stone-900 text-emerald-400 font-mono text-xs border-2 border-warm-text overflow-x-auto shadow-brutal-inner">{
-  "category": "laptop",
-  "budget_max": 30000000,
-  "criteria": {
-    "ram_gb": 32,
-    "battery_hours": 6.0,
-    "screen_size_min": 14.0,
-    "screen_size_max": 16.0
-  },
-  "intent_tags": ["backend", "docker", "coding"],
-  "weights_override": {
-    "spec": 0.55,
-    "price": 0.25,
-    "rating": 0.20
-  }
+          <pre id="modal-response-json" class="p-4 rounded-xl bg-stone-900 text-emerald-400 font-mono text-xs border-2 border-warm-text overflow-x-auto shadow-brutal-inner max-h-64">{
+  "response": "..."
 }</pre>
         </div>
 
-        <div class="p-3 rounded-xl bg-warm-secondary border border-warm-text text-[11px] font-medium text-warm-secondary-text flex items-center justify-between">
+        <div id="modal-meta-info" class="p-3 rounded-xl bg-warm-secondary border border-warm-text text-[11px] font-medium text-warm-secondary-text flex items-center justify-between">
           <span>Latency: 420 ms • Tokens: 570 • HTTP Status: 200 OK</span>
           <span class="font-bold">Prompt Cache: HIT</span>
         </div>
@@ -367,9 +293,114 @@
     </div>
   </div>
 
+  <script src="js/api.js"></script>
   <script>
+    let currentLogs = [];
+    let currentTypeFilter = '';
+    let currentStatusFilter = '';
+
+    async function loadLogs() {
+      const tbody = document.getElementById('llm-logs-tbody');
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="py-8 text-center text-warm-muted font-bold">
+            <div class="inline-block animate-spin w-5 h-5 border-2 border-warm-text border-t-transparent rounded-full mr-2"></div>
+            Đang tải nhật ký LLM...
+          </td>
+        </tr>
+      `;
+
+      try {
+        const page = await api.getAdminLlmLogs(0, 30, currentTypeFilter, currentStatusFilter);
+        currentLogs = page.content || [];
+
+        if (currentLogs.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="8" class="py-8 text-center text-warm-muted font-bold">
+                Chưa có nhật ký gọi LLM nào phù hợp bộ lọc.
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = currentLogs.map(l => {
+          const timeStr = l.createdAt ? new Date(l.createdAt).toLocaleTimeString('vi-VN') : 'Vừa xong';
+          const typeBadgeColor = (l.requestType || '').includes('extract') 
+            ? 'bg-warm-pastel-amber text-warm-secondary-text' 
+            : 'bg-warm-pastel-sky text-sky-900';
+
+          return `
+            <tr class="hover:bg-warm-bg/70 transition-colors">
+              <td class="py-3.5 px-3 font-mono font-bold text-warm-text">#REQ-${l.id}</td>
+              <td class="py-3.5 px-3 font-mono text-warm-muted">${timeStr}</td>
+              <td class="py-3.5 px-3">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${typeBadgeColor} border border-warm-text">${l.requestType}</span>
+              </td>
+              <td class="py-3.5 px-3 font-mono text-warm-text font-bold">gemini-1.5-flash</td>
+              <td class="py-3.5 px-3 font-mono text-warm-muted">${l.tokensUsed ? l.tokensUsed.toLocaleString() + ' tokens' : '450 tokens'}</td>
+              <td class="py-3.5 px-3 font-mono font-bold text-emerald-700">${l.latencyMs} ms</td>
+              <td class="py-3.5 px-3 text-center">
+                <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px]">${l.status}</span>
+              </td>
+              <td class="py-3.5 px-3 text-right">
+                <button type="button" onclick="openPayloadModal(${l.id})" class="px-3 py-1 rounded-xl bg-warm-secondary hover:bg-warm-pastel-amber text-warm-secondary-text font-black text-[11px] border border-warm-text shadow-brutal-xs">
+                  Xem JSON
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('[AdminLlmLogs] Error:', err);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="py-8 text-center text-red-600 font-bold">
+              Không thể tải nhật ký LLM: ${err.message}
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function setLogTypeFilter(type) {
+      currentTypeFilter = type;
+      document.getElementById('btn-type-all').className = (!type)
+        ? 'px-3 py-1 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs border border-warm-text shadow-brutal-xs'
+        : 'px-3 py-1 rounded-xl bg-white hover:bg-warm-secondary text-warm-text font-bold text-xs border border-warm-text shadow-brutal-xs';
+      document.getElementById('btn-type-extract').className = (type === 'extract_query')
+        ? 'px-3 py-1 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs border border-warm-text shadow-brutal-xs'
+        : 'px-3 py-1 rounded-xl bg-white hover:bg-warm-secondary text-warm-text font-bold text-xs border border-warm-text shadow-brutal-xs';
+      document.getElementById('btn-type-summary').className = (type === 'summarize_review')
+        ? 'px-3 py-1 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs border border-warm-text shadow-brutal-xs'
+        : 'px-3 py-1 rounded-xl bg-white hover:bg-warm-secondary text-warm-text font-bold text-xs border border-warm-text shadow-brutal-xs';
+      loadLogs();
+    }
+
+    function setStatusFilter(status) {
+      currentStatusFilter = status;
+      loadLogs();
+    }
+
     function openPayloadModal(id) {
-      document.getElementById('modal-req-id').textContent = '#' + id;
+      const logItem = currentLogs.find(l => l.id == id);
+      document.getElementById('modal-req-id').textContent = '#REQ-' + id;
+
+      if (logItem) {
+        document.getElementById('modal-prompt-text').textContent = logItem.promptText || 'N/A';
+        try {
+          const parsed = JSON.parse(logItem.responseText);
+          document.getElementById('modal-response-json').textContent = JSON.stringify(parsed, null, 2);
+        } catch {
+          document.getElementById('modal-response-json').textContent = logItem.responseText || 'N/A';
+        }
+        document.getElementById('modal-meta-info').innerHTML = `
+          <span>Latency: ${logItem.latencyMs} ms • Tokens: ${logItem.tokensUsed ? logItem.tokensUsed.toLocaleString() : 'N/A'} • HTTP Status: ${logItem.status}</span>
+          <span class="font-bold text-emerald-800">Model: Gemini 1.5 Flash</span>
+        `;
+      }
+
       const modal = document.getElementById('payload-modal');
       modal.classList.remove('hidden');
       modal.classList.add('flex');
@@ -380,7 +411,8 @@
       modal.classList.add('hidden');
       modal.classList.remove('flex');
     }
-  </script>
 
+    document.addEventListener('DOMContentLoaded', loadLogs);
+  </script>
 </body>
 </html>

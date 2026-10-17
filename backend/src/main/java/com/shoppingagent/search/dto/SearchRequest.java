@@ -7,7 +7,8 @@ import lombok.Data;
 public class SearchRequest {
 
     /** Câu hỏi ngôn ngữ tự nhiên của người dùng */
-    @NotBlank(message = "Query text must not be blank")
+    @jakarta.validation.constraints.NotBlank(message = "Query text must not be blank")
+    @com.fasterxml.jackson.annotation.JsonAlias({"query", "q"})
     private String queryText;
 
     /** Session ID cho khách vãng lai (tuỳ chọn) */

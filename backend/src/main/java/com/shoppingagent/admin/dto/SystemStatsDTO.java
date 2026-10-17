@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -19,4 +21,13 @@ public class SystemStatsDTO {
     private double avgLatencyMs;
     private long totalTokensUsed;
     private double estimatedCostUsd;
+
+    // Fields for backward compatibility with Admin Dashboard
+    private long laptopProducts;
+    private long phoneProducts;
+    private long activeReviews;
+    private long spamReviews;
+    private long totalSearches;
+    private long totalTokens;
+    private List<AdminRecentQueryDTO> recentQueries;
 }

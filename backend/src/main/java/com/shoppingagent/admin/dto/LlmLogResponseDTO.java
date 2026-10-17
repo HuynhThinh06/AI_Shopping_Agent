@@ -21,5 +21,7 @@ public class LlmLogResponseDTO {
     private Integer tokensUsed;
     private String promptExcerpt;
     private String responseExcerpt;
+    private String promptText;
+    private String responseText;
     private LocalDateTime createdAt;
 }
