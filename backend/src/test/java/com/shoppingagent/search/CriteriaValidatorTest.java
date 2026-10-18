@@ -103,4 +103,22 @@ class CriteriaValidatorTest {
         validatorService.validateAndNormalize(criteria);
         assertThat(criteria.getTarget()).isNull();
     }
+
+    @Test
+    @DisplayName("Loại bỏ tính từ cảm quan (đẹp, khủng, trâu) khi bị gán nhầm vào numeric spec keys")
+    void shouldDiscardQualitativeAdjectivesFromNumericSpecKeys() {
+        ExtractedCriteria criteria = new ExtractedCriteria();
+        Map<String, String> specs = new HashMap<>();
+        specs.put("screen_size", "đẹp");
+        specs.put("battery", "trâu");
+        specs.put("ram", ">=16");
+        criteria.setRequiredSpecs(specs);
+
+        validatorService.validateAndNormalize(criteria);
+
+        assertThat(criteria.getRequiredSpecs())
+                .doesNotContainKey("screen_size")
+                .doesNotContainKey("battery")
+                .containsEntry("ram", ">=16");
+    }
 }

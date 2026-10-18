@@ -198,36 +198,64 @@ public class GeminiClient implements LlmClient {
                                          String categoryCode,
                                          List<String> filterableAttributes) {
         return """
-                Bạn là trợ lý phân tích yêu cầu mua sắm. Bạn hãy SUY LUẬN TỪNG BƯỚC (Chain-of-Thought) để hiểu sâu nhu cầu và trích xuất thông tin.
+                Bạn là Chuyên gia Tư vấn Công nghệ kiêm Kỹ sư Phân tích Yêu cầu Mua sắm (E-commerce Intent Extraction Specialist).
+                Nhiệm vụ của bạn là áp dụng SUY LUẬN TỪNG BƯỚC (Chain-of-Thought) để hiểu cả yêu cầu tường minh (explicit) lẫn ngụ ý ngầm định (implicit) của khách hàng.
 
-                Ngành hàng: %s
-                Các thuộc tính có thể lọc: %s
+                [THÔNG TIN HỆ THỐNG]:
+                - Ngành hàng hiện tại: %s
+                - DANH SÁCH THUỘC TÍNH ĐƯỢC PHÉP DÙNG TRONG requiredSpecs: %s
+                (CHỈ ĐƯỢC DÙNG các key nằm trong danh sách này để đảm bảo query database, KHÔNG tự bịa key khác).
 
-                QUY TẮC TIẾNG LÓNG & KỸ THUẬT:
-                - Tiền tệ: "củ" = "chai" = "tr" = 1.000.000 VNĐ.
-                - Nhu cầu "lập trình", "code", "IT": bắt buộc phải ép RAM >= 16GB, CPU phải từ Core i5 hoặc Ryzen 5 trở lên.
-                - Nhu cầu "chơi game", "đồ họa": ép phải có Card rời (VGA), RAM >= 16GB.
-                - Nhu cầu "văn phòng", "mang đi cafe": ép trọng lượng (weight) <= 1.5kg.
-                - Nhu cầu "pin trâu": ép battery >= 60Wh (laptop) hoặc >= 5000mAh (điện thoại).
+                [QUY TẮC RÀNG BUỘC KIỂU DỮ LIỆU ĐẶC BIỆT]:
+                - Các thuộc tính đo lường vật lý: ram, storage, battery, weight, screen_size, refresh_rate BẮT BUỘC PHẢI LÀ GIÁ TRỊ SỐ (ví dụ: "16", "512", "60", "1.5", "90", "120").
+                - TUYỆT ĐỐI KHÔNG gán tính từ cảm quan (như "đẹp", "khủng", "trâu", "nhẹ", "mạnh", "xịn") vào các trường số này.
+                  Ví dụ SAI: {"screen_size": "đẹp"}, {"battery": "trâu"}.
+                  Ví dụ ĐÚNG: Khi khách nói "màn hình đẹp" -> target="designer", requiredSpecs={"refresh_rate": ">=90"} (hoặc để trống requiredSpecs và gán weightSpec=0.6).
 
-                QUY TẮC PHÂN BỔ TRỌNG SỐ (WEIGHTS) TỔNG 1.0:
-                - Nhấn mạnh "rẻ", "giá rẻ": weightPrice=0.7, weightRating=0.1, weightSpec=0.2
-                - Nhấn mạnh "cấu hình khủng", "không thành vấn đề": weightPrice=0.1, weightRating=0.2, weightSpec=0.7
-                - Nhấn mạnh "bền", "uy tín": weightPrice=0.2, weightRating=0.6, weightSpec=0.2
+                [BẢNG QUY TẮC SUY LUẬN NGỮ CẢNH & TIẾNG LÓNG]:
+                1. TIỀN TỆ:
+                   - "củ" = "chai" = "tr" = "triệu" = "lít" = 1.000.000 VNĐ. Ví dụ: "15 củ" -> 15.000.000 VNĐ.
+                2. MÀN HÌNH & THỊ GIÁC:
+                   - "màn hình đẹp", "màn nét", "màn sắc nét", "chuẩn màu", "xem phim":
+                     + target: "designer"
+                     + requiredSpecs: {"refresh_rate": ">=90"} (nếu laptop/phone)
+                     + Trọng số: weightSpec=0.6, weightPrice=0.2, weightRating=0.2
+                3. ĐỘNG LỰC HỌC TẬP & NGHỀ NGHIỆP:
+                   - "lập trình", "code", "IT", "developer":
+                     + target: "developer"
+                     + requiredSpecs: {"ram": ">=16"}
+                   - "học đồ họa", "thiết kế", "dựng phim", "render", "3D":
+                     + target: "designer"
+                     + requiredSpecs: {"ram": ">=16"}
+                   - "văn phòng", "mỏng nhẹ", "cafe", "di chuyển":
+                     + target: "office"
+                     + requiredSpecs: {"weight": "<=1.5"}
+                   - "sinh viên", "học sinh", "tiết kiệm":
+                     + target: "student"
+                     + Trọng số: weightPrice=0.5, weightSpec=0.3, weightRating=0.2
+                4. HIỆU NĂNG & PIN:
+                   - "pin trâu", "pin khỏe", "dùng cả ngày":
+                     + requiredSpecs: {"battery": ">=60"} (laptop) hoặc {"battery": ">=5000"} (phone)
+                   - "chơi game", "chiến game", "gaming":
+                     + target: "gamer"
+                     + requiredSpecs: {"refresh_rate": ">=120", "ram": ">=16"}
+
+                [QUY TẮC PHÂN BỔ TRỌNG SỐ (WEIGHTS) TỔNG 1.0]:
+                - Nhấn mạnh "rẻ", "giá mềm", "tiết kiệm": weightPrice=0.65, weightRating=0.15, weightSpec=0.20
+                - Nhấn mạnh "cấu hình", "màn đẹp", "mạnh", "không thành vấn đề": weightPrice=0.15, weightRating=0.20, weightSpec=0.65
+                - Nhấn mạnh "bền", "uy tín", "review tốt", "đánh giá cao": weightPrice=0.20, weightRating=0.60, weightSpec=0.20
                 - Mặc định: weightPrice=0.35, weightRating=0.20, weightSpec=0.45
 
-                VÍ DỤ MẪU (FEW-SHOTS):
-                - "Laptop sinh viên 15 củ" -> {"categoryCode": "laptop", "budgetMax": 15000000, "target": "student", "requiredSpecs": {}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
-                - "lap 15 củ học IT" -> {"categoryCode": "laptop", "budgetMax": 15000000, "target": "student", "requiredSpecs": {"ram": "16"}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
-                - "đt pin trâu dưới 10 chai" -> {"categoryCode": "phone", "budgetMax": 10000000, "target": null, "requiredSpecs": {"battery": "5000"}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
+                [VÍ DỤ MẪU (FEW-SHOTS)]:
+                - "Tìm laptop màn hình đẹp" -> {"categoryCode": "laptop", "budgetMin": null, "budgetMax": null, "target": "designer", "requiredSpecs": {"refresh_rate": ">=90"}, "weightPrice": 0.2, "weightRating": 0.2, "weightSpec": 0.6}
+                - "Laptop sinh viên 15 củ" -> {"categoryCode": "laptop", "budgetMin": null, "budgetMax": 15000000, "target": "student", "requiredSpecs": {}, "weightPrice": 0.5, "weightRating": 0.2, "weightSpec": 0.3}
+                - "lap 15 củ học IT" -> {"categoryCode": "laptop", "budgetMin": null, "budgetMax": 15000000, "target": "developer", "requiredSpecs": {"ram": ">=16"}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
+                - "đt pin trâu dưới 10 chai" -> {"categoryCode": "phone", "budgetMin": null, "budgetMax": 10000000, "target": null, "requiredSpecs": {"battery": ">=5000"}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
 
-                CÂU HỎI THỰC TẾ: "%s"
+                [CÂU HỎI THỰC TẾ]:
+                "%s"
 
-                Hãy phân tích kỹ và trả về định dạng JSON thuần túy.
-                - budgetMax: ngân sách tối đa bằng VNĐ (null nếu không đề cập).
-                - budgetMin: ngân sách tối thiểu bằng VNĐ (null nếu không đề cập).
-                - target: đối tượng sử dụng (student/gamer/office/designer..., null nếu không rõ).
-                - requiredSpecs: điền các thuộc tính được đề cập, bổ sung spec ngầm định (IT->RAM>=16).
+                Hãy trả về duy nhất định dạng JSON thuần túy theo schema.
                 """.formatted(categoryCode, filterableAttributes, queryText);
     }
 
