@@ -86,15 +86,15 @@ export const HomePage: React.FC = () => {
           <span>Hệ Thống Trợ Lý Mua Sắm Bằng Ngôn Ngữ Tự Nhiên (Gemini AI)</span>
         </div>
 
-        <h1 className="text-3xl sm:text-5xl font-black text-warm-text tracking-tight leading-tight">
+        <h1 className="text-3xl sm:text-5xl font-extrabold text-warm-text tracking-tight leading-tight">
           Tìm Thiết Bị Công Nghệ Phù Hợp <br />
-          <span className="text-amber-600 underline decoration-wavy decoration-amber-400">
+          <span className="text-amber-600 inline-block mt-1">
             Đúng Nhu Cầu &amp; Chuẩn Ngân Sách
           </span>
         </h1>
 
-        <p className="text-warm-muted text-base sm:text-lg max-w-2xl mx-auto font-medium">
-          Chỉ cần gõ câu hỏi tự nhiên hoặc tiếng lóng, AI sẽ tự trích xuất thông số, truy vấn qua CSDL <strong>PostgreSQL GIN Index</strong> và xếp hạng bằng thuật toán <strong>Weighted Scoring</strong>.
+        <p className="text-warm-muted text-sm sm:text-base max-w-2xl mx-auto font-medium leading-relaxed">
+          Trợ lý AI thông minh phân tích câu hỏi tự nhiên, trích xuất thông số kỹ thuật chuẩn xác và tổng hợp hàng ngàn đánh giá thực tế để đưa ra gợi ý tối ưu nhất cho bạn.
         </p>
 
         {/* AI Omnibox Search */}
