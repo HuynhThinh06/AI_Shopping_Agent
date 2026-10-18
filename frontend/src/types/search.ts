@@ -26,6 +26,7 @@ export interface RankedProduct {
   specMatchScore?: number;
   priceScore?: number;
   ratingScore?: number;
+  reasoning?: string;
 }
 
 export interface SearchResponse {
