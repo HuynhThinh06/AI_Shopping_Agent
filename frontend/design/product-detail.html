@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Asus Zenbook 14 OLED UX3405 — Chi tiết & AI Tóm tắt Đánh giá | AI Shopping Agent</title>
+  <title>Chi tiết sản phẩm & AI Tóm tắt Đánh giá | AI Shopping Agent</title>
   
   <!-- Google Fonts: Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -165,11 +165,11 @@
       <nav class="flex items-center gap-2" aria-label="Breadcrumb">
         <a href="index.html" class="hover:text-warm-text transition-colors">Trang chủ</a>
         <span>/</span>
-        <a href="category.html?type=laptop" class="hover:text-warm-text transition-colors">Laptop</a>
+        <a id="breadcrumb-category" href="category.html?type=laptop" class="hover:text-warm-text transition-colors">Laptop</a>
         <span>/</span>
-        <a href="category.html?type=laptop&brand=asus" class="hover:text-warm-text transition-colors">Asus Zenbook</a>
+        <a id="breadcrumb-brand" href="search-results.html" class="hover:text-warm-text transition-colors">Thương hiệu</a>
         <span>/</span>
-        <span class="text-warm-text truncate max-w-[200px] sm:max-w-xs font-black">Zenbook 14 OLED UX3405</span>
+        <span id="breadcrumb-title" class="text-warm-text truncate max-w-[200px] sm:max-w-xs font-black">Chi tiết sản phẩm</span>
       </nav>
 
       <!-- Back to Search Results -->
@@ -200,7 +200,7 @@
             <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
             </svg>
-            <span>Top 1 AI Match: 96.5%</span>
+            <span id="product-hero-badge-text">Sản phẩm chính hãng</span>
           </div>
 
           <!-- Wishlist Bookmark Button -->
@@ -239,28 +239,17 @@
             </svg>
           </div>
 
-          <span class="text-[11px] font-bold text-warm-muted flex items-center gap-1.5 mt-2">
+          <span id="product-gallery-hint" class="hidden text-[11px] font-bold text-warm-muted items-center gap-1.5 mt-2">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
             </svg>
-            Ảnh mô phỏng Cloudinary • Nhấp ảnh thumbnail bên dưới để đổi góc nhìn
+            <span id="product-gallery-hint-text">Hình ảnh chi tiết sản phẩm • Nhấp để đổi góc nhìn</span>
           </span>
         </div>
 
-        <!-- Thumbnails Gallery -->
-        <div class="grid grid-cols-4 gap-3">
-          <button type="button" onclick="selectGallery(0)" class="thumb-btn brutal-card p-2 bg-warm-secondary border-2 border-warm-text shadow-brutal-xs flex items-center justify-center hover:-translate-y-0.5 transition-all">
-            <span class="text-xs font-black text-warm-secondary-text">Mặt trước</span>
-          </button>
-          <button type="button" onclick="selectGallery(1)" class="thumb-btn brutal-card p-2 bg-white border-2 border-warm-text shadow-brutal-xs flex items-center justify-center hover:-translate-y-0.5 transition-all">
-            <span class="text-xs font-bold text-warm-text">Bàn phím</span>
-          </button>
-          <button type="button" onclick="selectGallery(2)" class="thumb-btn brutal-card p-2 bg-white border-2 border-warm-text shadow-brutal-xs flex items-center justify-center hover:-translate-y-0.5 transition-all">
-            <span class="text-xs font-bold text-warm-text">Cổng kết nối</span>
-          </button>
-          <button type="button" onclick="selectGallery(3)" class="thumb-btn brutal-card p-2 bg-white border-2 border-warm-text shadow-brutal-xs flex items-center justify-center hover:-translate-y-0.5 transition-all">
-            <span class="text-xs font-bold text-warm-text">Mặt lưng</span>
-          </button>
+        <!-- Dynamic Thumbnails Gallery (Hidden if only 1 image) -->
+        <div id="product-gallery-thumbnails" class="hidden flex flex-wrap gap-2.5 items-center justify-center pt-1">
+          <!-- Rendered dynamically by renderProductGallery(p) -->
         </div>
 
         <!-- Trust Badges Bento (Soft-Brutalist) -->
@@ -279,7 +268,7 @@
           </div>
           <div class="flex items-center gap-2 p-2 rounded-xl bg-white border border-warm-text/20">
             <span class="w-6 h-6 rounded-lg bg-warm-pastel-peach border border-warm-text flex items-center justify-center text-orange-800 font-black">AI</span>
-            <span>Đã kiểm chứng 142 review</span>
+            <span>Đã kiểm chứng <strong id="trust-review-count">--</strong> review</span>
           </div>
         </div>
 
@@ -292,16 +281,16 @@
         <div class="space-y-3">
           <div class="flex flex-wrap items-center gap-2">
             <span id="product-category-badge" class="px-2.5 py-1 rounded-lg bg-warm-secondary text-warm-secondary-text font-black text-xs border border-warm-text/30">
-              ASUS ZENBOOK SERIES
+              SẢN PHẨM
             </span>
-            <span id="product-sku" class="text-xs font-bold text-warm-muted">Mã SKU: UX3405MA-PP152W</span>
+            <span id="product-sku" class="text-xs font-bold text-warm-muted">Mã SKU: --</span>
             <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[11px] border border-emerald-300">
               Chính hãng
             </span>
           </div>
 
           <h1 id="product-title" class="text-2xl sm:text-3xl font-extrabold text-warm-text tracking-tight leading-tight">
-            Laptop Asus Zenbook 14 OLED UX3405MA
+            Đang tải thông tin sản phẩm...
           </h1>
           <p id="product-subtitle" class="text-sm font-semibold text-warm-muted leading-relaxed">
             Đang tải thông số kỹ thuật...
@@ -326,66 +315,48 @@
           </div>
         </div>
 
-        <!-- PRICING & PROMOTION BOX (Soft-Brutalist) -->
+        <!-- PRICING & PROVENANCE BOX (Soft-Brutalist) -->
         <div class="brutal-card p-5 sm:p-6 bg-gradient-to-br from-white to-warm-secondary/20 border-2 border-warm-text shadow-brutal-md space-y-4">
-          <div class="flex flex-wrap items-baseline justify-between gap-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <span class="text-xs font-bold text-warm-muted uppercase tracking-wider block">Giá tham khảo tốt nhất hôm nay</span>
-              <div class="flex items-baseline gap-3 mt-1">
-                <span id="product-price" class="text-3xl sm:text-4xl font-black text-warm-primary tracking-tight">24.990.000đ</span>
-                <span class="text-base sm:text-lg font-bold text-warm-muted line-through">28.990.000đ</span>
-                <span class="px-2.5 py-0.5 rounded-lg bg-red-100 text-red-700 font-extrabold text-xs border border-red-300">-14%</span>
+              <span class="text-xs font-black text-warm-muted uppercase tracking-wider block">Giá bán tham khảo</span>
+              <div class="flex items-baseline gap-2 mt-1">
+                <span id="product-price" class="text-3xl sm:text-4xl font-black text-warm-primary tracking-tight">--</span>
+                <span class="text-xs font-bold text-warm-muted">Đã bao gồm VAT</span>
               </div>
             </div>
             
-            <div class="text-right">
-              <span class="text-xs font-extrabold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 inline-block">
-                Tiết kiệm: 4.000.000đ
+            <div>
+              <span class="text-xs font-black text-emerald-800 bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-300 flex items-center gap-1.5 shadow-brutal-xs">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Dữ liệu chính hãng sẵn có</span>
               </span>
             </div>
           </div>
 
-          <!-- Store Price Comparison Matrix -->
-          <div class="pt-3 border-t-2 border-warm-text/10 space-y-2">
-            <span class="text-xs font-black text-warm-text uppercase tracking-wide flex items-center gap-1.5">
-              <span>Giá bán thực tế tại các đối tác ủy quyền</span>
-            </span>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-              <!-- Store 1 -->
-              <a href="https://fptshop.com.vn" target="_blank" rel="noopener noreferrer" class="p-2.5 rounded-xl bg-white border-2 border-warm-text shadow-brutal-xs hover:-translate-y-0.5 transition-all flex flex-col justify-between">
-                <div class="flex items-center justify-between">
-                  <span class="font-black text-red-600">FPT Shop</span>
-                  <span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[10px]">Tặng balo</span>
+          <!-- Referral Provenance Card (Nguồn tham chiếu & Link gốc) -->
+          <div id="product-source-card" class="pt-3 border-t-2 border-warm-text/10">
+            <div class="p-3.5 rounded-xl bg-white border-2 border-warm-text shadow-brutal-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-warm-pastel-amber border-2 border-warm-text flex items-center justify-center font-black text-xs text-warm-text shrink-0">
+                  <svg class="w-5 h-5 text-warm-text" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                  </svg>
                 </div>
-                <div class="mt-2 flex items-baseline justify-between">
-                  <span class="font-extrabold text-sm text-warm-text">24.990.000đ</span>
-                  <span class="text-warm-primary font-bold text-[11px]">Đến mua →</span>
+                <div>
+                  <span class="text-[11px] font-bold text-warm-muted uppercase block">Nguồn tham chiếu sản phẩm</span>
+                  <span id="product-source-name" class="font-extrabold text-sm text-warm-text">Nền tảng bán lẻ chính hãng</span>
                 </div>
-              </a>
-
-              <!-- Store 2 -->
-              <a href="https://cellphones.com.vn" target="_blank" rel="noopener noreferrer" class="p-2.5 rounded-xl bg-white border-2 border-warm-text shadow-brutal-xs hover:-translate-y-0.5 transition-all flex flex-col justify-between">
-                <div class="flex items-center justify-between">
-                  <span class="font-black text-rose-600">CellphoneS</span>
-                  <span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold text-[10px]">Smember</span>
-                </div>
-                <div class="mt-2 flex items-baseline justify-between">
-                  <span class="font-extrabold text-sm text-warm-text">24.890.000đ</span>
-                  <span class="text-warm-primary font-bold text-[11px]">Đến mua →</span>
-                </div>
-              </a>
-
-              <!-- Store 3 -->
-              <a href="https://thegioididong.com" target="_blank" rel="noopener noreferrer" class="p-2.5 rounded-xl bg-white border-2 border-warm-text shadow-brutal-xs hover:-translate-y-0.5 transition-all flex flex-col justify-between">
-                <div class="flex items-center justify-between">
-                  <span class="font-black text-amber-600">Thế Giới Di Động</span>
-                  <span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 font-bold text-[10px]">Tặng chuột</span>
-                </div>
-                <div class="mt-2 flex items-baseline justify-between">
-                  <span class="font-extrabold text-sm text-warm-text">25.490.000đ</span>
-                  <span class="text-warm-primary font-bold text-[11px]">Đến mua →</span>
-                </div>
+              </div>
+              <a 
+                id="product-source-link" 
+                href="#" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                class="brutal-button-action px-4 py-2 rounded-xl bg-warm-surface hover:bg-warm-secondary border-2 border-warm-text text-warm-text text-xs font-black shadow-brutal-xs flex items-center justify-center gap-1.5 transition-all shrink-0 cursor-pointer"
+              >
+                <span>Xem tại nguồn gốc</span>
+                <span class="text-warm-primary font-black">↗</span>
               </a>
             </div>
           </div>
@@ -420,27 +391,8 @@
         </div>
 
         <!-- Quick Spec Highlights Matrix -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div class="brutal-card p-3 bg-white text-center">
-            <span class="text-[11px] font-bold text-warm-muted uppercase block">Vi Xử Lý</span>
-            <span class="font-black text-sm text-warm-text mt-0.5 block">Ultra 7 155H</span>
-            <span class="text-[10px] text-warm-muted">16 nhân 22 luồng</span>
-          </div>
-          <div class="brutal-card p-3 bg-white text-center">
-            <span class="text-[11px] font-bold text-warm-muted uppercase block">RAM</span>
-            <span class="font-black text-sm text-warm-text mt-0.5 block">16 GB</span>
-            <span class="text-[10px] text-warm-muted">LPDDR5X 7467MHz</span>
-          </div>
-          <div class="brutal-card p-3 bg-white text-center">
-            <span class="text-[11px] font-bold text-warm-muted uppercase block">Màn Hình</span>
-            <span class="font-black text-sm text-warm-text mt-0.5 block">14" 3K OLED</span>
-            <span class="text-[10px] text-warm-muted">120Hz, 100% DCI-P3</span>
-          </div>
-          <div class="brutal-card p-3 bg-white text-center">
-            <span class="text-[11px] font-bold text-warm-muted uppercase block">Pin & Trọng Lượng</span>
-            <span class="font-black text-sm text-warm-text mt-0.5 block">75 Wh • 1.2kg</span>
-            <span class="text-[10px] text-warm-muted">Sạc Type-C 65W</span>
-          </div>
+        <div id="quick-specs-matrix" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <!-- Rendered dynamically by renderQuickSpecHighlights(p) -->
         </div>
 
       </div>
@@ -566,120 +518,8 @@
         </button>
       </div>
 
-      <div class="divide-y divide-warm-text/10 mt-4 text-xs sm:text-sm">
-        
-        <!-- Spec Group 1: Bộ xử lý & Đồ họa -->
-        <div class="py-4">
-          <h3 class="font-black text-sm sm:text-base text-warm-text mb-3 flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-warm-primary"></span>
-            <span>1. Bộ Xử Lý & Đồ Họa</span>
-          </h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6">
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Model CPU</span>
-              <span class="font-bold text-warm-text text-right">Intel Core Ultra 7 155H (Meteor Lake)</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Số nhân & Số luồng</span>
-              <span class="font-bold text-warm-text text-right">16 Nhân (6 P-core, 8 E-core, 2 LPE-core), 22 Luồng</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Tốc độ tối đa</span>
-              <span class="font-bold text-warm-text text-right">Turbo Boost lên đến 4.8 GHz</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Card đồ họa (GPU)</span>
-              <span class="font-bold text-warm-text text-right">Intel Arc Graphics tích hợp (Hỗ trợ Ray Tracing)</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">NPU Xử lý AI</span>
-              <span class="font-bold text-warm-text text-right">Intel AI Boost NPU (Tối ưu tác vụ Copilot & Gemini)</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Spec Group 2: Bộ nhớ RAM & Ổ cứng -->
-        <div class="py-4">
-          <h3 class="font-black text-sm sm:text-base text-warm-text mb-3 flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-warm-primary"></span>
-            <span>2. RAM & Khả Năng Lưu Trữ</span>
-          </h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6">
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Dung lượng RAM</span>
-              <span class="font-bold text-warm-text text-right">16 GB LPDDR5X (Hàn chết, không nâng cấp)</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Tốc độ Bus RAM</span>
-              <span class="font-bold text-warm-text text-right">7467 MHz</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Ổ cứng SSD</span>
-              <span class="font-bold text-warm-text text-right">1 TB M.2 NVMe PCIe 4.0 SSD</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Khả năng nâng cấp ổ cứng</span>
-              <span class="font-bold text-warm-text text-right">Hỗ trợ thay thế SSD lên đến 2 TB</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Spec Group 3: Màn hình -->
-        <div class="py-4">
-          <h3 class="font-black text-sm sm:text-base text-warm-text mb-3 flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-warm-primary"></span>
-            <span>3. Màn Hình & Hiển Thị</span>
-          </h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6">
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Kích thước</span>
-              <span class="font-bold text-warm-text text-right">14.0 inch tỷ lệ vàng 16:10</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Công nghệ tấm nền</span>
-              <span class="font-bold text-warm-text text-right">ASUS Lumina OLED (Màu đen tuyệt đối)</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Độ phân giải</span>
-              <span class="font-bold text-warm-text text-right">3K (2880 x 1800 pixels)</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Tần số quét</span>
-              <span class="font-bold text-warm-text text-right">120 Hz (Thời gian phản hồi 0.2ms)</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Độ bao phủ màu & Độ sáng</span>
-              <span class="font-bold text-warm-text text-right">100% DCI-P3, HDR 500 nits, Pantone Validated</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Spec Group 4: Pin, Cổng & Kích thước -->
-        <div class="py-4">
-          <h3 class="font-black text-sm sm:text-base text-warm-text mb-3 flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-warm-primary"></span>
-            <span>4. Cổng Kết Nối, Pin & Kích Thước</span>
-          </h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6">
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Cổng kết nối</span>
-              <span class="font-bold text-warm-text text-right">2x Thunderbolt 4, 1x USB-A 3.2, 1x HDMI 2.1, Jack 3.5mm</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Dung lượng Pin</span>
-              <span class="font-bold text-warm-text text-right">75 Wh (4-cell Li-ion)</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Bộ sạc</span>
-              <span class="font-bold text-warm-text text-right">Type-C 65W sạc nhanh (60% trong 49 phút)</span>
-            </div>
-            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
-              <span class="text-warm-muted font-medium">Trọng lượng & Kích thước</span>
-              <span class="font-bold text-warm-text text-right">1.2 kg • 31.24 x 22.01 x 1.49 cm</span>
-            </div>
-          </div>
-        </div>
-
+      <div id="specs-table-container" class="divide-y divide-warm-text/10 mt-4 text-xs sm:text-sm">
+        <!-- Rendered dynamically by renderDynamicSpecifications(p) -->
       </div>
     </section>
 
@@ -771,65 +611,8 @@
         </a>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        
-        <!-- Rec 1: MacBook Air M3 -->
-        <div class="brutal-card p-5 bg-white flex flex-col justify-between">
-          <div>
-            <div class="flex justify-between items-start">
-              <span class="px-2 py-0.5 rounded bg-warm-pastel-sky text-sky-900 font-extrabold text-[11px] border border-warm-text">Top Pin Trâu</span>
-              <span class="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">AI Match: 94.0%</span>
-            </div>
-            <h3 class="font-extrabold text-base text-warm-text mt-3">Apple MacBook Air 13 M3</h3>
-            <p class="text-xs text-warm-muted mt-1">Apple M3 (8-core CPU, 8-core GPU) • 16GB • 256GB SSD • 13.6" Retina • 1.24 kg</p>
-            <div class="mt-3">
-              <span class="text-lg font-black text-warm-text">27.490.000đ</span>
-            </div>
-          </div>
-          <div class="pt-4 mt-4 border-t border-warm-text/10 flex gap-2">
-            <a href="product-detail.html?id=2" class="flex-1 text-center py-2 rounded-xl bg-warm-surface hover:bg-warm-secondary text-warm-text font-bold text-xs border border-warm-text">Chi tiết</a>
-            <a href="compare.html?ids=UX3405,MBA_M3" class="flex-1 text-center py-2 rounded-xl bg-warm-primary text-warm-primary-text font-extrabold text-xs border border-warm-text shadow-brutal-xs">So sánh ngay</a>
-          </div>
-        </div>
-
-        <!-- Rec 2: Lenovo ThinkBook 14 G6+ -->
-        <div class="brutal-card p-5 bg-white flex flex-col justify-between">
-          <div>
-            <div class="flex justify-between items-start">
-              <span class="px-2 py-0.5 rounded bg-warm-pastel-amber text-amber-900 font-extrabold text-[11px] border border-warm-text">Nhiều Cổng Kết Nối</span>
-              <span class="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">AI Match: 92.5%</span>
-            </div>
-            <h3 class="font-extrabold text-base text-warm-text mt-3">Lenovo ThinkBook 14 G6+</h3>
-            <p class="text-xs text-warm-muted mt-1">Intel Core Ultra 5 125H • 16GB • 512GB SSD • 14.0" 2.8K IPS 90Hz • 1.4 kg</p>
-            <div class="mt-3">
-              <span class="text-lg font-black text-warm-text">21.890.000đ</span>
-            </div>
-          </div>
-          <div class="pt-4 mt-4 border-t border-warm-text/10 flex gap-2">
-            <a href="product-detail.html?id=3" class="flex-1 text-center py-2 rounded-xl bg-warm-surface hover:bg-warm-secondary text-warm-text font-bold text-xs border border-warm-text">Chi tiết</a>
-            <a href="compare.html?ids=UX3405,TB14_G6" class="flex-1 text-center py-2 rounded-xl bg-warm-primary text-warm-primary-text font-extrabold text-xs border border-warm-text shadow-brutal-xs">So sánh ngay</a>
-          </div>
-        </div>
-
-        <!-- Rec 3: Acer Swift Go 14 OLED -->
-        <div class="brutal-card p-5 bg-white flex flex-col justify-between">
-          <div>
-            <div class="flex justify-between items-start">
-              <span class="px-2 py-0.5 rounded bg-warm-pastel-mint text-emerald-900 font-extrabold text-[11px] border border-warm-text">Giá Mềm Hơn</span>
-              <span class="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">AI Match: 90.0%</span>
-            </div>
-            <h3 class="font-extrabold text-base text-warm-text mt-3">Acer Swift Go 14 OLED</h3>
-            <p class="text-xs text-warm-muted mt-1">Intel Core Ultra 7 155H • 16GB • 512GB SSD • 14" 2.8K OLED 90Hz • 1.3 kg</p>
-            <div class="mt-3">
-              <span class="text-lg font-black text-warm-text">22.490.000đ</span>
-            </div>
-          </div>
-          <div class="pt-4 mt-4 border-t border-warm-text/10 flex gap-2">
-            <a href="product-detail.html?id=4" class="flex-1 text-center py-2 rounded-xl bg-warm-surface hover:bg-warm-secondary text-warm-text font-bold text-xs border border-warm-text">Chi tiết</a>
-            <a href="compare.html?ids=UX3405,SWIFT_GO" class="flex-1 text-center py-2 rounded-xl bg-warm-primary text-warm-primary-text font-extrabold text-xs border border-warm-text shadow-brutal-xs">So sánh ngay</a>
-          </div>
-        </div>
-
+      <div id="related-products-container" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <!-- Rendered dynamically by renderRelatedProducts(p) -->
       </div>
     </section>
 
@@ -844,7 +627,7 @@
       <div class="flex items-center justify-between pb-3 border-b-2 border-warm-text/15">
         <div class="flex items-center gap-2">
           <div class="w-8 h-8 rounded-xl bg-warm-primary border-2 border-warm-text flex items-center justify-center font-black">⚡</div>
-          <h3 class="font-black text-lg text-warm-text">Hỏi AI Về Asus Zenbook 14</h3>
+          <h3 id="ask-ai-modal-title" class="font-black text-lg text-warm-text">Hỏi AI Về Sản Phẩm</h3>
         </div>
         <button type="button" onclick="closeAskAiModal()" class="p-1 text-warm-muted hover:text-warm-text">✕</button>
       </div>
@@ -975,16 +758,32 @@
   </div>
 
   <!-- =========================================================================
-       10. FOOTER (Đồng bộ Warm Minimalist)
+       10. FOOTER
        ========================================================================= -->
-  <footer class="mt-auto border-t-2 border-warm-text bg-warm-surface py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-bold text-warm-muted">
-      <div class="flex items-center gap-2">
-        <span class="w-6 h-6 rounded-lg bg-warm-primary border border-warm-text flex items-center justify-center font-black text-warm-primary-text text-xs">AI</span>
-        <span class="text-warm-text">AI Shopping Agent • Đồ Án Chuyên Ngành Kỹ Thuật Phần Mềm</span>
+  <footer class="mt-16 bg-warm-surface border-t-2 border-warm-text py-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl border-2 border-warm-text shadow-brutal-xs overflow-hidden shrink-0">
+          <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
+            <rect width="100" height="100" fill="#F59E0B" />
+            <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
+            <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" fill="none" />
+          </svg>
+        </div>
+        <div>
+          <div class="text-sm font-extrabold text-warm-text">AI Shopping Agent</div>
+          <div class="text-xs text-warm-muted font-medium">Hệ thống Tư vấn Thiết bị Công nghệ Thông minh</div>
+        </div>
       </div>
-      <div>
-        <span>Thiết kế theo chuẩn Soft Neo-Brutalism & Warm Minimalist Design System</span>
+      <div class="flex flex-wrap items-center gap-6 text-xs font-bold text-warm-muted">
+        <a href="index.html" class="hover:text-warm-text transition-colors">Trang chủ</a>
+        <a href="search-results.html" class="hover:text-warm-text transition-colors">Tìm kiếm AI</a>
+        <a href="compare.html" class="hover:text-warm-text transition-colors">So sánh thiết bị</a>
+        <a href="favorites.html" class="hover:text-warm-text transition-colors">Yêu thích</a>
+        <a href="settings.html" class="hover:text-warm-text transition-colors">Cài đặt cá nhân</a>
+      </div>
+      <div class="text-xs text-warm-muted font-mono">
+        © 2026 AI Shopping Agent.
       </div>
     </div>
   </footer>
@@ -1050,22 +849,36 @@
       }
     }
 
-    function selectGallery(index) {
-      const thumbs = document.querySelectorAll('.thumb-btn');
-      thumbs.forEach((t, i) => {
-        if (i === index) {
-          t.classList.add('bg-warm-secondary');
-          t.classList.remove('bg-white');
-        } else {
-          t.classList.remove('bg-warm-secondary');
-          t.classList.add('bg-white');
-        }
+    function switchGalleryImage(url, btn) {
+      const mainImg = document.getElementById('main-product-img');
+      if (mainImg) mainImg.src = url;
+
+      const allBtns = document.querySelectorAll('.gallery-thumb-btn');
+      allBtns.forEach(b => {
+        b.classList.remove('border-warm-primary', 'bg-warm-secondary/30', 'shadow-brutal-xs');
+        b.classList.add('border-warm-text', 'bg-white');
       });
+      if (btn) {
+        btn.classList.add('border-warm-primary', 'bg-warm-secondary/30', 'shadow-brutal-xs');
+        btn.classList.remove('border-warm-text', 'bg-white');
+      }
     }
 
+    let specsExpanded = true;
     function toggleAllSpecs() {
-      // Demo toggle
-      alert('Đã mở rộng toàn bộ bảng thông số kỹ thuật chi tiết.');
+      const container = document.getElementById('specs-table-container');
+      const btn = document.getElementById('btn-toggle-all-specs');
+      if (!container || !btn) return;
+
+      specsExpanded = !specsExpanded;
+      const groups = container.querySelectorAll('.spec-group-item');
+      groups.forEach(g => {
+        const grid = g.querySelector('.grid');
+        if (grid) {
+          grid.style.display = specsExpanded ? '' : 'none';
+        }
+      });
+      btn.innerText = specsExpanded ? 'Thu gọn tất cả' : 'Mở rộng tất cả';
     }
 
     // Modal controls
@@ -1168,6 +981,413 @@
       });
     }
 
+    // ── Dynamic Rendering Helpers ───────────────────────────────────────────
+    function renderDynamicBreadcrumb(p) {
+      const catEl = document.getElementById('breadcrumb-category');
+      const brandEl = document.getElementById('breadcrumb-brand');
+      const titleEl = document.getElementById('breadcrumb-title');
+
+      const catCode = p.categoryCode || 'laptop';
+      const catName = catCode === 'phone' ? 'Điện thoại' : 'Laptop';
+
+      if (catEl) {
+        catEl.innerText = catName;
+        catEl.href = `category.html?type=${catCode}`;
+      }
+      if (brandEl) {
+        const brand = p.brand || '';
+        brandEl.innerText = brand ? brand.charAt(0).toUpperCase() + brand.slice(1) : 'Thương hiệu';
+        brandEl.href = `search-results.html?q=${encodeURIComponent(brand)}&category=${catCode}`;
+      }
+      if (titleEl) {
+        titleEl.innerText = p.name;
+        titleEl.title = p.name;
+      }
+    }
+
+    function renderDynamicPricing(p) {
+      const priceEl = document.getElementById('product-price');
+      const heroBadge = document.getElementById('product-hero-badge-text');
+      const trustReviewEl = document.getElementById('trust-review-count');
+
+      if (priceEl) priceEl.innerText = formatPrice(p.price);
+
+      if (heroBadge) {
+        heroBadge.innerText = p.brand ? `${p.brand.toUpperCase()} CHÍNH HÃNG` : 'CHÍNH HÃNG 100%';
+      }
+
+      if (trustReviewEl) {
+        trustReviewEl.innerText = p.reviewCount || 0;
+      }
+    }
+
+    function renderProductSource(p) {
+      const nameEl = document.getElementById('product-source-name');
+      const linkEl = document.getElementById('product-source-link');
+      if (!linkEl) return;
+
+      const url = p.productUrl || '';
+      const sku = (p.sku || '').toUpperCase();
+
+      let sourceName = 'Hệ thống đối soát chính hãng';
+      if (url.includes('thegioididong.com') || sku.includes('TGDD')) {
+        sourceName = 'Thế Giới Di Động (Hệ thống phân phối toàn quốc)';
+      } else if (url.includes('fptshop.com.vn') || sku.includes('FPT')) {
+        sourceName = 'FPT Shop (Hệ thống bán lẻ ủy quyền)';
+      } else if (url.includes('cellphones.com.vn') || sku.includes('CPS')) {
+        sourceName = 'CellphoneS (Hệ thống thiết bị công nghệ)';
+      } else if (url.includes('phongvu.vn')) {
+        sourceName = 'Phong Vũ (Đại lý phân phối)';
+      }
+
+      if (nameEl) nameEl.innerText = sourceName;
+      if (url && url !== '#') {
+        linkEl.href = url;
+        linkEl.classList.remove('opacity-50', 'pointer-events-none');
+      } else {
+        linkEl.href = '#';
+        linkEl.classList.add('opacity-50', 'pointer-events-none');
+      }
+    }
+
+    function renderProductGallery(p) {
+      const viewport = document.getElementById('main-product-viewport');
+      const hintEl = document.getElementById('product-gallery-hint');
+      const hintText = document.getElementById('product-gallery-hint-text');
+      const thumbContainer = document.getElementById('product-gallery-thumbnails');
+
+      const primaryImg = getPrimaryImage(p);
+      let images = [];
+      if (p.imageUrls && Array.isArray(p.imageUrls) && p.imageUrls.length > 0) {
+        images = p.imageUrls;
+      } else if (primaryImg) {
+        images = [primaryImg];
+      }
+
+      // 1. Render main image
+      if (viewport && images.length > 0) {
+        viewport.innerHTML = `
+          <img id="main-product-img" src="${images[0]}" alt="${p.name}" class="max-h-[220px] max-w-[300px] object-contain drop-shadow-md transition-all duration-200" onerror="this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&fit=crop'"/>
+        `;
+      }
+
+      // 2. Render thumbnails only if more than 1 image exists
+      if (thumbContainer) {
+        if (images.length > 1) {
+          if (hintEl) {
+            hintEl.classList.remove('hidden');
+            hintEl.classList.add('flex');
+            if (hintText) hintText.innerText = `Bộ sưu tập ${images.length} ảnh chi tiết • Nhấp để đổi ảnh`;
+          }
+          thumbContainer.classList.remove('hidden');
+          thumbContainer.innerHTML = images.map((img, idx) => `
+            <button 
+              type="button" 
+              onclick="switchGalleryImage('${img}', this)" 
+              class="gallery-thumb-btn w-14 h-14 rounded-xl border-2 ${idx === 0 ? 'border-warm-primary bg-warm-secondary/30 shadow-brutal-xs' : 'border-warm-text bg-white'} p-1 overflow-hidden flex items-center justify-center hover:-translate-y-0.5 transition-all cursor-pointer"
+              title="Xem ảnh ${idx + 1}"
+            >
+              <img src="${img}" alt="Ảnh ${idx + 1}" class="w-full h-full object-contain" onerror="this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=100&fit=crop'"/>
+            </button>
+          `).join('');
+        } else {
+          if (hintEl) {
+            hintEl.classList.add('hidden');
+            hintEl.classList.remove('flex');
+          }
+          thumbContainer.classList.add('hidden');
+          thumbContainer.innerHTML = '';
+        }
+      }
+    }
+
+    function renderQuickSpecHighlights(p) {
+      const container = document.getElementById('quick-specs-matrix');
+      if (!container) return;
+
+      const specs = parseSpecs(p.specs);
+      const isPhone = (p.categoryCode || '').toLowerCase().includes('phone');
+
+      let cards = [];
+      if (isPhone) {
+        cards = [
+          {
+            title: 'Chipset',
+            val: specs.chipset || specs.cpu || 'Tiêu chuẩn',
+            desc: specs.os || 'Hệ điều hành tối ưu'
+          },
+          {
+            title: 'RAM & ROM',
+            val: specs.ram ? (String(specs.ram).includes('GB') ? specs.ram : `${specs.ram} GB`) : '8 GB',
+            desc: specs.storage ? (String(specs.storage).includes('GB') || String(specs.storage).includes('TB') ? specs.storage : `${specs.storage} GB ROM`) : 'Bộ nhớ chuẩn'
+          },
+          {
+            title: 'Màn Hình',
+            val: `${specs.screen_size ? specs.screen_size + '"' : '6.7"'} ${specs.panel || 'AMOLED'}`,
+            desc: `${specs.refresh_rate ? specs.refresh_rate + ' Hz' : '120 Hz'} ${specs.resolution || ''}`
+          },
+          {
+            title: 'Pin & Sạc',
+            val: specs.battery ? (String(specs.battery).includes('mAh') ? specs.battery : `${specs.battery} mAh`) : '5000 mAh',
+            desc: specs.charging ? `Sạc nhanh ${specs.charging}W` : 'Sạc siêu tốc'
+          }
+        ];
+      } else {
+        // Laptop
+        const ramText = specs.ram ? (String(specs.ram).toUpperCase().includes('GB') ? specs.ram : specs.ram + ' GB') : '16 GB';
+        const storageText = specs.storage ? (String(specs.storage).toUpperCase().includes('GB') || String(specs.storage).toUpperCase().includes('TB') ? specs.storage : 'SSD ' + specs.storage + ' GB') : 'SSD 512 GB';
+
+        cards = [
+          {
+            title: 'Vi Xử Lý',
+            val: specs.cpu || specs.CPU || 'Tiêu chuẩn',
+            desc: specs.vga ? `Đồ họa: ${specs.vga}` : 'Xử lý đa nhiệm'
+          },
+          {
+            title: 'Bộ Nhớ RAM',
+            val: ramText,
+            desc: specs.bus_ram ? `Bus ${specs.bus_ram} MHz` : (specs.ram_type || 'Đa nhiệm mượt mà')
+          },
+          {
+            title: 'Màn Hình',
+            val: `${specs.screen_size ? specs.screen_size + '"' : '15.6"'} ${specs.resolution || ''}`,
+            desc: `${specs.refresh_rate ? specs.refresh_rate + ' Hz' : 'Chuẩn màu sắc nét'} ${specs.panel ? '• ' + specs.panel : ''}`
+          },
+          {
+            title: 'Lưu Trữ & Pin',
+            val: storageText,
+            desc: `${specs.battery ? specs.battery + ' Wh' : ''} ${specs.weight ? '• ' + specs.weight + ' kg' : ''}`.trim().replace(/^•\s*/, '') || 'Pin bền bỉ'
+          }
+        ];
+      }
+
+      container.innerHTML = cards.map(c => `
+        <div class="brutal-card p-3 bg-white text-center">
+          <span class="text-[11px] font-bold text-warm-muted uppercase block">${c.title}</span>
+          <span class="font-black text-sm text-warm-text mt-0.5 block truncate" title="${c.val}">${c.val}</span>
+          <span class="text-[10px] text-warm-muted truncate block" title="${c.desc}">${c.desc}</span>
+        </div>
+      `).join('');
+    }
+
+    function renderDynamicSpecifications(p) {
+      const container = document.getElementById('specs-table-container');
+      if (!container) return;
+
+      const specs = parseSpecs(p.specs);
+      const isPhone = (p.categoryCode || '').toLowerCase().includes('phone');
+
+      const laptopGroups = [
+        {
+          title: '1. Bộ Xử Lý & Đồ Họa',
+          fields: [
+            { key: 'cpu', label: 'Model CPU / Vi xử lý' },
+            { key: 'cpu_cores', label: 'Số nhân & Số luồng' },
+            { key: 'cpu_speed', label: 'Tốc độ xung nhịp' },
+            { key: 'vga', label: 'Card đồ họa (GPU)' },
+            { key: 'npu', label: 'Xử lý AI (NPU)' }
+          ]
+        },
+        {
+          title: '2. Bộ Nhớ RAM & Ổ Cứng',
+          fields: [
+            { key: 'ram', label: 'Dung lượng RAM', format: v => String(v).includes('GB') ? v : `${v} GB` },
+            { key: 'bus_ram', label: 'Tốc độ Bus RAM', format: v => String(v).includes('MHz') ? v : `${v} MHz` },
+            { key: 'storage', label: 'Ổ cứng lưu trữ', format: v => String(v).includes('GB') || String(v).includes('TB') ? v : `SSD ${v} GB` },
+            { key: 'storage_upgrade', label: 'Khả năng nâng cấp ổ cứng' }
+          ]
+        },
+        {
+          title: '3. Màn Hình & Hiển Thị',
+          fields: [
+            { key: 'screen_size', label: 'Kích thước màn hình', format: v => String(v).includes('inch') || String(v).includes('"') ? v : `${v} inch` },
+            { key: 'resolution', label: 'Độ phân giải' },
+            { key: 'refresh_rate', label: 'Tần số quét', format: v => String(v).includes('Hz') ? v : `${v} Hz` },
+            { key: 'panel', label: 'Công nghệ tấm nền' },
+            { key: 'color_gamut', label: 'Độ bao phủ màu & Độ sáng' }
+          ]
+        },
+        {
+          title: '4. Pin, Cổng Kết Nối & Trọng Lượng',
+          fields: [
+            { key: 'battery', label: 'Dung lượng Pin', format: v => String(v).includes('Wh') || String(v).includes('cell') ? v : `${v} Wh` },
+            { key: 'charger', label: 'Bộ sạc & Công nghệ sạc' },
+            { key: 'weight', label: 'Trọng lượng máy', format: v => String(v).includes('kg') ? v : `${v} kg` },
+            { key: 'ports', label: 'Cổng kết nối vật lý' },
+            { key: 'os', label: 'Hệ điều hành tích hợp' }
+          ]
+        }
+      ];
+
+      const phoneGroups = [
+        {
+          title: '1. Vi Xử Lý & Hệ Điều Hành',
+          fields: [
+            { key: 'chipset', label: 'Chipset / Vi xử lý' },
+            { key: 'cpu', label: 'CPU' },
+            { key: 'gpu', label: 'GPU' },
+            { key: 'os', label: 'Hệ điều hành' }
+          ]
+        },
+        {
+          title: '2. Bộ Nhớ RAM & Dung Lượng Lưu Trữ',
+          fields: [
+            { key: 'ram', label: 'Dung lượng RAM', format: v => String(v).includes('GB') ? v : `${v} GB` },
+            { key: 'storage', label: 'Bộ nhớ trong (ROM)', format: v => String(v).includes('GB') || String(v).includes('TB') ? v : `${v} GB` },
+            { key: 'sim', label: 'SIM & Khay thẻ' }
+          ]
+        },
+        {
+          title: '3. Màn Hình & Camera',
+          fields: [
+            { key: 'screen_size', label: 'Kích thước màn hình', format: v => String(v).includes('inch') || String(v).includes('"') ? v : `${v} inch` },
+            { key: 'resolution', label: 'Độ phân giải màn hình' },
+            { key: 'refresh_rate', label: 'Tần số quét màn hình', format: v => String(v).includes('Hz') ? v : `${v} Hz` },
+            { key: 'panel', label: 'Công nghệ màn hình' },
+            { key: 'rear_camera', label: 'Camera sau' },
+            { key: 'front_camera', label: 'Camera trước' }
+          ]
+        },
+        {
+          title: '4. Pin, Sạc & Thiết Kế',
+          fields: [
+            { key: 'battery', label: 'Dung lượng Pin', format: v => String(v).includes('mAh') ? v : `${v} mAh` },
+            { key: 'charging', label: 'Công nghệ sạc nhanh', format: v => String(v).includes('W') ? v : `${v}W` },
+            { key: 'weight', label: 'Trọng lượng máy', format: v => String(v).includes('g') ? v : `${v} g` },
+            { key: 'network', label: 'Mạng di động' }
+          ]
+        }
+      ];
+
+      const groups = isPhone ? phoneGroups : laptopGroups;
+      const renderedKeys = new Set();
+      let html = '';
+
+      groups.forEach(grp => {
+        const rows = [];
+        grp.fields.forEach(f => {
+          let val = specs[f.key];
+          if (val === undefined || val === null || val === '') {
+            const foundKey = Object.keys(specs).find(k => k.toLowerCase() === f.key.toLowerCase());
+            if (foundKey) val = specs[foundKey];
+          }
+
+          if (val !== undefined && val !== null && val !== '') {
+            renderedKeys.add(f.key.toLowerCase());
+            const displayVal = f.format ? f.format(val) : String(val);
+            rows.push(`
+              <div class="flex justify-between py-1.5 border-b border-warm-text/5">
+                <span class="text-warm-muted font-medium">${f.label}</span>
+                <span class="font-bold text-warm-text text-right max-w-[60%] break-words">${displayVal}</span>
+              </div>
+            `);
+          }
+        });
+
+        if (rows.length > 0) {
+          html += `
+            <div class="spec-group-item py-4">
+              <h3 class="font-black text-sm sm:text-base text-warm-text mb-3 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-warm-primary"></span>
+                <span>${grp.title}</span>
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6">
+                ${rows.join('')}
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      // Extra custom fields
+      const extraRows = [];
+      Object.keys(specs).forEach(k => {
+        if (!renderedKeys.has(k.toLowerCase()) && specs[k] !== null && specs[k] !== undefined && specs[k] !== '') {
+          const label = k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          extraRows.push(`
+            <div class="flex justify-between py-1.5 border-b border-warm-text/5">
+              <span class="text-warm-muted font-medium">${label}</span>
+              <span class="font-bold text-warm-text text-right max-w-[60%] break-words">${specs[k]}</span>
+            </div>
+          `);
+        }
+      });
+
+      if (extraRows.length > 0) {
+        html += `
+          <div class="spec-group-item py-4">
+            <h3 class="font-black text-sm sm:text-base text-warm-text mb-3 flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-warm-pastel-amber"></span>
+              <span>Thông Số Bổ Sung</span>
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6">
+              ${extraRows.join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (!html) {
+        html = `
+          <div class="py-8 text-center text-warm-muted font-medium">
+            Đang cập nhật thông số kỹ thuật chuẩn hóa cho sản phẩm này.
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    async function renderRelatedProducts(p) {
+      const container = document.getElementById('related-products-container');
+      if (!container) return;
+
+      try {
+        const list = await api.getFeaturedProducts(8);
+        const related = (list || []).filter(item => item.id !== p.id).slice(0, 3);
+        if (related.length > 0) {
+          container.innerHTML = related.map((item, idx) => {
+            const specs = parseSpecs(item.specs);
+            const sub = [
+              specs.cpu || specs.chipset || '',
+              specs.ram ? specs.ram + 'GB RAM' : '',
+              specs.storage ? (String(specs.storage).includes('GB') || String(specs.storage).includes('TB') ? specs.storage : specs.storage + 'GB') : '',
+              specs.screen_size ? specs.screen_size + '"' : ''
+            ].filter(Boolean).join(' • ');
+
+            const badges = [
+              { text: 'Top Hiệu Năng', cls: 'bg-warm-pastel-amber text-amber-900' },
+              { text: 'Lựa Chọn Tốt', cls: 'bg-warm-pastel-sky text-sky-900' },
+              { text: 'Giá Cạnh Tranh', cls: 'bg-warm-pastel-mint text-emerald-900' }
+            ];
+            const badge = badges[idx % badges.length];
+
+            return `
+              <div class="brutal-card p-5 bg-white flex flex-col justify-between">
+                <div>
+                  <div class="flex justify-between items-start">
+                    <span class="px-2 py-0.5 rounded ${badge.cls} font-extrabold text-[11px] border border-warm-text">${badge.text}</span>
+                    <span class="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">★ ${item.avgRating ? Number(item.avgRating).toFixed(1) : '4.8'}</span>
+                  </div>
+                  <h3 class="font-extrabold text-base text-warm-text mt-3 truncate" title="${item.name}">${item.name}</h3>
+                  <p class="text-xs text-warm-muted mt-1 line-clamp-2">${sub || 'Thông số tiêu chuẩn chính hãng'}</p>
+                  <div class="mt-3">
+                    <span class="text-lg font-black text-warm-text">${formatPrice(item.price)}</span>
+                  </div>
+                </div>
+                <div class="pt-4 mt-4 border-t border-warm-text/10 flex gap-2">
+                  <a href="product-detail.html?id=${item.id}" class="flex-1 text-center py-2 rounded-xl bg-warm-surface hover:bg-warm-secondary text-warm-text font-bold text-xs border border-warm-text">Chi tiết</a>
+                  <a href="compare.html?ids=${p.id},${item.id}" class="flex-1 text-center py-2 rounded-xl bg-warm-primary text-warm-primary-text font-extrabold text-xs border border-warm-text shadow-brutal-xs">So sánh ngay</a>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (e) {
+        console.warn('Lỗi tải gợi ý liên quan:', e);
+      }
+    }
+
     async function loadProductPage(id) {
       currentProductId = id;
 
@@ -1178,9 +1398,6 @@
           document.title = `${p.name} — Chi tiết & AI Tóm tắt | AI Shopping Agent`;
           const titleEl = document.getElementById('product-title');
           if (titleEl) titleEl.innerText = p.name;
-
-          const priceEl = document.getElementById('product-price');
-          if (priceEl) priceEl.innerText = formatPrice(p.price);
 
           const skuEl = document.getElementById('product-sku');
           if (skuEl) skuEl.innerText = `Mã SKU: ${p.sku || ('PRD-' + p.id)}`;
@@ -1199,22 +1416,25 @@
 
           // Format Specs Subtitle
           const specs = parseSpecs(p.specs);
-          const cpu = specs.cpu || specs.CPU || '';
+          const cpu = specs.cpu || specs.CPU || specs.chipset || '';
           const ram = specs.ram || specs.RAM ? 'RAM ' + (specs.ram || specs.RAM) + 'GB' : '';
-          const storage = specs.storage || specs.Storage ? 'SSD ' + (specs.storage || specs.Storage) + 'GB' : '';
-          const screen = specs.screen || specs.screen_size || '';
+          const storage = specs.storage || specs.Storage ? (String(specs.storage || specs.Storage).includes('GB') || String(specs.storage || specs.Storage).includes('TB') ? specs.storage || specs.Storage : 'SSD ' + (specs.storage || specs.Storage) + 'GB') : '';
+          const screen = specs.screen || specs.screen_size ? (specs.screen || specs.screen_size) + '"' : '';
           const subText = [cpu, ram, storage, screen].filter(Boolean).join(' • ');
           const subtitleEl = document.getElementById('product-subtitle');
           if (subtitleEl) subtitleEl.innerText = subText || 'Thông số chuẩn hóa hỗ trợ bộ lọc AI';
 
-          // Image Viewport
-          const imgUrl = getPrimaryImage(p);
-          const viewport = document.getElementById('main-product-viewport');
-          if (viewport && imgUrl) {
-            viewport.innerHTML = `
-              <img src="${imgUrl}" alt="${p.name}" class="max-h-[220px] max-w-[300px] object-contain drop-shadow-md" onerror="this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&fit=crop'"/>
-            `;
-          }
+          // Dynamic Rendering Modules
+          renderProductGallery(p);
+          renderDynamicBreadcrumb(p);
+          renderDynamicPricing(p);
+          renderProductSource(p);
+          renderQuickSpecHighlights(p);
+          renderDynamicSpecifications(p);
+          renderRelatedProducts(p);
+
+          const askModalTitle = document.getElementById('ask-ai-modal-title');
+          if (askModalTitle) askModalTitle.innerText = `Hỏi AI Về ${p.name}`;
 
           loadedProduct = p;
           updateProductCompareButton();
@@ -1349,8 +1569,16 @@
     document.addEventListener('DOMContentLoaded', () => {
       updateProductCompareButton();
       const urlParams = new URLSearchParams(window.location.search);
-      const id = urlParams.get('id') || '1';
-      loadProductPage(id);
+      const id = urlParams.get('id');
+      if (id) {
+        loadProductPage(id);
+      } else {
+        api.getFeaturedProducts(1).then(list => {
+          if (list && list.length > 0) {
+            loadProductPage(list[0].id);
+          }
+        }).catch(() => loadProductPage(218));
+      }
     });
   </script>
 

@@ -93,6 +93,10 @@ public class CriteriaValidatorService {
         }
     }
 
+    private static final java.util.Set<String> NUMERIC_SPEC_KEYS = java.util.Set.of(
+            "ram", "storage", "battery", "weight", "screen_size", "refresh_rate"
+    );
+
     private void normalizeSpecs(ExtractedCriteria criteria) {
         if (criteria.getRequiredSpecs() == null) {
             criteria.setRequiredSpecs(new HashMap<>());
@@ -106,12 +110,26 @@ public class CriteriaValidatorService {
 
             if (key != null && !key.isBlank() && val != null && !val.isBlank()) {
                 String cleanKey = key.trim().toLowerCase();
-                // Xóa các đơn vị bị dính vào do LLM sinh ra, ví dụ: "16GB" -> "16"
-                String cleanVal = val.trim().replaceAll("(?i)\\s*(GB|TB|mAh|Wh|inch)$", "").trim();
-                cleanedSpecs.put(cleanKey, cleanVal);
+                // Xóa các đơn vị bị dính vào do LLM sinh ra, ví dụ: "16GB" -> "16", "120Hz" -> "120"
+                String cleanVal = val.trim().replaceAll("(?i)\\s*(GB|TB|mAh|Wh|inch|Hz|kg)$", "").trim();
 
-                if (!cleanVal.equals(val)) {
-                    log.info("Normalized spec [{}] from '{}' to '{}'", cleanKey, val, cleanVal);
+                // Kiểm tra thuộc tính định lượng số học: nếu không parse được thành số thì loại bỏ để tránh hỏng query SQL
+                if (NUMERIC_SPEC_KEYS.contains(cleanKey)) {
+                    String testNum = cleanVal.replaceAll("^(>=|<=|>|<)\\s*", "").trim();
+                    try {
+                        Double.parseDouble(testNum);
+                        cleanedSpecs.put(cleanKey, cleanVal);
+                        if (!cleanVal.equals(val)) {
+                            log.info("Normalized numeric spec [{}] from '{}' to '{}'", cleanKey, val, cleanVal);
+                        }
+                    } catch (NumberFormatException e) {
+                        log.warn("Discarded invalid non-numeric spec for numeric key [{}]: '{}' (raw: '{}')", cleanKey, cleanVal, val);
+                    }
+                } else {
+                    cleanedSpecs.put(cleanKey, cleanVal);
+                    if (!cleanVal.equals(val)) {
+                        log.info("Normalized spec [{}] from '{}' to '{}'", cleanKey, val, cleanVal);
+                    }
                 }
             }
         }
