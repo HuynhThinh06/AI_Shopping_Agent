@@ -232,14 +232,14 @@
             <span class="w-2 h-2 rounded-full bg-emerald-500 border border-warm-text animate-pulse"></span>
             Gemini 3.8 Flash • Criteria Extracted
           </span>
-          <span class="text-xs text-warm-muted font-semibold hidden md:inline">
-            Độ trễ: <strong>280ms</strong> • Tokens tiêu thụ: <strong>68</strong>
+          <span id="ai-meta-info" class="text-xs text-warm-muted font-semibold hidden md:inline">
+            Độ trễ: <strong id="ai-latency-text">280ms</strong> • Tokens tiêu thụ: <strong id="ai-token-text">68</strong>
           </span>
         </div>
 
         <div class="flex items-center gap-2 text-xs">
           <span class="text-warm-muted font-medium">Độ khớp nhu cầu:</span>
-          <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-400 font-extrabold text-xs">
+          <span id="ai-confidence-badge" class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-400 font-extrabold text-xs">
             98.4% Tự tin
           </span>
         </div>
@@ -468,7 +468,7 @@
           
           <div>
             <span class="text-xs sm:text-sm font-extrabold text-warm-text">
-              Tìm thấy <span class="text-warm-secondary-text bg-warm-secondary px-2 py-0.5 rounded-md border border-warm-text">6 thiết bị</span> phù hợp tiêu chí
+              Tìm thấy <span id="total-results-count" class="text-warm-secondary-text bg-warm-secondary px-2 py-0.5 rounded-md border border-warm-text font-black">0 thiết bị</span> phù hợp tiêu chí
             </span>
             <span class="text-xs text-warm-muted block mt-0.5 font-medium">Được sắp xếp tự động theo thuật toán chấm điểm đa tiêu chí</span>
           </div>
@@ -931,22 +931,36 @@
       <div class="space-y-4 text-xs">
         <div>
           <label class="block font-bold text-warm-text mb-1">Ngân sách tối đa (VNĐ):</label>
-          <input type="number" id="edit-budget" value="25000000" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold">
+          <input type="number" id="edit-budget-max" placeholder="Ví dụ: 25000000" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold focus:outline-none focus:bg-white shadow-brutal-xs">
+          <p class="text-[11px] text-warm-muted mt-1 font-medium">Để trống nếu không giới hạn trần ngân sách</p>
         </div>
         <div>
           <label class="block font-bold text-warm-text mb-1">Dung lượng RAM tối thiểu:</label>
-          <select id="edit-ram" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold">
-            <option value="16" selected>16 GB (Đề xuất cho Lập trình)</option>
-            <option value="32">32 GB (Đồ họa nặng / Ảo hóa)</option>
-            <option value="8">8 GB (Văn phòng nhẹ)</option>
+          <select id="edit-ram" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold focus:outline-none cursor-pointer shadow-brutal-xs">
+            <option value="">Tất cả mức RAM</option>
+            <option value="8">8 GB (Văn phòng, lướt web)</option>
+            <option value="16">16 GB (Lập trình, đa nhiệm mượt mà)</option>
+            <option value="32">32 GB (Đồ họa nặng, máy ảo, dựng video)</option>
           </select>
         </div>
         <div>
-          <label class="block font-bold text-warm-text mb-1">Yêu cầu thời lượng Pin:</label>
-          <select id="edit-battery" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold">
-            <option value="8" selected>Trên 8 tiếng (Code nguyên ngày)</option>
-            <option value="12">Trên 12 tiếng (Siêu trâu)</option>
-            <option value="5">Trung bình 5-6 tiếng</option>
+          <label class="block font-bold text-warm-text mb-1">Nhu cầu / Mục đích sử dụng:</label>
+          <select id="edit-target" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold focus:outline-none cursor-pointer shadow-brutal-xs">
+            <option value="">Tất cả nhu cầu</option>
+            <option value="designer">Thiết kế đồ họa / Màn hình chuẩn màu</option>
+            <option value="developer">Lập trình viên / Kỹ sư phần mềm</option>
+            <option value="gamer">Chơi game / Hiệu năng cao</option>
+            <option value="office">Văn phòng / Mỏng nhẹ di động</option>
+            <option value="student">Sinh viên / Tối ưu ngân sách</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-warm-text mb-1">Màn hình / Tần số quét:</label>
+          <select id="edit-screen-hz" class="w-full bg-warm-bg border-2 border-warm-text rounded-xl p-2.5 font-bold focus:outline-none cursor-pointer shadow-brutal-xs">
+            <option value="">Tất cả màn hình</option>
+            <option value=">=90">Tối thiểu 90Hz (Mượt mà)</option>
+            <option value=">=120">Tối thiểu 120Hz (Chuẩn Gaming/Đồ họa)</option>
+            <option value=">=144">Tối thiểu 144Hz (Siêu nét, thể thao điện tử)</option>
           </select>
         </div>
       </div>
@@ -1648,9 +1662,22 @@
       lastSearchResults = scoredItems;
 
       // 5. Update Count in Header Toolbar
-      const totalText = document.querySelector('span.text-warm-secondary-text.bg-warm-secondary');
-      if (totalText) {
-        totalText.innerText = `${scoredItems.length} thiết bị`;
+      const totalCountEl = document.getElementById('total-results-count');
+      if (totalCountEl) {
+        totalCountEl.innerText = `${scoredItems.length} thiết bị`;
+      }
+
+      // 6. Update AI Confidence / Match badge in Top Meta
+      const confidenceBadge = document.getElementById('ai-confidence-badge');
+      if (confidenceBadge) {
+        if (scoredItems.length === 0) {
+          confidenceBadge.className = 'px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 border border-rose-300 font-extrabold text-xs';
+          confidenceBadge.innerText = '0% Trùng khớp (Không có máy phù hợp)';
+        } else {
+          const topScore = scoredItems[0]?.calculatedScorePercent || 90;
+          confidenceBadge.className = 'px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-400 font-extrabold text-xs';
+          confidenceBadge.innerText = `${topScore}% Tự tin`;
+        }
       }
 
       // 6. Render product cards
@@ -1777,6 +1804,31 @@
 
     // ── Search & Filter Initialization ─────────────────────────────────────────
     function openEditCriteriaModal() {
+      // 1. Populate current values
+      const budgetInput = document.getElementById('edit-budget-max');
+      if (budgetInput) {
+        budgetInput.value = currentCriteria.budgetMax || '';
+      }
+
+      const ramSelect = document.getElementById('edit-ram');
+      if (ramSelect) {
+        const reqRam = (currentCriteria.requiredSpecs?.ram || '').toString();
+        const ramNum = reqRam.replace(/\D/g, '');
+        ramSelect.value = ramNum || '';
+      }
+
+      const targetSelect = document.getElementById('edit-target');
+      if (targetSelect) {
+        targetSelect.value = (currentCriteria.target || '').toLowerCase();
+      }
+
+      const hzSelect = document.getElementById('edit-screen-hz');
+      if (hzSelect) {
+        const currentHz = (currentCriteria.requiredSpecs?.refresh_rate || '').toString();
+        const hzNum = currentHz.replace(/\D/g, '');
+        hzSelect.value = hzNum ? '>=' + hzNum : '';
+      }
+
       document.getElementById('criteria-edit-modal').classList.remove('hidden');
     }
 
@@ -1785,14 +1837,60 @@
     }
 
     function saveCriteriaChanges() {
+      // 1. Read values from modal
+      const newBudget = document.getElementById('edit-budget-max')?.value?.trim();
+      if (newBudget && !isNaN(parseInt(newBudget, 10))) {
+        currentCriteria.budgetMax = parseInt(newBudget, 10);
+        customMaxPrice = currentCriteria.budgetMax;
+        const maxInput = document.getElementById('filter-max-price-input');
+        if (maxInput) maxInput.value = formatNumberRaw(customMaxPrice);
+      } else {
+        currentCriteria.budgetMax = null;
+        customMaxPrice = null;
+        const maxInput = document.getElementById('filter-max-price-input');
+        if (maxInput) maxInput.value = '';
+      }
+
+      currentCriteria.requiredSpecs = currentCriteria.requiredSpecs || {};
+
+      const newRam = document.getElementById('edit-ram')?.value;
+      selectedRams.clear();
+      if (newRam) {
+        currentCriteria.requiredSpecs.ram = newRam;
+        selectedRams.add(newRam + 'GB');
+      } else {
+        delete currentCriteria.requiredSpecs.ram;
+      }
+
+      const newTarget = document.getElementById('edit-target')?.value;
+      currentCriteria.target = newTarget || null;
+
+      const newHz = document.getElementById('edit-screen-hz')?.value;
+      if (newHz) {
+        currentCriteria.requiredSpecs.refresh_rate = newHz;
+      } else {
+        delete currentCriteria.requiredSpecs.refresh_rate;
+      }
+
       closeEditCriteriaModal();
+
+      // 2. Refresh Pills & Sidebar UI
+      renderCriteriaPills(currentCriteria);
+      renderSidebarFilters();
+
+      // 3. Re-score and re-filter
+      applyFiltersAndRender();
+
+      // Visual pulse
       const container = document.getElementById('results-container');
       if (container) {
         container.classList.add('opacity-40');
         setTimeout(() => {
           container.classList.remove('opacity-40');
-        }, 300);
+        }, 150);
       }
+
+      showToast('Đã đồng bộ tiêu chí AI và cập nhật danh sách sản phẩm!', 'success');
     }
 
     function quickEditPill(type) {
