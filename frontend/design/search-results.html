@@ -860,24 +860,30 @@
   <!-- =========================================================================
        FOOTER
        ========================================================================= -->
-  <footer class="bg-warm-surface border-t-2 border-warm-text py-10 text-xs text-warm-muted mt-12">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+  <footer class="mt-16 bg-warm-surface border-t-2 border-warm-text py-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-xl border-2 border-warm-text shadow-brutal-xs overflow-hidden shrink-0">
+        <div class="w-9 h-9 rounded-xl border-2 border-warm-text shadow-brutal-xs overflow-hidden shrink-0">
           <svg viewBox="0 0 100 100" class="w-full h-full" fill="none">
             <rect width="100" height="100" fill="#F59E0B" />
-            <circle cx="73" cy="22" r="7.5" fill="#FEF3C7" fill-opacity="0.9" />
-            <circle cx="23" cy="69" r="6.5" fill="#FEF3C7" fill-opacity="0.9" />
             <path d="M 50 10 Q 52 35, 82 43 Q 52 51, 50 75 Q 48 51, 18 43 Q 48 35, 50 10 Z" fill="#FFFFFF" />
-            <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" fill="none" />
+            <path d="M 28 81 Q 50 93 72 81" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" fill="none" />
           </svg>
         </div>
-        <span class="font-extrabold text-warm-text text-sm">ShoppingAgent AI © 2025</span>
+        <div>
+          <div class="text-sm font-extrabold text-warm-text">AI Shopping Agent</div>
+          <div class="text-xs text-warm-muted font-medium">Hệ thống Tư vấn Thiết bị Công nghệ Thông minh</div>
+        </div>
       </div>
-      <p class="text-warm-muted font-medium">Thiết kế theo phong cách Soft-Brutalist Box (Trắng – Vàng ấm + Hard Offset Shadow).</p>
-      <div class="flex items-center gap-4 font-bold text-warm-text">
-        <a href="index.html" class="hover:text-warm-primary">Về Trang chủ</a>
-        <a href="#search-omnibox-section" class="hover:text-warm-primary">Lên đầu trang ↑</a>
+      <div class="flex flex-wrap items-center gap-6 text-xs font-bold text-warm-muted">
+        <a href="index.html" class="hover:text-warm-text transition-colors">Trang chủ</a>
+        <a href="search-results.html" class="hover:text-warm-text transition-colors">Tìm kiếm AI</a>
+        <a href="compare.html" class="hover:text-warm-text transition-colors">So sánh thiết bị</a>
+        <a href="favorites.html" class="hover:text-warm-text transition-colors">Yêu thích</a>
+        <a href="settings.html" class="hover:text-warm-text transition-colors">Cài đặt cá nhân</a>
+      </div>
+      <div class="text-xs text-warm-muted font-mono">
+        © 2026 AI Shopping Agent.
       </div>
     </div>
   </footer>
@@ -1271,11 +1277,11 @@
       const hint = document.getElementById('algo-strategy-hint');
       if (hint) {
         if (preset === 'price') {
-          hint.innerHTML = '<span class="text-warm-secondary-text font-bold">⚡ Đang ưu tiên giá mềm:</span> Cân bằng 70% Giá + 15% Đánh giá + 15% Cấu hình. (Để xếp tuyệt đối rẻ nhất lên đầu bất kể review, hãy chọn Sắp xếp: "Giá: Thấp đến cao")';
+          hint.innerHTML = '<span class="text-warm-secondary-text font-bold">⚡ Đang ưu tiên giá mềm:</span> Cân bằng 60% Giá + 20% Đánh giá + 20% Cấu hình. (Để xếp tuyệt đối rẻ nhất lên đầu bất kể review, hãy chọn Sắp xếp: "Giá: Thấp đến cao")';
         } else if (preset === 'spec') {
-          hint.innerHTML = '<span class="text-warm-secondary-text font-bold">⚡ Đang ưu tiên cấu hình:</span> Trọng số 65% Phần cứng + 15% Giá + 20% Đánh giá.';
+          hint.innerHTML = '<span class="text-warm-secondary-text font-bold">⚡ Đang ưu tiên cấu hình:</span> Trọng số 60% Phần cứng + 20% Giá + 20% Đánh giá.';
         } else if (preset === 'review') {
-          hint.innerHTML = '<span class="text-warm-secondary-text font-bold">⚡ Đang ưu tiên đánh giá:</span> Trọng số 70% Đánh giá người dùng + 10% Giá + 20% Phần cứng.';
+          hint.innerHTML = '<span class="text-warm-secondary-text font-bold">⚡ Đang ưu tiên đánh giá:</span> Trọng số 50% Đánh giá người dùng + 25% Giá + 25% Phần cứng.';
         } else {
           hint.innerText = 'Được sắp xếp tự động theo thuật toán chấm điểm đa tiêu chí cân bằng';
         }
@@ -1353,13 +1359,13 @@
       const sRating = Math.max(0.0, Math.min(1.0, rating / 5.0));
 
       // Strategy Weights (MCDM / SAW)
-      let wSpec = 0.45, wPrice = 0.30, wRating = 0.25;
+      let wSpec = 0.40, wPrice = 0.35, wRating = 0.25;
       if (preset === 'spec') {
-        wSpec = 0.65; wPrice = 0.15; wRating = 0.20;
+        wSpec = 0.60; wPrice = 0.20; wRating = 0.20;
       } else if (preset === 'price') {
-        wSpec = 0.15; wPrice = 0.70; wRating = 0.15;
+        wSpec = 0.20; wPrice = 0.60; wRating = 0.20;
       } else if (preset === 'review') {
-        wSpec = 0.20; wPrice = 0.10; wRating = 0.70;
+        wSpec = 0.25; wPrice = 0.25; wRating = 0.50;
       }
 
       const composite = (wSpec * sSpec) + (wPrice * sPrice) + (wRating * sRating);
