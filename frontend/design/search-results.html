@@ -470,7 +470,7 @@
             <span class="text-xs sm:text-sm font-extrabold text-warm-text">
               Tìm thấy <span id="total-results-count" class="text-warm-secondary-text bg-warm-secondary px-2 py-0.5 rounded-md border border-warm-text font-black">0 thiết bị</span> phù hợp tiêu chí
             </span>
-            <span class="text-xs text-warm-muted block mt-0.5 font-medium">Được sắp xếp tự động theo thuật toán chấm điểm đa tiêu chí</span>
+            <span id="algo-strategy-hint" class="text-xs text-warm-muted block mt-0.5 font-medium">Được sắp xếp tự động theo thuật toán chấm điểm đa tiêu chí</span>
           </div>
 
           <!-- Controls: Sort & Layout switcher -->
@@ -837,13 +837,18 @@
         </div>
 
         <!-- Pagination / Load more -->
-        <div class="pt-6 pb-2 text-center">
+        <div id="pagination-container" class="pt-6 pb-2 text-center">
           <button 
             type="button" 
+            id="btn-load-more"
+            onclick="loadMoreResults()"
             class="brutal-button-action px-6 py-3 rounded-2xl bg-warm-surface hover:bg-warm-subtle text-warm-text border-2 border-warm-text font-extrabold text-xs sm:text-sm shadow-brutal-sm cursor-pointer"
           >
             Tải thêm 3 sản phẩm tiếp theo (Xem thêm)
           </button>
+          <div id="pagination-end-message" class="hidden text-xs text-warm-muted font-bold py-2">
+            ✓ Đã hiển thị toàn bộ sản phẩm đề xuất tối ưu từ AI
+          </div>
         </div>
 
       </section>
@@ -1079,6 +1084,8 @@
     let currentAlgoPreset = 'balanced'; // 'balanced' | 'spec' | 'price' | 'review'
     let currentSortOrder = 'score'; // 'score' | 'price_asc' | 'price_desc' | 'rating'
     let currentLayout = 'list';     // 'list' | 'grid'
+    let displayedResultsCount = 6;  // Client-side progressive loading
+    const PAGE_STEP = 3;            // Load 3 more items on each click
 
     // Active filter state
     let activePricePresetIndex = null;
@@ -1260,6 +1267,23 @@
         btn.classList.remove('bg-warm-surface', 'text-warm-text');
       }
 
+      // Update strategy explanation hint
+      const hint = document.getElementById('algo-strategy-hint');
+      if (hint) {
+        if (preset === 'price') {
+          hint.innerHTML = '<span class="text-warm-secondary-text font-bold">⚡ Đang ưu tiên giá mềm:</span> Cân bằng 70% Giá + 15% Đánh giá + 15% Cấu hình. (Để xếp tuyệt đối rẻ nhất lên đầu bất kể review, hãy chọn Sắp xếp: "Giá: Thấp đến cao")';
+        } else if (preset === 'spec') {
+          hint.innerHTML = '<span class="text-warm-secondary-text font-bold">⚡ Đang ưu tiên cấu hình:</span> Trọng số 65% Phần cứng + 15% Giá + 20% Đánh giá.';
+        } else if (preset === 'review') {
+          hint.innerHTML = '<span class="text-warm-secondary-text font-bold">⚡ Đang ưu tiên đánh giá:</span> Trọng số 70% Đánh giá người dùng + 10% Giá + 20% Phần cứng.';
+        } else {
+          hint.innerText = 'Được sắp xếp tự động theo thuật toán chấm điểm đa tiêu chí cân bằng';
+        }
+      }
+
+      // Reset pagination to first page
+      displayedResultsCount = 6;
+
       // Apply re-scoring immediately
       applyFiltersAndRender();
 
@@ -1344,7 +1368,13 @@
       // Context-aware reasoning tailored to preset & item
       let reasoning = item.reasoning;
       if (preset === 'price') {
-        reasoning = `Mức giá ${formatPrice(price)} cực kỳ mềm và tiết kiệm chi phí, đạt điểm tối ưu giá ${Math.round(sPrice * 100)}% trong nhóm sản phẩm được đề xuất.`;
+        if (sPrice >= 0.95 && rating < 4.2) {
+          reasoning = `Mức giá ${formatPrice(price)} tiết kiệm chi phí hàng đầu (tối ưu giá ${Math.round(sPrice * 100)}%). Xếp sau top 1 do điểm đánh giá thực tế đạt ${rating.toFixed(1)}/5 sao, thuật toán cân đối để tránh đánh đổi chất lượng chỉ vì rẻ hơn vài trăm nghìn.`;
+        } else if (sPrice >= 0.85) {
+          reasoning = `Mức giá ${formatPrice(price)} cực kỳ mềm và tiết kiệm chi phí, đạt điểm tối ưu giá ${Math.round(sPrice * 100)}% trong nhóm sản phẩm được đề xuất.`;
+        } else {
+          reasoning = `Mức giá ${formatPrice(price)} hợp lý trong phân khúc, đạt điểm tương thích giá ${Math.round(sPrice * 100)}% cùng độ hài lòng ${rating.toFixed(1)}/5 sao.`;
+        }
       } else if (preset === 'spec') {
         reasoning = `Cấu hình phần cứng vượt trội với điểm tương thích kỹ thuật ${Math.round(sSpec * 100)}%, đáp ứng tối đa hiệu năng cho các tác vụ chuyên sâu.`;
       } else if (preset === 'review') {
@@ -1354,6 +1384,74 @@
       }
 
       return { composite, score100, reasoning, sSpec, sPrice, sRating };
+    }
+
+    // ── Dynamic Facet Extraction (Data-Driven from Search Results) ─────────────
+    function getChipFamilyDefinitions(category) {
+      if (category === 'phone') {
+        return [
+          { id: 'apple_a', label: 'Apple A-Series Bionic', pattern: /apple|bionic|a15|a16|a17|a18/i },
+          { id: 'snapdragon', label: 'Snapdragon (Qualcomm)', pattern: /snapdragon|qualcomm|8 gen|7 gen|778|695|870|888/i },
+          { id: 'dimensity', label: 'MediaTek Dimensity / Helio', pattern: /dimensity|helio|mediatek|mtk/i },
+          { id: 'exynos', label: 'Samsung Exynos', pattern: /exynos/i }
+        ];
+      }
+      return [
+        { id: 'intel_ultra', label: 'Intel Core Ultra (Gen 14 / AI Boost)', pattern: /ultra|core ultra|125h|155h|165h/i },
+        { id: 'intel_core_i7_i9', label: 'Intel Core i7 / i9 / Core 7', pattern: /i7|i9|core 7|13700|13620|13650|14700|14900|150u/i },
+        { id: 'intel_core_i5', label: 'Intel Core i5 / Core 5', pattern: /i5|core 5|13420|13450|13500|12450|12500|1334u/i },
+        { id: 'intel_core_i3', label: 'Intel Core i3 / Core 3', pattern: /i3|core 3|1215u|1315u/i },
+        { id: 'amd_ryzen', label: 'AMD Ryzen (5 / 7 / 8000 Series)', pattern: /ryzen|amd|7535|7735|7840|8845/i },
+        { id: 'snapdragon', label: 'Snapdragon X Elite / Plus (ARM)', pattern: /snapdragon|x1 26|x elite|x plus/i },
+        { id: 'apple_m', label: 'Apple Silicon (M1 / M2 / M3 / M4)', pattern: /apple|m1|m2|m3|m4/i }
+      ];
+    }
+
+    function getFeatureDefinitions(category) {
+      if (category === 'phone') {
+        return [
+          { id: 'phone_camera', label: 'Camera xịn (≥ 50MP / OIS)', test: (item, specs) => {
+            const cam = parseFloat(specs.camera) || 0;
+            const str = ((item.name || '') + ' ' + JSON.stringify(specs)).toLowerCase();
+            return cam >= 50 || str.includes('50mp') || str.includes('108mp') || str.includes('200mp') || str.includes('ois');
+          }},
+          { id: 'phone_battery', label: 'Pin trâu (≥ 5000 mAh)', test: (item, specs) => {
+            const b = parseFloat(specs.battery) || 0;
+            return b >= 5000;
+          }},
+          { id: 'phone_amoled', label: 'Màn hình AMOLED / 120Hz', test: (item, specs) => {
+            const str = ((item.name || '') + ' ' + JSON.stringify(specs)).toLowerCase();
+            return str.includes('amoled') || str.includes('120hz') || str.includes('oled');
+          }}
+        ];
+      }
+      return [
+        { id: 'screen_high_hz', label: 'Màn hình tần số cao (≥ 90Hz / 120Hz)', test: (item, specs) => {
+          const hz = parseFloat(specs.refresh_rate) || 0;
+          const name = (item.name || '').toLowerCase();
+          return hz >= 90 || name.includes('120hz') || name.includes('144hz') || name.includes('165hz');
+        }},
+        { id: 'screen_large', label: 'Màn hình lớn (≥ 15.6 inch)', test: (item, specs) => {
+          const sz = parseFloat(specs.screen_size) || 0;
+          return sz >= 15.6;
+        }},
+        { id: 'screen_compact', label: 'Màn hình gọn (≤ 14.0 inch)', test: (item, specs) => {
+          const sz = parseFloat(specs.screen_size) || 0;
+          return sz > 0 && sz <= 14.0;
+        }},
+        { id: 'battery_high', label: 'Pin dung lượng cao (≥ 50 Wh)', test: (item, specs) => {
+          const b = parseFloat(specs.battery) || 0;
+          return b >= 50;
+        }},
+        { id: 'lightweight', label: 'Mỏng nhẹ di động (≤ 1.5 kg)', test: (item, specs) => {
+          const w = parseFloat(specs.weight) || 0;
+          return w > 0 && w <= 1.5;
+        }},
+        { id: 'dedicated_gpu', label: 'Có Card đồ họa rời (RTX / GTX)', test: (item, specs) => {
+          const vga = (specs.vga || '').toLowerCase();
+          return vga.includes('rtx') || vga.includes('gtx') || (vga.includes('geforce') && !vga.includes('tích hợp'));
+        }}
+      ];
     }
 
     // ── Sidebar Facet Rendering ────────────────────────────────────────────────
@@ -1421,29 +1519,69 @@
         }).join('');
       }
 
-      // 4. Processor / Chip options
+      // 4. Dynamic Processor / Chip options
       const chipContainer = document.getElementById('filter-chips-container');
       if (chipContainer) {
-        chipContainer.innerHTML = facetConfig.chips.map(chip => {
+        const chipFams = getChipFamilyDefinitions(currentCategory);
+        const chipCounts = {};
+        rawSearchResults.forEach(item => {
+          const specs = typeof item.specs === 'object' && item.specs !== null ? item.specs : parseSpecs(item.specs);
+          const cpuStr = ((specs.cpu || specs.chipset || '') + ' ' + (item.name || '')).toLowerCase();
+          chipFams.forEach(fam => {
+            if (fam.pattern.test(cpuStr)) {
+              chipCounts[fam.id] = (chipCounts[fam.id] || 0) + 1;
+            }
+          });
+        });
+
+        // Show chips that exist in current results (or fallback to top 4 if empty)
+        let activeChips = chipFams.filter(f => (chipCounts[f.id] || 0) > 0);
+        if (activeChips.length === 0) activeChips = chipFams.slice(0, 4);
+
+        chipContainer.innerHTML = activeChips.map(chip => {
           const isChecked = selectedChips.has(chip.id);
+          const count = chipCounts[chip.id] || 0;
+          const countBadge = count > 0 ? `<span class="text-warm-muted text-[11px] font-bold">${count} máy</span>` : '';
           return `
-            <label class="flex items-center gap-2 cursor-pointer font-bold text-warm-text p-1 rounded-lg hover:bg-warm-subtle/40">
-              <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleChipFilter('${chip.id}', this.checked)" class="accent-warm-primary w-4 h-4 rounded cursor-pointer">
-              <span class="${isChecked ? 'font-black text-warm-primary-text' : 'text-warm-text'}">${chip.label}</span>
+            <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/40 cursor-pointer">
+              <span class="flex items-center gap-2">
+                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleChipFilter('${chip.id}', this.checked)" class="accent-warm-primary w-4 h-4 rounded cursor-pointer">
+                <span class="${isChecked ? 'font-black text-warm-primary-text' : 'font-bold text-warm-text'}">${chip.label}</span>
+              </span>
+              ${countBadge}
             </label>
           `;
         }).join('');
       }
 
-      // 5. Feature options
+      // 5. Dynamic Feature options
       const featureContainer = document.getElementById('filter-features-container');
       if (featureContainer) {
-        featureContainer.innerHTML = facetConfig.features.map(feat => {
+        const featureDefs = getFeatureDefinitions(currentCategory);
+        const featCounts = {};
+        rawSearchResults.forEach(item => {
+          const specs = typeof item.specs === 'object' && item.specs !== null ? item.specs : parseSpecs(item.specs);
+          featureDefs.forEach(fd => {
+            if (fd.test(item, specs)) {
+              featCounts[fd.id] = (featCounts[fd.id] || 0) + 1;
+            }
+          });
+        });
+
+        let activeFeats = featureDefs.filter(fd => (featCounts[fd.id] || 0) > 0);
+        if (activeFeats.length === 0) activeFeats = featureDefs.slice(0, 4);
+
+        featureContainer.innerHTML = activeFeats.map(feat => {
           const isChecked = selectedFeatures.has(feat.id);
+          const count = featCounts[feat.id] || 0;
+          const countBadge = count > 0 ? `<span class="text-warm-muted text-[11px] font-bold">${count} máy</span>` : '';
           return `
-            <label class="flex items-center gap-2 cursor-pointer font-bold text-warm-text p-1 rounded-lg hover:bg-warm-subtle/40">
-              <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleFeatureFilter('${feat.id}', this.checked)" class="accent-warm-primary w-4 h-4 rounded cursor-pointer">
-              <span class="${isChecked ? 'font-black text-warm-primary-text' : 'text-warm-text'}">${feat.label}</span>
+            <label class="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/40 cursor-pointer">
+              <span class="flex items-center gap-2">
+                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleFeatureFilter('${feat.id}', this.checked)" class="accent-warm-primary w-4 h-4 rounded cursor-pointer">
+                <span class="${isChecked ? 'font-black text-warm-primary-text' : 'font-bold text-warm-text'}">${feat.label}</span>
+              </span>
+              ${countBadge}
             </label>
           `;
         }).join('');
@@ -1537,6 +1675,7 @@
     }
 
     function resetAllFilters() {
+      displayedResultsCount = 6;
       activePricePresetIndex = null;
       customMinPrice = null;
       customMaxPrice = null;
@@ -1610,10 +1749,11 @@
 
         // Chip filter
         if (selectedChips.size > 0) {
+          const chipFams = getChipFamilyDefinitions(currentCategory);
           let chipMatched = false;
           for (const chipId of selectedChips) {
-            const chipDef = facetConfig.chips.find(c => c.id === chipId);
-            if (chipDef && chipDef.keywords.some(kw => specsStr.includes(kw.toLowerCase()))) {
+            const fam = chipFams.find(c => c.id === chipId);
+            if (fam && fam.pattern.test(specsStr)) {
               chipMatched = true;
               break;
             }
@@ -1623,10 +1763,11 @@
 
         // Feature filter
         if (selectedFeatures.size > 0) {
+          const featureDefs = getFeatureDefinitions(currentCategory);
           let featMatched = false;
           for (const featId of selectedFeatures) {
-            const featDef = facetConfig.features.find(f => f.id === featId);
-            if (featDef && featDef.keywords.some(kw => specsStr.includes(kw.toLowerCase()))) {
+            const fd = featureDefs.find(f => f.id === featId);
+            if (fd && fd.test(item, specs)) {
               featMatched = true;
               break;
             }
@@ -1689,7 +1830,9 @@
       const container = document.getElementById('results-container');
       if (!container) return;
 
+      const paginationContainer = document.getElementById('pagination-container');
       if (!results || results.length === 0) {
+        if (paginationContainer) paginationContainer.classList.add('hidden');
         container.innerHTML = `
           <div class="p-10 bg-warm-surface border-2 border-warm-text rounded-3xl shadow-brutal text-center space-y-4">
             <div class="w-16 h-16 mx-auto rounded-2xl bg-warm-pastel-peach border-2 border-warm-text flex items-center justify-center text-3xl">🔍</div>
@@ -1707,13 +1850,17 @@
         return;
       }
 
+      if (paginationContainer) paginationContainer.classList.remove('hidden');
+
       if (currentLayout === 'grid') {
         container.className = 'grid grid-cols-1 sm:grid-cols-2 gap-5';
       } else {
         container.className = 'space-y-5';
       }
 
-      container.innerHTML = results.map((item, index) => {
+      const visibleResults = results.slice(0, displayedResultsCount);
+
+      container.innerHTML = visibleResults.map((item, index) => {
         const id = item.productId || item.id;
         const specs = typeof item.specs === 'object' && item.specs !== null ? item.specs : parseSpecs(item.specs);
         const cpu = specs.cpu || specs.CPU || specs.processor || '';
@@ -1800,6 +1947,29 @@
           </article>
         `;
       }).join('');
+
+      // Manage Pagination Button & End Message
+      const btnLoadMore = document.getElementById('btn-load-more');
+      const paginationEndMsg = document.getElementById('pagination-end-message');
+
+      if (btnLoadMore && paginationEndMsg) {
+        if (displayedResultsCount < results.length) {
+          const remaining = results.length - displayedResultsCount;
+          const nextStep = Math.min(PAGE_STEP, remaining);
+          btnLoadMore.classList.remove('hidden');
+          btnLoadMore.innerText = `Tải thêm ${nextStep} sản phẩm tiếp theo (Còn lại ${remaining} máy)`;
+          paginationEndMsg.classList.add('hidden');
+        } else {
+          btnLoadMore.classList.add('hidden');
+          paginationEndMsg.classList.remove('hidden');
+          paginationEndMsg.innerText = `✓ Đã hiển thị toàn bộ ${results.length} sản phẩm đề xuất tối ưu từ AI`;
+        }
+      }
+    }
+
+    function loadMoreResults() {
+      displayedResultsCount += PAGE_STEP;
+      renderProductCards(lastSearchResults);
     }
 
     // ── Search & Filter Initialization ─────────────────────────────────────────
@@ -1957,6 +2127,7 @@
     }
 
     function renderSearchResults(data, query) {
+      displayedResultsCount = 6;
       const criteria = data.extractedCriteria || {};
       const results = data.results || [];
       rawSearchResults = results;
