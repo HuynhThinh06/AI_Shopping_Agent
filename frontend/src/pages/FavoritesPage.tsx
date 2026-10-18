@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import type { ProductDetailDTO } from '../types/product';
-import { getFavoriteIds, toggleFavoriteId, toggleCompareId, isInCompare } from '../utils/storage';
-import { Heart, Trash2, Scale, Star, Sparkles, ShoppingBag } from 'lucide-react';
+import { getFavoriteIds, toggleFavoriteId, toggleCompareId, isInCompare, getAuthUser } from '../utils/storage';
+import { Heart, Trash2, Scale, Star, Sparkles, ShoppingBag, LogIn } from 'lucide-react';
 
 export const FavoritesPage: React.FC = () => {
+  const navigate = useNavigate();
+  const user = getAuthUser();
   const [products, setProducts] = useState<ProductDetailDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [compares, setCompares] = useState<number[]>([]);
@@ -40,8 +42,33 @@ export const FavoritesPage: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!user) {
+      navigate('/auth?redirect=/favorites', { replace: true });
+      return;
+    }
     loadFavorites();
-  }, []);
+  }, [user]);
+
+  if (!user) {
+    return (
+      <div className="brutal-card p-10 max-w-lg mx-auto text-center bg-warm-surface space-y-4 my-12">
+        <div className="w-16 h-16 rounded-2xl border-2 border-warm-border bg-rose-100 flex items-center justify-center mx-auto shadow-brutal-xs">
+          <Heart className="w-8 h-8 text-rose-500" />
+        </div>
+        <h2 className="text-2xl font-black text-warm-text">Yêu Cầu Đăng Nhập</h2>
+        <p className="text-sm text-warm-muted leading-relaxed">
+          Chức năng <strong>Sản phẩm đã lưu</strong> yêu cầu đăng nhập tài khoản. Vui lòng đăng nhập để lưu trữ và quản lý bộ sưu tập yêu thích của bạn.
+        </p>
+        <Link
+          to="/auth?redirect=/favorites"
+          className="brutal-btn px-6 py-3 text-sm font-black inline-flex items-center gap-2 shadow-brutal"
+        >
+          <LogIn className="w-4 h-4" />
+          <span>Đăng nhập ngay</span>
+        </Link>
+      </div>
+    );
+  }
 
   const handleRemove = (id: number) => {
     toggleFavoriteId(id);

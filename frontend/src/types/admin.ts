@@ -45,3 +45,15 @@ export interface GinBenchmarkResult {
   seqScanSamples: number[];
   ginIndexSamples: number[];
 }
+
+export interface AdminUserDTO {
+  id: number;
+  username: string;
+  email: string;
+  displayName?: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+

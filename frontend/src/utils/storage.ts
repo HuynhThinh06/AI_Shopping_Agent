@@ -36,9 +36,24 @@ const REVIEWS_KEY = 'shopping_agent_user_reviews';
 export function getFavoriteIds(): number[] {
   try {
     const raw = localStorage.getItem(FAVORITES_KEY);
-    return raw ? JSON.parse(raw) : [1, 2, 4]; // Mặc định 3 SP demo nếu chưa có
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // Migration: nếu còn lưu mảng demo cứng [1, 2, 4] từ code cũ thì dọn sạch về rỗng
+    if (
+      parsed.length === 3 &&
+      parsed[0] === 1 &&
+      parsed[1] === 2 &&
+      parsed[2] === 4 &&
+      !localStorage.getItem('shopping_agent_fav_migrated')
+    ) {
+      localStorage.setItem('shopping_agent_fav_migrated', 'true');
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify([]));
+      return [];
+    }
+    return parsed;
   } catch {
-    return [1, 2, 4];
+    return [];
   }
 }
 
@@ -63,9 +78,23 @@ export function isFavoriteId(id: number): boolean {
 export function getCompareIds(): number[] {
   try {
     const raw = localStorage.getItem(COMPARE_KEY);
-    return raw ? JSON.parse(raw) : [1, 2]; // Mặc định 2 SP demo so sánh
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // Migration: nếu còn lưu mảng demo cứng [1, 2] từ code cũ thì dọn sạch về rỗng
+    if (
+      parsed.length === 2 &&
+      parsed[0] === 1 &&
+      parsed[1] === 2 &&
+      !localStorage.getItem('shopping_agent_comp_migrated')
+    ) {
+      localStorage.setItem('shopping_agent_comp_migrated', 'true');
+      localStorage.setItem(COMPARE_KEY, JSON.stringify([]));
+      return [];
+    }
+    return parsed;
   } catch {
-    return [1, 2];
+    return [];
   }
 }
 
@@ -140,19 +169,19 @@ export function getSearchHistory(): SearchHistoryItem[] {
 
 export function addSearchHistory(
   queryText: string,
-  categoryCode?: string,
-  target?: string,
-  budgetMax?: number,
-  totalMatched?: number
+  categoryCode?: string | null,
+  target?: string | null,
+  budgetMax?: number | null,
+  totalMatched?: number | null
 ): void {
   const list = getSearchHistory().filter((x) => x.queryText.toLowerCase() !== queryText.toLowerCase());
   const item: SearchHistoryItem = {
     id: Date.now().toString(),
     queryText,
-    categoryCode,
-    target,
-    budgetMax,
-    totalMatched,
+    categoryCode: categoryCode || undefined,
+    target: target || undefined,
+    budgetMax: budgetMax || undefined,
+    totalMatched: totalMatched || undefined,
     timestamp: new Date().toISOString(),
   };
   const next = [item, ...list].slice(0, 20); // Giữ 20 câu gần nhất
@@ -172,30 +201,27 @@ export function clearSearchHistory(): void {
 }
 
 // --- Auth User ---
-export function getAuthUser(): AuthUser {
+export function getAuthUser(): AuthUser | null {
   try {
     const raw = localStorage.getItem(USER_KEY);
-    return raw
-      ? JSON.parse(raw)
-      : {
-          name: 'Trần Tuấn Anh',
-          email: 'tuananh.dev@gmail.com',
-          phone: '0988 123 456',
-          avatarText: 'TA',
-          role: 'Thành viên VIP',
-        };
+    return raw ? JSON.parse(raw) : null;
   } catch {
-    return {
-      name: 'Trần Tuấn Anh',
-      email: 'tuananh.dev@gmail.com',
-      avatarText: 'TA',
-    };
+    return null;
   }
 }
 
 export function saveAuthUser(user: AuthUser): void {
   try {
     localStorage.setItem(USER_KEY, JSON.stringify(user));
+    window.dispatchEvent(new Event('auth-updated'));
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+export function logoutUser(): void {
+  try {
+    localStorage.removeItem(USER_KEY);
     window.dispatchEvent(new Event('auth-updated'));
   } catch (err) {
     console.error(err);

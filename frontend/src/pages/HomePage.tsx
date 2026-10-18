@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { getAuthUser } from '../utils/storage';
 import { Sparkles, Search, Laptop, Smartphone, ArrowRight, Zap, Database, ShieldCheck, Flame } from 'lucide-react';
 
 const SAMPLE_PROMPTS = [
@@ -12,6 +13,7 @@ const SAMPLE_PROMPTS = [
 export const HomePage: React.FC = () => {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
+  const user = getAuthUser();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +101,7 @@ export const HomePage: React.FC = () => {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div
-            onClick={() => handleSelectPrompt('Laptop')}
+            onClick={() => navigate('/category?type=laptop')}
             className="brutal-card p-6 bg-gradient-to-br from-amber-50 to-orange-50 cursor-pointer group"
           >
             <div className="flex items-center justify-between">
@@ -115,13 +117,13 @@ export const HomePage: React.FC = () => {
               Phù hợp cho lập trình viên, sinh viên, thiết kế đồ họa hoặc văn phòng mỏng nhẹ.
             </p>
             <div className="mt-4 inline-flex items-center gap-1 text-sm font-black text-amber-700">
-              <span>Tìm kiếm Laptop AI</span>
+              <span>Xem danh mục Laptop</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
 
           <div
-            onClick={() => handleSelectPrompt('Điện thoại')}
+            onClick={() => navigate('/category?type=phone')}
             className="brutal-card p-6 bg-gradient-to-br from-sky-50 to-indigo-50 cursor-pointer group"
           >
             <div className="flex items-center justify-between">
@@ -137,75 +139,81 @@ export const HomePage: React.FC = () => {
               Tìm theo tiêu chí pin trâu trên 5000 mAh, camera chụp đẹp, sạc nhanh.
             </p>
             <div className="mt-4 inline-flex items-center gap-1 text-sm font-black text-sky-700">
-              <span>Tìm kiếm Điện thoại AI</span>
+              <span>Xem danh mục Điện thoại</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Tech Architecture Badges */}
+      {/* Core Value Pillars Section */}
       <section className="brutal-card p-6 sm:p-8 bg-warm-surface">
         <h3 className="text-lg font-extrabold text-warm-text mb-4 text-center">
-          Kiến Trúc Kỹ Thuật Đồ Án (Giai Đoạn 2)
+          Cam Kết Giá Trị Đột Phá Của ShoppingAgent AI
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
           <div className="p-4 rounded-xl border border-warm-border bg-warm-subtle">
             <div className="flex items-center gap-2 font-bold text-amber-800 text-sm">
               <Sparkles className="w-4 h-4 text-amber-600" />
-              <span>Gemini Structured Output</span>
+              <span>Hiểu Ngôn Ngữ Tự Nhiên</span>
             </div>
             <p className="text-xs text-warm-muted mt-1">
-              Trích xuất câu truy vấn thành JSON schema chặt chẽ: ngân sách, specs, target.
+              Trí tuệ nhân tạo Gemini tự bóc tách nhu cầu theo ngân sách, thương hiệu và cấu hình bạn mong muốn.
             </p>
           </div>
 
           <div className="p-4 rounded-xl border border-warm-border bg-warm-subtle">
             <div className="flex items-center gap-2 font-bold text-sky-800 text-sm">
               <Database className="w-4 h-4 text-sky-600" />
-              <span>PostgreSQL GIN Index</span>
+              <span>Tìm Kiếm Tức Thì</span>
             </div>
             <p className="text-xs text-warm-muted mt-1">
-              Quét chỉ mục GIN trên trường <code>specs (JSONB)</code> tăng tốc truy vấn đến 30 lần.
+              Hệ thống tra cứu chuyên sâu giúp lọc nhanh thông số phần cứng của hàng trăm thiết bị trong vài mili-giây.
             </p>
           </div>
 
           <div className="p-4 rounded-xl border border-warm-border bg-warm-subtle">
             <div className="flex items-center gap-2 font-bold text-emerald-800 text-sm">
               <Zap className="w-4 h-4 text-emerald-600" />
-              <span>Weighted Scoring</span>
+              <span>Xếp Hạng Minh Bạch</span>
             </div>
             <p className="text-xs text-warm-muted mt-1">
-              Chuẩn hóa Min-Max giá nghịch đảo và rating, tính điểm SpecMatch với các toán tử.
+              Thuật toán tính điểm công bằng dựa trên độ khớp thông số, mức giá thực tế và điểm đánh giá người dùng.
             </p>
           </div>
 
           <div className="p-4 rounded-xl border border-warm-border bg-warm-subtle">
             <div className="flex items-center gap-2 font-bold text-purple-800 text-sm">
               <ShieldCheck className="w-4 h-4 text-purple-600" />
-              <span>Lọc Rác &amp; Cache Postgres</span>
+              <span>Tóm Tắt Đánh Giá Thực Tế</span>
             </div>
             <p className="text-xs text-warm-muted mt-1">
-              Lọc review 8 tiêu chí, tóm tắt ưu/nhược điểm và lưu cache Postgres qua <code>reviewHash</code>.
+              Hệ thống lọc bỏ đánh giá ảo, tự động tổng hợp ưu/nhược điểm khách quan từ người đã sử dụng sản phẩm.
             </p>
           </div>
         </div>
 
-        <div className="mt-6 pt-4 border-t border-warm-border/10 flex flex-wrap items-center justify-center gap-4 text-xs font-bold text-warm-muted">
-          <Link to="/admin/benchmark" className="hover:text-warm-text underline flex items-center gap-1">
-            <Database className="w-3.5 h-3.5 text-amber-500" />
-            Xem Bảng Đo Đạc GIN Index
-          </Link>
-          <span>•</span>
-          <Link to="/admin/llm-logs" className="hover:text-warm-text underline flex items-center gap-1">
-            <Zap className="w-3.5 h-3.5 text-amber-500" />
-            Xem Log Token &amp; Độ Trễ LLM
-          </Link>
-          <span>•</span>
-          <Link to="/admin/weights" className="hover:text-warm-text underline flex items-center gap-1">
-            Xem Cấu Hình Trọng Số Xếp Hạng
-          </Link>
-        </div>
+        {/* Admin Quick Shortcuts (Chỉ hiển thị cho Quản trị viên) */}
+        {user && user.role?.toLowerCase().includes('admin') && (
+          <div className="mt-6 pt-4 border-t border-warm-border/10 flex flex-wrap items-center justify-center gap-3 text-xs font-bold text-warm-muted">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-200 px-2 py-0.5 rounded-md border border-amber-300">
+              Admin Shortcuts:
+            </span>
+            <Link to="/admin/benchmark" className="hover:text-warm-text underline flex items-center gap-1">
+              <Database className="w-3.5 h-3.5 text-amber-500" />
+              Bảng Đo Đạc GIN Index
+            </Link>
+            <span>•</span>
+            <Link to="/admin/llm-logs" className="hover:text-warm-text underline flex items-center gap-1">
+              <Zap className="w-3.5 h-3.5 text-amber-500" />
+              Log Token &amp; Độ Trễ LLM
+            </Link>
+            <span>•</span>
+            <Link to="/admin/weights" className="hover:text-warm-text underline flex items-center gap-1">
+              Cấu Hình Trọng Số Xếp Hạng
+            </Link>
+          </div>
+        )}
       </section>
     </div>
   );

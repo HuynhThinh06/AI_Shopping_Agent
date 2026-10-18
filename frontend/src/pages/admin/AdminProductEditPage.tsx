@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { AdminNav } from '../../components/admin/AdminNav';
 import { apiClient } from '../../api/client';
 import type { ProductDetailDTO } from '../../types/product';
-import { Package, Save, ArrowLeft, Plus, Trash2, CheckCircle2, Code } from 'lucide-react';
+import { Package, Save, ArrowLeft, Plus, Trash2, CheckCircle2, Code, Image as ImageIcon, AlertCircle } from 'lucide-react';
 
 export const AdminProductEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,8 +14,10 @@ export const AdminProductEditPage: React.FC = () => {
   const [brand, setBrand] = useState('');
   const [sku, setSku] = useState('');
   const [price, setPrice] = useState<number>(15000000);
+  const [stockQuantity, setStockQuantity] = useState<number>(20);
   const [categoryCode, setCategoryCode] = useState('laptop');
   const [productUrl, setProductUrl] = useState('');
+  const [imageUrls, setImageUrls] = useState<string[]>(['']);
   const [specs, setSpecs] = useState<Array<{ key: string; value: string }>>([
     { key: 'ram', value: '16' },
     { key: 'cpu', value: 'Intel Core i5-13420H' },
@@ -23,21 +25,30 @@ export const AdminProductEditPage: React.FC = () => {
     { key: 'battery', value: '50' },
   ]);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (isEdit && id) {
+      setLoading(true);
       apiClient
         .get<ProductDetailDTO>(`/products/${id}`)
         .then((res) => {
           const p = res.data;
-          setName(p.name);
-          setBrand(p.brand);
+          setName(p.name || '');
+          setBrand(p.brand || '');
           setSku(p.sku || '');
-          setPrice(p.price);
-          setCategoryCode(p.categoryCode);
+          setPrice(p.price || 0);
+          setStockQuantity(p.stockQuantity ?? 15);
+          setCategoryCode(p.categoryCode || 'laptop');
           setProductUrl(p.productUrl || '');
-          if (p.specs) {
+          if (p.imageUrls && p.imageUrls.length > 0) {
+            setImageUrls(p.imageUrls);
+          } else {
+            setImageUrls(['']);
+          }
+          if (p.specs && Object.keys(p.specs).length > 0) {
             setSpecs(
               Object.entries(p.specs).map(([key, value]) => ({
                 key,
@@ -46,7 +57,11 @@ export const AdminProductEditPage: React.FC = () => {
             );
           }
         })
-        .catch((err) => console.error('Failed to load product:', err));
+        .catch((err) => {
+          console.error('Failed to load product:', err);
+          setErrorMessage('Không thể tải thông tin sản phẩm. Vui lòng kiểm tra lại!');
+        })
+        .finally(() => setLoading(false));
     }
   }, [id, isEdit]);
 
@@ -66,9 +81,45 @@ export const AdminProductEditPage: React.FC = () => {
     });
   };
 
+  const handleAddImageUrl = () => {
+    setImageUrls((prev) => [...prev, '']);
+  };
+
+  const handleRemoveImageUrl = (index: number) => {
+    setImageUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleImageUrlChange = (index: number, val: string) => {
+    setImageUrls((prev) => {
+      const next = [...prev];
+      next[index] = val;
+      return next;
+    });
+  };
+
+  const handleCategoryPreset = (newCat: string) => {
+    setCategoryCode(newCat);
+    if (newCat === 'phone' && specs.some((s) => s.key === 'cpu' && s.value.includes('Intel'))) {
+      setSpecs([
+        { key: 'ram', value: '8' },
+        { key: 'storage', value: '256' },
+        { key: 'battery', value: '5000' },
+        { key: 'screen_size', value: '6.7' },
+      ]);
+    } else if (newCat === 'laptop' && specs.some((s) => s.key === 'battery' && s.value === '5000')) {
+      setSpecs([
+        { key: 'ram', value: '16' },
+        { key: 'cpu', value: 'Intel Core i5-13420H' },
+        { key: 'storage', value: '512' },
+        { key: 'battery', value: '50' },
+      ]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setErrorMessage(null);
 
     const specsMap: Record<string, any> = {};
     specs.forEach(({ key, value }) => {
@@ -78,20 +129,53 @@ export const AdminProductEditPage: React.FC = () => {
       }
     });
 
+    const cleanImageUrls = imageUrls.map((u) => u.trim()).filter((u) => u.length > 0);
+
+    const payload = {
+      name: name.trim(),
+      brand: brand.trim(),
+      sku: sku.trim() || undefined,
+      price,
+      stockQuantity,
+      categoryCode,
+      productUrl: productUrl.trim() || undefined,
+      specs: specsMap,
+      imageUrls: cleanImageUrls,
+      isActive: true,
+    };
+
     try {
-      // In real backend, POST or PUT to /products
-      // We also handle mock persistence
+      if (isEdit && id) {
+        await apiClient.put(`/products/${id}`, payload);
+      } else {
+        await apiClient.post('/products', payload);
+      }
+
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
         navigate('/admin/products');
-      }, 1500);
-    } catch (err) {
+      }, 1200);
+    } catch (err: any) {
       console.error('Failed to save product:', err);
+      setErrorMessage(
+        err.response?.data?.message || 'Có lỗi xảy ra khi lưu sản phẩm vào cơ sở dữ liệu. Vui lòng thử lại!'
+      );
     } finally {
       setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <AdminNav />
+        <div className="p-12 text-center text-warm-muted font-bold text-sm bg-warm-surface border-2 border-warm-text rounded-2xl shadow-brutal">
+          Đang tải thông tin sản phẩm #{id}...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -119,10 +203,17 @@ export const AdminProductEditPage: React.FC = () => {
         {success && (
           <div className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 font-black text-xs">
             <CheckCircle2 className="w-4 h-4" />
-            <span>Đã lưu thành công!</span>
+            <span>Đã lưu thành công vào CSDL!</span>
           </div>
         )}
       </div>
+
+      {errorMessage && (
+        <div className="p-4 rounded-xl bg-rose-50 border-2 border-rose-400 text-rose-800 text-xs font-bold flex items-center gap-2 shadow-brutal-xs">
+          <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -133,7 +224,7 @@ export const AdminProductEditPage: React.FC = () => {
             </h2>
 
             <div>
-              <label className="block text-xs font-black text-warm-text mb-1">Tên sản phẩm</label>
+              <label className="block text-xs font-black text-warm-text mb-1">Tên sản phẩm *</label>
               <input
                 type="text"
                 required
@@ -146,22 +237,22 @@ export const AdminProductEditPage: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-black text-warm-text mb-1">Thương hiệu</label>
+                <label className="block text-xs font-black text-warm-text mb-1">Thương hiệu *</label>
                 <input
                   type="text"
                   required
                   value={brand}
                   onChange={(e) => setBrand(e.target.value)}
-                  placeholder="Asus, Apple, Dell, Lenovo..."
+                  placeholder="Asus, Apple, Dell, Lenovo, Samsung..."
                   className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-black text-warm-text mb-1">Ngành hàng</label>
+                <label className="block text-xs font-black text-warm-text mb-1">Ngành hàng *</label>
                 <select
                   value={categoryCode}
-                  onChange={(e) => setCategoryCode(e.target.value)}
+                  onChange={(e) => handleCategoryPreset(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none"
                 >
                   <option value="laptop">Laptop (laptop)</option>
@@ -170,7 +261,7 @@ export const AdminProductEditPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-black text-warm-text mb-1">Mã SKU</label>
                 <input
@@ -183,14 +274,25 @@ export const AdminProductEditPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-black text-warm-text mb-1">Giá bán (VNĐ)</label>
+                <label className="block text-xs font-black text-warm-text mb-1">Giá bán (VNĐ) *</label>
                 <input
                   type="number"
                   required
                   min={100000}
-                  step={100000}
+                  step={50000}
                   value={price}
                   onChange={(e) => setPrice(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-warm-text mb-1">Tồn kho</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={stockQuantity}
+                  onChange={(e) => setStockQuantity(Number(e.target.value))}
                   className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none font-mono"
                 />
               </div>
@@ -206,6 +308,76 @@ export const AdminProductEditPage: React.FC = () => {
                 className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none font-mono"
               />
             </div>
+
+            {/* Images section */}
+            <div className="pt-2">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-black text-warm-text flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-warm-primary" />
+                  <span>Hình ảnh sản phẩm (URLs)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddImageUrl}
+                  className="px-2 py-0.5 rounded bg-warm-bg border border-warm-text text-[11px] font-bold text-warm-text hover:bg-warm-secondary"
+                >
+                  + Thêm URL ảnh
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {imageUrls.map((url, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      type="url"
+                      value={url}
+                      onChange={(e) => handleImageUrlChange(idx, e.target.value)}
+                      placeholder="https://images.unsplash.com/... hoặc link ảnh CDN"
+                      className="flex-1 px-3 py-1.5 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-mono focus:outline-none"
+                    />
+                    {imageUrls.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImageUrl(idx)}
+                        className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
+                        title="Xóa link ảnh này"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Preview Images */}
+              {imageUrls.some((u) => u.trim().length > 0) && (
+                <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-warm-border-subtle">
+                  {imageUrls
+                    .filter((u) => u.trim().length > 0)
+                    .map((url, i) => (
+                      <div
+                        key={i}
+                        className="relative w-16 h-16 rounded-lg border-2 border-warm-text overflow-hidden bg-white p-1"
+                      >
+                        <img
+                          src={url}
+                          alt="preview"
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              'https://placehold.co/100x100?text=Error';
+                          }}
+                        />
+                        {i === 0 && (
+                          <span className="absolute bottom-0 left-0 right-0 bg-warm-primary text-[8px] font-black text-center text-warm-primary-text">
+                            Chính
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Dynamic Specs Editor (5 Cols) */}
@@ -213,7 +385,7 @@ export const AdminProductEditPage: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b-2 border-warm-border-subtle">
               <div className="flex items-center gap-1.5 text-sm font-black text-warm-text uppercase tracking-wider">
                 <Code className="w-4 h-4 text-warm-primary" />
-                <span>Specs JSONB</span>
+                <span>Specs JSONB ({categoryCode})</span>
               </div>
 
               <button
@@ -227,10 +399,10 @@ export const AdminProductEditPage: React.FC = () => {
             </div>
 
             <p className="text-[11px] text-warm-muted font-medium">
-              Các khóa thông số (`ram`, `cpu`, `storage`, `battery`) sẽ được lập chỉ mục GIN để hỗ trợ hàm `jsonb_exists()` trong Spring Boot.
+              Các khóa thông số (`ram`, `cpu`, `storage`, `battery`, `screen_size`) được lập chỉ mục GIN để hỗ trợ hàm so khớp `jsonb_path_query()` và so sánh kỹ thuật.
             </p>
 
-            <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
               {specs.map((row, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <input
@@ -275,7 +447,7 @@ export const AdminProductEditPage: React.FC = () => {
             className="px-6 py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            <span>{saving ? 'Đang lưu...' : 'Lưu sản phẩm vào CSDL'}</span>
+            <span>{saving ? 'Đang lưu vào CSDL...' : isEdit ? 'Cập nhật sản phẩm' : 'Tạo mới sản phẩm'}</span>
           </button>
         </div>
       </form>

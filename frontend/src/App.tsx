@@ -1,6 +1,7 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
+import { getAuthUser } from './utils/storage';
 
 // P0: Core User Flow
 import { HomePage } from './pages/HomePage';
@@ -25,7 +26,17 @@ import { AuthPage } from './pages/AuthPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
 import { AdminProductEditPage } from './pages/admin/AdminProductEditPage';
+import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+
+// Guard bảo vệ các trang quản trị
+const AdminLayout: React.FC = () => {
+  const user = getAuthUser();
+  if (!user || !user.role?.toLowerCase().includes('admin')) {
+    return <Navigate to="/auth?redirect=/admin/dashboard" replace />;
+  }
+  return <Outlet />;
+};
 
 export const App: React.FC = () => {
   return (
@@ -49,17 +60,20 @@ export const App: React.FC = () => {
           <Route path="/register" element={<AuthPage />} />
           <Route path="/settings" element={<SettingsPage />} />
 
-          {/* P1 & P2: Admin Control Center */}
-          <Route path="/admin" element={<AdminDashboardPage />} />
-          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-          <Route path="/admin/benchmark" element={<AdminBenchmarkPage />} />
-          <Route path="/admin/llm-logs" element={<AdminLlmLogsPage />} />
-          <Route path="/admin/weights" element={<AdminWeightsPage />} />
-          <Route path="/admin/products" element={<AdminProductsPage />} />
-          <Route path="/admin/products/new" element={<AdminProductEditPage />} />
-          <Route path="/admin/products/:id/edit" element={<AdminProductEditPage />} />
-          <Route path="/admin/categories" element={<AdminCategoriesPage />} />
-          <Route path="/admin/reviews" element={<AdminReviewsPage />} />
+          {/* P1 & P2: Admin Control Center (Yêu cầu quyền Admin) */}
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<AdminDashboardPage />} />
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            <Route path="/admin/benchmark" element={<AdminBenchmarkPage />} />
+            <Route path="/admin/llm-logs" element={<AdminLlmLogsPage />} />
+            <Route path="/admin/weights" element={<AdminWeightsPage />} />
+            <Route path="/admin/products" element={<AdminProductsPage />} />
+            <Route path="/admin/products/new" element={<AdminProductEditPage />} />
+            <Route path="/admin/products/:id/edit" element={<AdminProductEditPage />} />
+            <Route path="/admin/categories" element={<AdminCategoriesPage />} />
+            <Route path="/admin/reviews" element={<AdminReviewsPage />} />
+            <Route path="/admin/users" element={<AdminUsersPage />} />
+          </Route>
 
           {/* Fallback 404 */}
           <Route path="*" element={<NotFoundPage />} />

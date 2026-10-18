@@ -13,12 +13,13 @@ import {
   Shield,
   LogOut,
   ChevronDown,
+  LogIn,
 } from 'lucide-react';
-import { getAuthUser, getFavoriteIds, getCompareIds, type AuthUser } from '../../utils/storage';
+import { getAuthUser, logoutUser, getFavoriteIds, getCompareIds, type AuthUser } from '../../utils/storage';
 
 export const Navbar: React.FC = () => {
   const location = useLocation();
-  const [user, setUser] = useState<AuthUser>(getAuthUser());
+  const [user, setUser] = useState<AuthUser | null>(getAuthUser());
   const [favoriteCount, setFavoriteCount] = useState<number>(getFavoriteIds().length);
   const [compareCount, setCompareCount] = useState<number>(getCompareIds().length);
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
@@ -72,26 +73,34 @@ export const Navbar: React.FC = () => {
         {/* Primary Nav Links */}
         <nav className="hidden lg:flex items-center gap-2 xl:gap-3 text-xs sm:text-sm font-bold">
           <Link
-            to="/"
+            to="/search"
             className={`px-3 py-1.5 rounded-xl border-2 transition-all flex items-center gap-1.5 ${
-              isActive('/')
-                ? 'bg-warm-primary text-warm-primary-text border-warm-border shadow-brutal-xs'
+              location.pathname.startsWith('/search')
+                ? 'bg-warm-primary text-warm-primary-text border-warm-border shadow-brutal-xs font-black'
                 : 'text-warm-text border-transparent hover:border-warm-border hover:bg-warm-subtle'
             }`}
           >
-            <Search className="w-4 h-4" />
+            {location.pathname.startsWith('/search') ? (
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+            ) : (
+              <Search className="w-4 h-4" />
+            )}
             <span>Tìm kiếm AI</span>
           </Link>
 
           <Link
             to="/category?type=laptop"
             className={`px-3 py-1.5 rounded-xl border-2 transition-all flex items-center gap-1.5 ${
-              location.pathname === '/category' && location.search.includes('laptop')
-                ? 'bg-warm-primary text-warm-primary-text border-warm-border shadow-brutal-xs'
+              location.pathname === '/category' && (location.search.includes('laptop') || !location.search.includes('phone'))
+                ? 'bg-warm-primary text-warm-primary-text border-warm-border shadow-brutal-xs font-black'
                 : 'text-warm-text border-transparent hover:border-warm-border hover:bg-warm-subtle'
             }`}
           >
-            <Laptop className="w-4 h-4" />
+            {location.pathname === '/category' && (location.search.includes('laptop') || !location.search.includes('phone')) ? (
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+            ) : (
+              <Laptop className="w-4 h-4" />
+            )}
             <span>Laptop</span>
           </Link>
 
@@ -99,11 +108,15 @@ export const Navbar: React.FC = () => {
             to="/category?type=phone"
             className={`px-3 py-1.5 rounded-xl border-2 transition-all flex items-center gap-1.5 ${
               location.pathname === '/category' && location.search.includes('phone')
-                ? 'bg-warm-primary text-warm-primary-text border-warm-border shadow-brutal-xs'
+                ? 'bg-warm-primary text-warm-primary-text border-warm-border shadow-brutal-xs font-black'
                 : 'text-warm-text border-transparent hover:border-warm-border hover:bg-warm-subtle'
             }`}
           >
-            <Smartphone className="w-4 h-4" />
+            {location.pathname === '/category' && location.search.includes('phone') ? (
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+            ) : (
+              <Smartphone className="w-4 h-4" />
+            )}
             <span>Điện thoại</span>
           </Link>
         </nav>
@@ -129,122 +142,145 @@ export const Navbar: React.FC = () => {
             )}
           </Link>
 
-          {/* Favorites Button */}
-          <Link
-            to="/favorites"
-            title="Sản phẩm đã lưu"
-            className={`p-2 sm:px-3 sm:py-1.5 rounded-xl border-2 border-warm-border shadow-brutal-xs flex items-center gap-1.5 transition-all text-xs font-black ${
-              isActive('/favorites')
-                ? 'bg-rose-100 text-rose-800 -translate-y-0.5'
-                : 'bg-warm-surface hover:bg-rose-50 text-warm-text'
-            }`}
-          >
-            <Heart
-              className={`w-4 h-4 ${favoriteCount > 0 ? 'text-rose-500 fill-rose-500' : 'text-warm-text'}`}
-            />
-            <span className="hidden sm:inline">Đã lưu</span>
-            {favoriteCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-mono">
-                {favoriteCount}
-              </span>
-            )}
-          </Link>
-
-          {/* Admin shortcut */}
-          <Link
-            to="/admin/dashboard"
-            title="Bảng điều khiển Admin"
-            className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-warm-bg hover:bg-warm-secondary border border-warm-border text-xs font-bold"
-          >
-            <Shield className="w-3.5 h-3.5 text-warm-primary" />
-            <span>Admin</span>
-          </Link>
-
-          {/* User Profile Pill & Dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setDropdownOpen((prev) => !prev)}
-              className="flex items-center gap-2 px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-warm-surface border-2 border-warm-border shadow-brutal-xs hover:bg-warm-secondary transition-all cursor-pointer"
+          {/* Favorites Button (Chỉ hiển thị khi đã đăng nhập) */}
+          {user && (
+            <Link
+              to="/favorites"
+              title="Sản phẩm đã lưu"
+              className={`p-2 sm:px-3 sm:py-1.5 rounded-xl border-2 border-warm-border shadow-brutal-xs flex items-center gap-1.5 transition-all text-xs font-black ${
+                isActive('/favorites')
+                  ? 'bg-rose-100 text-rose-800 -translate-y-0.5'
+                  : 'bg-warm-surface hover:bg-rose-50 text-warm-text'
+              }`}
             >
-              <div className="w-7 h-7 rounded-lg bg-warm-primary border border-warm-border flex items-center justify-center text-warm-primary-text font-black text-xs shadow-inner">
-                {user.avatarText || 'TA'}
-              </div>
-              <div className="hidden md:flex flex-col text-left leading-tight">
-                <span className="text-xs font-bold text-warm-text truncate max-w-[90px]">
-                  {user.name.split(' ').slice(-1)[0]}
-                </span>
-                <span className="text-[10px] text-warm-muted font-medium">
-                  {user.role || 'Thành viên'}
-                </span>
-              </div>
-              <ChevronDown
-                className={`w-3.5 h-3.5 text-warm-muted transition-transform ${
-                  dropdownOpen ? 'rotate-180' : ''
-                }`}
+              <Heart
+                className={`w-4 h-4 ${favoriteCount > 0 ? 'text-rose-500 fill-rose-500' : 'text-warm-text'}`}
               />
-            </button>
+              <span className="hidden sm:inline">Đã lưu</span>
+              {favoriteCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-mono">
+                  {favoriteCount}
+                </span>
+              )}
+            </Link>
+          )}
 
-            {/* Dropdown Menu */}
-            {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-warm-surface border-2 border-warm-border rounded-2xl shadow-brutal p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-3 py-2 border-b border-warm-border-subtle mb-1">
-                  <div className="text-xs font-black text-warm-text">{user.name}</div>
-                  <div className="text-[11px] text-warm-muted font-mono truncate">{user.email}</div>
+          {/* Admin shortcut (Chỉ hiển thị khi đã đăng nhập với vai trò Admin) */}
+          {user && user.role?.toLowerCase().includes('admin') && (
+            <Link
+              to="/admin/dashboard"
+              title="Bảng điều khiển Admin"
+              className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-warm-bg hover:bg-warm-secondary border border-warm-border text-xs font-bold"
+            >
+              <Shield className="w-3.5 h-3.5 text-warm-primary" />
+              <span>Admin</span>
+            </Link>
+          )}
+
+          {/* User Profile Pill & Dropdown hoặc Nút Đăng nhập cho Khách */}
+          {user ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setDropdownOpen((prev) => !prev)}
+                className="flex items-center gap-2 px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-warm-surface border-2 border-warm-border shadow-brutal-xs hover:bg-warm-secondary transition-all cursor-pointer"
+              >
+                <div className="w-7 h-7 rounded-lg bg-warm-primary border border-warm-border flex items-center justify-center text-warm-primary-text font-black text-xs shadow-inner">
+                  {user.avatarText || 'U'}
                 </div>
+                <div className="hidden md:flex flex-col text-left leading-tight">
+                  <span className="text-xs font-bold text-warm-text truncate max-w-[90px]">
+                    {user.name.split(' ').slice(-1)[0]}
+                  </span>
+                  <span className="text-[10px] text-warm-muted font-medium">
+                    {user.role || 'Thành viên'}
+                  </span>
+                </div>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-warm-muted transition-transform ${
+                    dropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
 
-                <Link
-                  to="/history"
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary transition-colors"
-                >
-                  <History className="w-4 h-4 text-warm-primary" />
-                  <span>Lịch sử tư vấn AI</span>
-                </Link>
+              {/* Dropdown Menu */}
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-warm-surface border-2 border-warm-border rounded-2xl shadow-brutal p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-3 py-2 border-b border-warm-border-subtle mb-1">
+                    <div className="text-xs font-black text-warm-text">{user.name}</div>
+                    <div className="text-[11px] text-warm-muted font-mono truncate">{user.email}</div>
+                  </div>
 
-                <Link
-                  to="/favorites"
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary transition-colors"
-                >
-                  <Heart className="w-4 h-4 text-rose-500" />
-                  <span>Sản phẩm yêu thích ({favoriteCount})</span>
-                </Link>
+                  <Link
+                    to="/history"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary transition-colors"
+                  >
+                    <History className="w-4 h-4 text-warm-primary" />
+                    <span>Lịch sử tư vấn AI</span>
+                  </Link>
 
-                <Link
-                  to="/my-reviews"
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary transition-colors"
-                >
-                  <MessageSquare className="w-4 h-4 text-warm-muted" />
-                  <span>Đánh giá của tôi</span>
-                </Link>
+                  <Link
+                    to="/favorites"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary transition-colors"
+                  >
+                    <Heart className="w-4 h-4 text-rose-500" />
+                    <span>Sản phẩm yêu thích ({favoriteCount})</span>
+                  </Link>
 
-                <Link
-                  to="/settings"
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary transition-colors"
-                >
-                  <Settings className="w-4 h-4 text-warm-muted" />
-                  <span>Cài đặt & Tùy chọn AI</span>
-                </Link>
+                  <Link
+                    to="/my-reviews"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary transition-colors"
+                  >
+                    <MessageSquare className="w-4 h-4 text-warm-muted" />
+                    <span>Đánh giá của tôi</span>
+                  </Link>
 
-                <div className="border-t border-warm-border-subtle my-1"></div>
+                  <Link
+                    to="/settings"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-warm-text hover:bg-warm-secondary transition-colors"
+                  >
+                    <Settings className="w-4 h-4 text-warm-muted" />
+                    <span>Cài đặt & Tùy chọn AI</span>
+                  </Link>
 
-                <Link
-                  to="/admin/dashboard"
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-900 bg-warm-pastel-amber border border-warm-border shadow-brutal-xs my-1"
-                >
-                  <Shield className="w-4 h-4 text-warm-primary" />
-                  <span>Admin Control Center</span>
-                </Link>
+                  {user.role?.toLowerCase().includes('admin') && (
+                    <>
+                      <div className="border-t border-warm-border-subtle my-1"></div>
+                      <Link
+                        to="/admin/dashboard"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-900 bg-warm-pastel-amber border border-warm-border shadow-brutal-xs my-1"
+                      >
+                        <Shield className="w-4 h-4 text-warm-primary" />
+                        <span>Admin Control Center</span>
+                      </Link>
+                    </>
+                  )}
 
-                <Link
-                  to="/auth"
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
-                >
-                  <LogOut className="w-4 h-4 text-rose-500" />
-                  <span>Đổi tài khoản / Đăng xuất</span>
-                </Link>
-              </div>
-            )}
-          </div>
+                  <div className="border-t border-warm-border-subtle my-1"></div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logoutUser();
+                      setDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4 text-rose-500" />
+                    <span>Đăng xuất</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link
+              to="/auth"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-black text-xs border-2 border-warm-border shadow-brutal-xs flex items-center gap-1.5 transition-all"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Đăng nhập</span>
+            </Link>
+          )}
         </div>
       </header>
     </div>

@@ -1,6 +1,6 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Zap, Activity, Sliders, Package, MessageSquare, Layers } from 'lucide-react';
+import { NavLink, Link } from 'react-router-dom';
+import { LayoutDashboard, Zap, Activity, Sliders, Package, MessageSquare, Layers, Users, Store } from 'lucide-react';
 
 export const AdminNav: React.FC = () => {
   const navItems = [
@@ -11,10 +11,11 @@ export const AdminNav: React.FC = () => {
     { to: '/admin/products', label: 'Sản phẩm', icon: Package },
     { to: '/admin/categories', label: 'Ngành hàng & GIN', icon: Layers },
     { to: '/admin/reviews', label: 'Đánh giá & Cache', icon: MessageSquare },
+    { to: '/admin/users', label: 'Người dùng & Quyền', icon: Users },
   ];
 
   return (
-    <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-3 shadow-brutal mb-6">
+    <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-3 shadow-brutal mb-6 flex flex-col md:flex-row md:items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-2">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -40,6 +41,17 @@ export const AdminNav: React.FC = () => {
             </NavLink>
           );
         })}
+      </div>
+
+      <div className="flex items-center justify-end">
+        <Link
+          to="/"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-warm-bg hover:bg-warm-secondary text-warm-text font-black text-xs border-2 border-warm-text shadow-brutal-xs transition-all hover:-translate-y-0.5"
+          title="Mở giao diện khách hàng để trải nghiệm"
+        >
+          <Store className="w-4 h-4 text-warm-primary" />
+          <span>Về Storefront Khách Hàng</span>
+        </Link>
       </div>
     </div>
   );

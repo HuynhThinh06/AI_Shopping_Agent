@@ -5,6 +5,8 @@ export interface ProductDetailDTO {
   name: string;
   brand: string;
   price: number;
+  stockQuantity?: number;
+  isActive?: boolean;
   productUrl?: string;
   avgRating?: number;
   reviewCount?: number;

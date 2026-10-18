@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import type { ProductDetailDTO } from '../types/product';
 import type { PageResponse } from '../types/review';
-import { toggleFavoriteId, isFavoriteId, toggleCompareId, isInCompare } from '../utils/storage';
+import { toggleFavoriteId, isFavoriteId, toggleCompareId, isInCompare, getAuthUser } from '../utils/storage';
 import {
   Laptop,
   Smartphone,
@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 
 export const CategoryPage: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const typeParam = searchParams.get('type') || 'laptop';
 
@@ -51,6 +53,7 @@ export const CategoryPage: React.FC = () => {
       const res = await apiClient.get<PageResponse<ProductDetailDTO>>('/products', {
         params: {
           categoryCode: activeType,
+          keyword: '',
           minPrice,
           maxPrice,
           size: 40,
@@ -94,6 +97,11 @@ export const CategoryPage: React.FC = () => {
   };
 
   const handleFavoriteToggle = (id: number) => {
+    const user = getAuthUser();
+    if (!user) {
+      navigate('/auth?redirect=' + encodeURIComponent(location.pathname + location.search));
+      return;
+    }
     toggleFavoriteId(id);
     setFavorites((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };

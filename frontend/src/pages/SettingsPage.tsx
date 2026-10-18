@@ -4,9 +4,9 @@ import { User, Settings, Save, CheckCircle2, Sliders } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
   const currentUser = getAuthUser();
-  const [name, setName] = useState(currentUser.name);
-  const [email, setEmail] = useState(currentUser.email);
-  const [phone, setPhone] = useState(currentUser.phone || '');
+  const [name, setName] = useState(currentUser?.name || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
+  const [phone, setPhone] = useState(currentUser?.phone || '');
   const [priority, setPriority] = useState('balanced');
   const [defaultCategory, setDefaultCategory] = useState('laptop');
   const [saved, setSaved] = useState(false);
@@ -18,11 +18,11 @@ export const SettingsPage: React.FC = () => {
       : 'U';
 
     saveAuthUser({
-      ...currentUser,
-      name,
-      email,
+      name: name || 'Người dùng',
+      email: email || 'user@example.com',
       phone,
       avatarText: initials,
+      role: currentUser?.role || 'Thành viên mới',
     });
 
     setSaved(true);
@@ -100,7 +100,7 @@ export const SettingsPage: React.FC = () => {
             <div>
               <label className="block text-xs font-black text-warm-text mb-1">Cấp độ tài khoản</label>
               <div className="px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-pastel-amber text-xs font-black text-warm-secondary-text">
-                {currentUser.role || 'Thành viên VIP'}
+                {currentUser?.role || 'Khách vãng lai (Chưa đăng nhập)'}
               </div>
             </div>
           </div>

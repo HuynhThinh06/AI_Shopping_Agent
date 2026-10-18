@@ -68,6 +68,8 @@ export const AuthPage: React.FC = () => {
   const [password, setPassword] = useState('password123');
   const [phone, setPhone] = useState('');
 
+  const redirectTarget = searchParams.get('redirect') || '/';
+
   const handleSelectAccount = (acc: TestAccount, autoLogin = false) => {
     setName(acc.name);
     setEmail(acc.email);
@@ -82,7 +84,7 @@ export const AuthPage: React.FC = () => {
         avatarText: acc.avatarText,
         role: acc.role,
       });
-      navigate('/');
+      navigate(redirectTarget, { replace: true });
     }
   };
 
@@ -100,7 +102,7 @@ export const AuthPage: React.FC = () => {
       role: email.includes('admin') ? 'Quản trị viên (Admin)' : 'Thành viên mới',
     });
 
-    navigate('/');
+    navigate(redirectTarget, { replace: true });
   };
 
   return (
