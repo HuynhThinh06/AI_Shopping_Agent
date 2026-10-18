@@ -239,28 +239,17 @@
             </svg>
           </div>
 
-          <span class="text-[11px] font-bold text-warm-muted flex items-center gap-1.5 mt-2">
+          <span id="product-gallery-hint" class="hidden text-[11px] font-bold text-warm-muted items-center gap-1.5 mt-2">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
             </svg>
-            Ảnh mô phỏng Cloudinary • Nhấp ảnh thumbnail bên dưới để đổi góc nhìn
+            <span id="product-gallery-hint-text">Hình ảnh chi tiết sản phẩm • Nhấp để đổi góc nhìn</span>
           </span>
         </div>
 
-        <!-- Thumbnails Gallery -->
-        <div class="grid grid-cols-4 gap-3">
-          <button type="button" onclick="selectGallery(0)" class="thumb-btn brutal-card p-2 bg-warm-secondary border-2 border-warm-text shadow-brutal-xs flex items-center justify-center hover:-translate-y-0.5 transition-all">
-            <span class="text-xs font-black text-warm-secondary-text">Mặt trước</span>
-          </button>
-          <button type="button" onclick="selectGallery(1)" class="thumb-btn brutal-card p-2 bg-white border-2 border-warm-text shadow-brutal-xs flex items-center justify-center hover:-translate-y-0.5 transition-all">
-            <span class="text-xs font-bold text-warm-text">Bàn phím</span>
-          </button>
-          <button type="button" onclick="selectGallery(2)" class="thumb-btn brutal-card p-2 bg-white border-2 border-warm-text shadow-brutal-xs flex items-center justify-center hover:-translate-y-0.5 transition-all">
-            <span class="text-xs font-bold text-warm-text">Cổng kết nối</span>
-          </button>
-          <button type="button" onclick="selectGallery(3)" class="thumb-btn brutal-card p-2 bg-white border-2 border-warm-text shadow-brutal-xs flex items-center justify-center hover:-translate-y-0.5 transition-all">
-            <span class="text-xs font-bold text-warm-text">Mặt lưng</span>
-          </button>
+        <!-- Dynamic Thumbnails Gallery (Hidden if only 1 image) -->
+        <div id="product-gallery-thumbnails" class="hidden flex flex-wrap gap-2.5 items-center justify-center pt-1">
+          <!-- Rendered dynamically by renderProductGallery(p) -->
         </div>
 
         <!-- Trust Badges Bento (Soft-Brutalist) -->
@@ -279,7 +268,7 @@
           </div>
           <div class="flex items-center gap-2 p-2 rounded-xl bg-white border border-warm-text/20">
             <span class="w-6 h-6 rounded-lg bg-warm-pastel-peach border border-warm-text flex items-center justify-center text-orange-800 font-black">AI</span>
-            <span>Đã kiểm chứng 142 review</span>
+            <span>Đã kiểm chứng <strong id="trust-review-count">--</strong> review</span>
           </div>
         </div>
 
@@ -326,33 +315,49 @@
           </div>
         </div>
 
-        <!-- PRICING & PROMOTION BOX (Soft-Brutalist) -->
+        <!-- PRICING & PROVENANCE BOX (Soft-Brutalist) -->
         <div class="brutal-card p-5 sm:p-6 bg-gradient-to-br from-white to-warm-secondary/20 border-2 border-warm-text shadow-brutal-md space-y-4">
-          <div class="flex flex-wrap items-baseline justify-between gap-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <span class="text-xs font-bold text-warm-muted uppercase tracking-wider block">Giá tham khảo tốt nhất hôm nay</span>
-              <div class="flex items-baseline gap-3 mt-1">
+              <span class="text-xs font-black text-warm-muted uppercase tracking-wider block">Giá bán tham khảo</span>
+              <div class="flex items-baseline gap-2 mt-1">
                 <span id="product-price" class="text-3xl sm:text-4xl font-black text-warm-primary tracking-tight">--</span>
-                <span id="product-original-price" class="text-base sm:text-lg font-bold text-warm-muted line-through">--</span>
-                <span id="product-discount-badge" class="px-2.5 py-0.5 rounded-lg bg-red-100 text-red-700 font-extrabold text-xs border border-red-300">--</span>
+                <span class="text-xs font-bold text-warm-muted">Đã bao gồm VAT</span>
               </div>
             </div>
             
-            <div class="text-right">
-              <span id="product-savings-badge" class="text-xs font-extrabold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 inline-block">
-                Tiết kiệm: --
+            <div>
+              <span class="text-xs font-black text-emerald-800 bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-300 flex items-center gap-1.5 shadow-brutal-xs">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Dữ liệu chính hãng sẵn có</span>
               </span>
             </div>
           </div>
 
-          <!-- Store Price Comparison Matrix -->
-          <div class="pt-3 border-t-2 border-warm-text/10 space-y-2">
-            <span class="text-xs font-black text-warm-text uppercase tracking-wide flex items-center gap-1.5">
-              <span>Giá bán thực tế tại các đối tác ủy quyền</span>
-            </span>
-
-            <div id="store-price-matrix" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-              <!-- Rendered dynamically by renderStorePriceMatrix(p) -->
+          <!-- Referral Provenance Card (Nguồn tham chiếu & Link gốc) -->
+          <div id="product-source-card" class="pt-3 border-t-2 border-warm-text/10">
+            <div class="p-3.5 rounded-xl bg-white border-2 border-warm-text shadow-brutal-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-warm-pastel-amber border-2 border-warm-text flex items-center justify-center font-black text-xs text-warm-text shrink-0">
+                  <svg class="w-5 h-5 text-warm-text" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                  </svg>
+                </div>
+                <div>
+                  <span class="text-[11px] font-bold text-warm-muted uppercase block">Nguồn tham chiếu sản phẩm</span>
+                  <span id="product-source-name" class="font-extrabold text-sm text-warm-text">Nền tảng bán lẻ chính hãng</span>
+                </div>
+              </div>
+              <a 
+                id="product-source-link" 
+                href="#" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                class="brutal-button-action px-4 py-2 rounded-xl bg-warm-surface hover:bg-warm-secondary border-2 border-warm-text text-warm-text text-xs font-black shadow-brutal-xs flex items-center justify-center gap-1.5 transition-all shrink-0 cursor-pointer"
+              >
+                <span>Xem tại nguồn gốc</span>
+                <span class="text-warm-primary font-black">↗</span>
+              </a>
             </div>
           </div>
 
@@ -844,17 +849,19 @@
       }
     }
 
-    function selectGallery(index) {
-      const thumbs = document.querySelectorAll('.thumb-btn');
-      thumbs.forEach((t, i) => {
-        if (i === index) {
-          t.classList.add('bg-warm-secondary');
-          t.classList.remove('bg-white');
-        } else {
-          t.classList.remove('bg-warm-secondary');
-          t.classList.add('bg-white');
-        }
+    function switchGalleryImage(url, btn) {
+      const mainImg = document.getElementById('main-product-img');
+      if (mainImg) mainImg.src = url;
+
+      const allBtns = document.querySelectorAll('.gallery-thumb-btn');
+      allBtns.forEach(b => {
+        b.classList.remove('border-warm-primary', 'bg-warm-secondary/30', 'shadow-brutal-xs');
+        b.classList.add('border-warm-text', 'bg-white');
       });
+      if (btn) {
+        btn.classList.add('border-warm-primary', 'bg-warm-secondary/30', 'shadow-brutal-xs');
+        btn.classList.remove('border-warm-text', 'bg-white');
+      }
     }
 
     let specsExpanded = true;
@@ -1000,10 +1007,8 @@
 
     function renderDynamicPricing(p) {
       const priceEl = document.getElementById('product-price');
-      const origPriceEl = document.getElementById('product-original-price');
-      const discountBadge = document.getElementById('product-discount-badge');
-      const savingsBadge = document.getElementById('product-savings-badge');
       const heroBadge = document.getElementById('product-hero-badge-text');
+      const trustReviewEl = document.getElementById('trust-review-count');
 
       if (priceEl) priceEl.innerText = formatPrice(p.price);
 
@@ -1011,68 +1016,89 @@
         heroBadge.innerText = p.brand ? `${p.brand.toUpperCase()} CHÍNH HÃNG` : 'CHÍNH HÃNG 100%';
       }
 
-      const priceNum = Number(p.price) || 0;
-      if (priceNum > 0) {
-        const originalPrice = Math.round((priceNum * 1.15) / 100000) * 100000;
-        const savings = originalPrice - priceNum;
-        const discountPercent = Math.round((savings / originalPrice) * 100);
-
-        if (origPriceEl) origPriceEl.innerText = formatPrice(originalPrice);
-        if (discountBadge) discountBadge.innerText = `-${discountPercent}%`;
-        if (savingsBadge) savingsBadge.innerText = `Tiết kiệm: ${formatPrice(savings)}`;
-      } else {
-        if (origPriceEl) origPriceEl.innerText = '';
-        if (discountBadge) discountBadge.innerText = 'Giá tốt';
-        if (savingsBadge) savingsBadge.innerText = 'Ưu đãi hôm nay';
+      if (trustReviewEl) {
+        trustReviewEl.innerText = p.reviewCount || 0;
       }
     }
 
-    function renderStorePriceMatrix(p) {
-      const container = document.getElementById('store-price-matrix');
-      if (!container) return;
+    function renderProductSource(p) {
+      const nameEl = document.getElementById('product-source-name');
+      const linkEl = document.getElementById('product-source-link');
+      if (!linkEl) return;
 
-      const priceNum = Number(p.price) || 0;
-      const buyUrl = p.productUrl || '#';
+      const url = p.productUrl || '';
+      const sku = (p.sku || '').toUpperCase();
 
-      const stores = [
-        {
-          name: 'FPT Shop',
-          color: 'text-red-600',
-          badge: 'bg-amber-100 text-amber-900',
-          badgeText: 'Tặng phụ kiện',
-          price: priceNum,
-          url: buyUrl
-        },
-        {
-          name: 'CellphoneS',
-          color: 'text-rose-600',
-          badge: 'bg-emerald-100 text-emerald-900',
-          badgeText: 'Smember',
-          price: Math.max(0, priceNum - 100000),
-          url: buyUrl
-        },
-        {
-          name: 'Thế Giới Di Động',
-          color: 'text-amber-600',
-          badge: 'bg-blue-100 text-blue-900',
-          badgeText: 'Bảo hành VIP',
-          price: priceNum + 200000,
-          url: buyUrl
+      let sourceName = 'Hệ thống đối soát chính hãng';
+      if (url.includes('thegioididong.com') || sku.includes('TGDD')) {
+        sourceName = 'Thế Giới Di Động (Hệ thống phân phối toàn quốc)';
+      } else if (url.includes('fptshop.com.vn') || sku.includes('FPT')) {
+        sourceName = 'FPT Shop (Hệ thống bán lẻ ủy quyền)';
+      } else if (url.includes('cellphones.com.vn') || sku.includes('CPS')) {
+        sourceName = 'CellphoneS (Hệ thống thiết bị công nghệ)';
+      } else if (url.includes('phongvu.vn')) {
+        sourceName = 'Phong Vũ (Đại lý phân phối)';
+      }
+
+      if (nameEl) nameEl.innerText = sourceName;
+      if (url && url !== '#') {
+        linkEl.href = url;
+        linkEl.classList.remove('opacity-50', 'pointer-events-none');
+      } else {
+        linkEl.href = '#';
+        linkEl.classList.add('opacity-50', 'pointer-events-none');
+      }
+    }
+
+    function renderProductGallery(p) {
+      const viewport = document.getElementById('main-product-viewport');
+      const hintEl = document.getElementById('product-gallery-hint');
+      const hintText = document.getElementById('product-gallery-hint-text');
+      const thumbContainer = document.getElementById('product-gallery-thumbnails');
+
+      const primaryImg = getPrimaryImage(p);
+      let images = [];
+      if (p.imageUrls && Array.isArray(p.imageUrls) && p.imageUrls.length > 0) {
+        images = p.imageUrls;
+      } else if (primaryImg) {
+        images = [primaryImg];
+      }
+
+      // 1. Render main image
+      if (viewport && images.length > 0) {
+        viewport.innerHTML = `
+          <img id="main-product-img" src="${images[0]}" alt="${p.name}" class="max-h-[220px] max-w-[300px] object-contain drop-shadow-md transition-all duration-200" onerror="this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&fit=crop'"/>
+        `;
+      }
+
+      // 2. Render thumbnails only if more than 1 image exists
+      if (thumbContainer) {
+        if (images.length > 1) {
+          if (hintEl) {
+            hintEl.classList.remove('hidden');
+            hintEl.classList.add('flex');
+            if (hintText) hintText.innerText = `Bộ sưu tập ${images.length} ảnh chi tiết • Nhấp để đổi ảnh`;
+          }
+          thumbContainer.classList.remove('hidden');
+          thumbContainer.innerHTML = images.map((img, idx) => `
+            <button 
+              type="button" 
+              onclick="switchGalleryImage('${img}', this)" 
+              class="gallery-thumb-btn w-14 h-14 rounded-xl border-2 ${idx === 0 ? 'border-warm-primary bg-warm-secondary/30 shadow-brutal-xs' : 'border-warm-text bg-white'} p-1 overflow-hidden flex items-center justify-center hover:-translate-y-0.5 transition-all cursor-pointer"
+              title="Xem ảnh ${idx + 1}"
+            >
+              <img src="${img}" alt="Ảnh ${idx + 1}" class="w-full h-full object-contain" onerror="this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=100&fit=crop'"/>
+            </button>
+          `).join('');
+        } else {
+          if (hintEl) {
+            hintEl.classList.add('hidden');
+            hintEl.classList.remove('flex');
+          }
+          thumbContainer.classList.add('hidden');
+          thumbContainer.innerHTML = '';
         }
-      ];
-
-      container.innerHTML = stores.map(s => `
-        <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="p-2.5 rounded-xl bg-white border-2 border-warm-text shadow-brutal-xs hover:-translate-y-0.5 transition-all flex flex-col justify-between">
-          <div class="flex items-center justify-between">
-            <span class="font-black ${s.color}">${s.name}</span>
-            <span class="px-1.5 py-0.5 rounded ${s.badge} font-bold text-[10px]">${s.badgeText}</span>
-          </div>
-          <div class="mt-2 flex items-baseline justify-between">
-            <span class="font-extrabold text-sm text-warm-text">${formatPrice(s.price)}</span>
-            <span class="text-warm-primary font-bold text-[11px]">Đến mua →</span>
-          </div>
-        </a>
-      `).join('');
+      }
     }
 
     function renderQuickSpecHighlights(p) {
@@ -1398,19 +1424,11 @@
           const subtitleEl = document.getElementById('product-subtitle');
           if (subtitleEl) subtitleEl.innerText = subText || 'Thông số chuẩn hóa hỗ trợ bộ lọc AI';
 
-          // Image Viewport
-          const imgUrl = getPrimaryImage(p);
-          const viewport = document.getElementById('main-product-viewport');
-          if (viewport && imgUrl) {
-            viewport.innerHTML = `
-              <img src="${imgUrl}" alt="${p.name}" class="max-h-[220px] max-w-[300px] object-contain drop-shadow-md" onerror="this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&fit=crop'"/>
-            `;
-          }
-
           // Dynamic Rendering Modules
+          renderProductGallery(p);
           renderDynamicBreadcrumb(p);
           renderDynamicPricing(p);
-          renderStorePriceMatrix(p);
+          renderProductSource(p);
           renderQuickSpecHighlights(p);
           renderDynamicSpecifications(p);
           renderRelatedProducts(p);
@@ -1551,8 +1569,16 @@
     document.addEventListener('DOMContentLoaded', () => {
       updateProductCompareButton();
       const urlParams = new URLSearchParams(window.location.search);
-      const id = urlParams.get('id') || '1';
-      loadProductPage(id);
+      const id = urlParams.get('id');
+      if (id) {
+        loadProductPage(id);
+      } else {
+        api.getFeaturedProducts(1).then(list => {
+          if (list && list.length > 0) {
+            loadProductPage(list[0].id);
+          }
+        }).catch(() => loadProductPage(218));
+      }
     });
   </script>
 
