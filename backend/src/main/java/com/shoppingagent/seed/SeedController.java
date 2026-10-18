@@ -68,4 +68,42 @@ public class SeedController {
             ));
         }
     }
+
+    @PostMapping("/users")
+    public ResponseEntity<?> seedUsers() {
+        try {
+            var users = seedService.seedDefaultUsers();
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "count", users.size(),
+                    "users", users.stream().map(u -> Map.of(
+                            "id", u.getId(),
+                            "username", u.getUsername(),
+                            "email", u.getEmail(),
+                            "displayName", u.getDisplayName(),
+                            "role", u.getRole(),
+                            "isActive", u.getIsActive()
+                    )).toList()
+            ));
+        } catch (Exception e) {
+            log.error("Failed to seed default users", e);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<?> getAllUsers() {
+        var users = seedService.getAllUsers();
+        return ResponseEntity.ok(users.stream().map(u -> Map.of(
+                "id", u.getId(),
+                "username", u.getUsername(),
+                "email", u.getEmail(),
+                "displayName", u.getDisplayName(),
+                "role", u.getRole(),
+                "isActive", u.getIsActive()
+        )).toList());
+    }
 }

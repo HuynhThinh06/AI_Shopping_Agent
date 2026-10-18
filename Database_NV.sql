@@ -363,15 +363,22 @@ INSERT INTO "category_attributes" ("category_id", "attribute_key", "attribute_la
   (2, 'screen_size',  'Màn hình',   'inch','number', TRUE,  5),
   (2, 'camera',       'Camera sau', 'MP',  'number', FALSE, 6);
 
--- Tài khoản admin mặc định (password_hash cần được set lại khi deploy)
-INSERT INTO "users" ("id", "username", "email", "password_hash", "display_name", "role") VALUES
-  (1, 'admin', 'admin@shoppingagent.local', 'CHANGE_ME_BEFORE_DEPLOY', 'Administrator', 'admin');
+-- Dữ liệu tài khoản người dùng mẫu phục vụ kiểm thử hệ thống
+INSERT INTO "users" ("id", "username", "email", "password_hash", "display_name", "role", "is_active") VALUES
+  (1, 'crawler',        'crawler@system.local',            'N/A',                                                            'System Crawler',                         'admin', TRUE),
+  (2, 'admin',          'admin@shoppingagent.com',         '$2a$10$w8T0pC0sJpUjV/y6aJm6E.b9V7H9pI1jD8kF2lM4nO5pQ6rS7tU8v', 'Quản trị viên Hệ thống (Admin)',         'admin', TRUE),
+  (3, 'tuananh',        'tuananh.dev@gmail.com',           '$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2', 'Trần Tuấn Anh (VIP)',                    'user',  TRUE),
+  (4, 'giathinh',       'giathinh.student@hcmut.edu.vn',    '$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2', 'Huỳnh Gia Thịnh (Sinh viên IT)',         'user',  TRUE),
+  (5, 'hoangminh',      'hoangminh.tech@gmail.com',        '$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2', 'Hoàng Minh (Tech Reviewer / Gamer)',     'user',  TRUE),
+  (6, 'lananh',         'lananh.office@company.vn',        '$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2', 'Nguyễn Lan Anh (Văn phòng)',             'user',  TRUE),
+  (7, 'khanh_reviewer', 'khanh.reviewer@techlab.vn',       '$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2', 'Trần Quốc Khánh (Chuyên gia Đánh giá)',   'user',  TRUE),
+  (8, 'spammer_bot',    'spambot999@disposable.org',       '$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2', 'Dịch vụ Quảng cáo 247 (Spam Bot)',        'user',  FALSE);
 
 -- Reset sequence về đúng vị trí sau khi insert thủ công
 SELECT setval('categories_id_seq',         (SELECT MAX(id) FROM "categories"));
 SELECT setval('ranking_weights_id_seq',     (SELECT MAX(id) FROM "ranking_weights"));
 SELECT setval('category_attributes_id_seq', (SELECT MAX(id) FROM "category_attributes"));
-SELECT setval('users_id_seq',               (SELECT MAX(id) FROM "users"));
+SELECT setval('users_id_seq',               (SELECT GREATEST(MAX(id), 8) FROM "users"));
 
 SET CONSTRAINTS ALL IMMEDIATE;
 COMMIT;

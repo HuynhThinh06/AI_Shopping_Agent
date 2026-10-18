@@ -83,6 +83,13 @@ public class ProductController {
 
     // ── POST /products ───────────────────────────────────────────────────────
 
+    @PostMapping(consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Tạo sản phẩm mới (dạng JSON)")
+    public ResponseEntity<ProductDetailDTO> createProductJson(
+            @RequestBody com.shoppingagent.product.dto.ProductCreateRequest request) {
+        return ResponseEntity.ok(productService.createProduct(request, null));
+    }
+
     @PostMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
         summary     = "Tạo sản phẩm mới (có kèm upload ảnh)",
@@ -94,5 +101,34 @@ public class ProductController {
             @RequestPart(value = "images", required = false)
             java.util.List<org.springframework.web.multipart.MultipartFile> images) {
         return ResponseEntity.ok(productService.createProduct(request, images));
+    }
+
+    // ── PUT /products/{id} ───────────────────────────────────────────────────
+
+    @PutMapping(value = "/{id}", consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Cập nhật sản phẩm (dạng JSON)")
+    public ResponseEntity<ProductDetailDTO> updateProductJson(
+            @PathVariable Long id,
+            @RequestBody com.shoppingagent.product.dto.ProductUpdateRequest request) {
+        return ResponseEntity.ok(productService.updateProduct(id, request, null));
+    }
+
+    @PutMapping(value = "/{id}", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Cập nhật sản phẩm (kèm upload ảnh mới)")
+    public ResponseEntity<ProductDetailDTO> updateProductMultipart(
+            @PathVariable Long id,
+            @RequestPart("product") com.shoppingagent.product.dto.ProductUpdateRequest request,
+            @RequestPart(value = "images", required = false)
+            java.util.List<org.springframework.web.multipart.MultipartFile> images) {
+        return ResponseEntity.ok(productService.updateProduct(id, request, images));
+    }
+
+    // ── DELETE /products/{id} ────────────────────────────────────────────────
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Xóa mềm sản phẩm (ẩn khỏi catalog và tìm kiếm)")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.noContent().build();
     }
 }

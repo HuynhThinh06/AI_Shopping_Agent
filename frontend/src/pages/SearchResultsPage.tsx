@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { searchApi } from '../api/searchApi';
 import type { SearchResponse, RankedProduct } from '../types/search';
+import { addSearchHistory, getAuthUser } from '../utils/storage';
 import { Sparkles, Search, ArrowRight, Star, Cpu, AlertCircle, Loader2, Trophy, CheckCircle, SlidersHorizontal } from 'lucide-react';
 
 export const SearchResultsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryParam = searchParams.get('q') || '';
+  const user = getAuthUser();
 
   const [queryInput, setQueryInput] = useState(queryParam);
   const [loading, setLoading] = useState(false);
@@ -20,6 +22,15 @@ export const SearchResultsPage: React.FC = () => {
     try {
       const data = await searchApi.searchProducts(text.trim(), 10);
       setResult(data);
+
+      // Tự động ghi vào lịch sử tư vấn AI của người dùng
+      addSearchHistory(
+        text.trim(),
+        data.extractedCriteria?.categoryCode,
+        data.extractedCriteria?.target,
+        data.extractedCriteria?.budgetMax,
+        data.totalMatched
+      );
     } catch (err: any) {
       console.error('Search error:', err);
       setError(err?.response?.data?.detail || 'Không thể kết nối đến máy chủ hoặc dịch vụ AI. Vui lòng thử lại.');
@@ -142,13 +153,15 @@ export const SearchResultsPage: React.FC = () => {
               </span>
             </div>
 
-            <Link
-              to="/admin/llm-logs"
-              className="text-xs font-bold text-amber-700 hover:underline flex items-center gap-1"
-            >
-              <span>Xem log &amp; token tiêu thụ</span>
-              <ArrowRight className="w-3 h-3" />
-            </Link>
+            {user && user.role?.toLowerCase().includes('admin') && (
+              <Link
+                to="/admin/llm-logs"
+                className="text-xs font-bold text-amber-700 hover:underline flex items-center gap-1"
+              >
+                <span>Xem log &amp; token tiêu thụ</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            )}
           </div>
 
           <div>
@@ -199,9 +212,11 @@ export const SearchResultsPage: React.FC = () => {
               <SlidersHorizontal className="w-5 h-5 text-amber-600" />
               <span>Sản Phẩm Đã Được Xếp Hạng Đa Tiêu Chí</span>
             </h2>
-            <Link to="/admin/weights" className="text-xs font-bold text-warm-muted hover:text-amber-700 underline">
-              Tùy chỉnh trọng số
-            </Link>
+            {user && user.role?.toLowerCase().includes('admin') && (
+              <Link to="/admin/weights" className="text-xs font-bold text-warm-muted hover:text-amber-700 underline">
+                Tùy chỉnh trọng số
+              </Link>
+            )}
           </div>
 
           {result.results.length === 0 ? (
@@ -317,6 +332,75 @@ export const SearchResultsPage: React.FC = () => {
             </div>
           )}
         </section>
+      )}
+
+      {/* Empty State / Welcome Guide when no query yet */}
+      {!queryParam && !loading && !result && (
+        <div className="space-y-6">
+          <div className="brutal-card p-6 sm:p-8 bg-warm-surface text-center space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border-2 border-warm-border bg-warm-secondary text-warm-secondary-text font-black text-xs shadow-brutal-xs">
+              <Sparkles className="w-4 h-4 text-warm-primary animate-pulse" />
+              <span>Khám Phá Sức Mạnh Trợ Lý Mua Sắm Bằng AI</span>
+            </div>
+
+            <h2 className="text-2xl sm:text-4xl font-black text-warm-text tracking-tight">
+              Tìm Thiết Bị Công Nghệ Theo Ngôn Ngữ Tự Nhiên
+            </h2>
+
+            <p className="text-xs sm:text-sm text-warm-muted max-w-2xl mx-auto font-medium">
+              Bạn có thể gõ bất kỳ câu hỏi nào bằng văn phong đời thường, tiếng lóng hay yêu cầu kỹ thuật chi tiết.
+              Mô hình <strong>Gemini AI</strong> sẽ tự động nhận diện thiết bị, phân tách tiêu chí cấu hình &amp; mức giá để đề xuất sản phẩm tốt nhất.
+            </p>
+
+            {/* Prompt Suggestion Chips */}
+            <div className="pt-4 max-w-3xl mx-auto text-left">
+              <div className="text-xs font-black uppercase tracking-wider text-warm-muted mb-3 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Gợi ý câu hỏi tìm kiếm nhanh (Click để thử ngay):</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {[
+                  {
+                    title: 'Laptop sinh viên IT pin trâu',
+                    query: 'Laptop sinh viên 15 củ học IT pin trâu RAM 16GB',
+                  },
+                  {
+                    title: 'Điện thoại chụp ảnh đẹp < 10 triệu',
+                    query: 'Điện thoại chụp ảnh đẹp RAM 8GB dưới 10 triệu pin trâu',
+                  },
+                  {
+                    title: 'Laptop Gaming đồ họa mượt',
+                    query: 'Laptop gaming i7 RAM 16GB SSD 512 tầm 25 củ',
+                  },
+                  {
+                    title: 'MacBook mỏng nhẹ văn phòng',
+                    query: 'MacBook mỏng nhẹ cho dân văn phòng pin dùng cả ngày dưới 22 triệu',
+                  },
+                ].map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setQueryInput(item.query);
+                      setSearchParams({ q: item.query });
+                    }}
+                    className="p-3 rounded-xl border-2 border-warm-border bg-warm-bg hover:bg-warm-secondary hover:-translate-y-0.5 text-warm-text shadow-brutal-xs transition-all text-left flex items-center justify-between group cursor-pointer"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-xs font-extrabold group-hover:text-warm-primary transition-colors">
+                        {item.title}
+                      </span>
+                      <span className="text-[11px] text-warm-muted truncate mt-0.5">
+                        “{item.query}”
+                      </span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-warm-primary group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

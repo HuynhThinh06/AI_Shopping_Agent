@@ -34,6 +34,7 @@ public class AdminService {
     private final RankingWeightRepository rankingWeightRepository;
     private final CategoryRepository categoryRepository;
     private final LlmLogRepository llmLogRepository;
+    private final UserRepository userRepository;
     private final EntityManager entityManager;
 
     @Autowired(required = false)
@@ -480,6 +481,72 @@ public class AdminService {
                         Map.of("stage", "4. Network & JSON Serialization", "latencyMs", 20, "percentage", 5)
                 ))
                 .build();
+    }
+
+    // ── 6. Quản lý Người dùng ───────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public Page<AdminUserDTO> getUsers(Pageable pageable, String keyword, String role) {
+        String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : "";
+        String cleanRole = (role != null && !role.equalsIgnoreCase("all") && !role.isBlank()) ? role.trim() : null;
+        
+        return userRepository.searchUsers(cleanKeyword, cleanRole, pageable)
+                .map(u -> AdminUserDTO.builder()
+                        .id(u.getId())
+                        .username(u.getUsername())
+                        .email(u.getEmail())
+                        .displayName(u.getDisplayName())
+                        .role(u.getRole())
+                        .isActive(u.getIsActive())
+                        .createdAt(u.getCreatedAt())
+                        .updatedAt(u.getUpdatedAt())
+                        .build());
+    }
+
+    @Transactional
+    public AdminUserDTO updateUserRole(Integer id, String newRole) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng với ID: " + id));
+        if (newRole != null && (newRole.equalsIgnoreCase("admin") || newRole.equalsIgnoreCase("user"))) {
+            user.setRole(newRole.toLowerCase());
+            userRepository.save(user);
+        }
+        return AdminUserDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .displayName(user.getDisplayName())
+                .role(user.getRole())
+                .isActive(user.getIsActive())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+    }
+
+    @Transactional
+    public AdminUserDTO toggleUserStatus(Integer id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng với ID: " + id));
+        user.setIsActive(!Boolean.TRUE.equals(user.getIsActive()));
+        userRepository.save(user);
+        return AdminUserDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .displayName(user.getDisplayName())
+                .role(user.getRole())
+                .isActive(user.getIsActive())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+    }
+
+    @Transactional
+    public void deleteUser(Integer id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng với ID: " + id));
+        user.setIsActive(false);
+        userRepository.save(user);
     }
 
     private String truncate(String text, int maxLength) {

@@ -31,7 +31,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                                   @Param("budgetMax") Long budgetMax);
 
     /** Lấy tất cả sản phẩm active của một ngành hàng (dùng cho admin) */
-    @Query("SELECT p FROM Product p JOIN p.category c WHERE c.code = :code AND p.isActive = TRUE")
+    @Query("SELECT p FROM Product p JOIN p.category c WHERE LOWER(c.code) = LOWER(:code) AND p.isActive = TRUE")
     List<Product> findByCategoryCode(@Param("code") String code);
 
     /**
@@ -44,14 +44,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      *
      * keyword khớp cả name lẫn brand (OR), không phân biệt hoa/thường.
      */
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category"})
     @Query("""
             SELECT p FROM Product p
             JOIN p.category c
             WHERE p.isActive = TRUE
-              AND (:categoryCode IS NULL OR c.code          = :categoryCode)
+              AND (:categoryCode IS NULL OR LOWER(c.code) = LOWER(:categoryCode))
               AND (:minPrice     IS NULL OR p.price         >= :minPrice)
               AND (:maxPrice     IS NULL OR p.price         <= :maxPrice)
-              AND (:keyword      IS NULL
+              AND (:keyword      IS NULL OR :keyword = ''
                    OR LOWER(p.name)  LIKE LOWER(CONCAT('%', :keyword, '%'))
                    OR LOWER(p.brand) LIKE LOWER(CONCAT('%', :keyword, '%')))
             """)

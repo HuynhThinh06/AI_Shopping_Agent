@@ -16,13 +16,14 @@ import java.util.stream.Collectors;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Integer> {
 
-    Optional<Category> findByCode(String code);
+    @Query("SELECT c FROM Category c WHERE LOWER(c.code) = LOWER(:code)")
+    Optional<Category> findByCode(@Param("code") String code);
 
     /** Lấy danh sách attribute filterable của một ngành hàng */
     @Query("""
             SELECT ca FROM CategoryAttribute ca
             JOIN ca.category c
-            WHERE c.code = :code AND ca.isFilterable = TRUE
+            WHERE LOWER(c.code) = LOWER(:code) AND ca.isFilterable = TRUE
             ORDER BY ca.displayOrder
             """)
     List<CategoryAttribute> findByCategoryCodeAndFilterable(@Param("code") String code);
@@ -31,7 +32,7 @@ public interface CategoryRepository extends JpaRepository<Category, Integer> {
     @Query("""
             SELECT rw FROM RankingWeight rw
             JOIN rw.category c
-            WHERE c.code = :code
+            WHERE LOWER(c.code) = LOWER(:code)
             """)
     List<RankingWeight> findWeightEntities(@Param("code") String code);
 

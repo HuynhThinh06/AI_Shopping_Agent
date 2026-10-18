@@ -4,7 +4,7 @@ import { AdminNav } from '../../components/admin/AdminNav';
 import { apiClient } from '../../api/client';
 import type { ProductDetailDTO } from '../../types/product';
 import type { PageResponse } from '../../types/review';
-import { Package, Search, ExternalLink, Star } from 'lucide-react';
+import { Package, Search, ExternalLink, Star, Plus, Edit, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export const AdminProductsPage: React.FC = () => {
   const [products, setProducts] = useState<ProductDetailDTO[]>([]);
@@ -14,6 +14,9 @@ export const AdminProductsPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalElements, setTotalElements] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<boolean>(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   const loadProducts = async (pageIdx = page) => {
     setLoading(true);
@@ -43,6 +46,23 @@ export const AdminProductsPage: React.FC = () => {
     loadProducts(0);
   };
 
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await apiClient.delete(`/products/${deleteId}`);
+      setFeedback(`Đã xóa thành công sản phẩm #${deleteId}!`);
+      setTimeout(() => setFeedback(null), 3000);
+      setDeleteId(null);
+      loadProducts(page);
+    } catch (err) {
+      console.error('Failed to delete product:', err);
+      alert('Không thể xóa sản phẩm. Vui lòng thử lại!');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   };
@@ -67,7 +87,23 @@ export const AdminProductsPage: React.FC = () => {
             Danh sách tất cả sản phẩm được đồng bộ trong PostgreSQL với trường `specs` JSONB đã được đánh chỉ mục GIN.
           </p>
         </div>
+
+        <Link
+          to="/admin/products/new"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal transition-all hover:-translate-y-0.5 whitespace-nowrap"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Thêm Sản Phẩm Mới</span>
+        </Link>
       </div>
+
+      {/* Alert notification */}
+      {feedback && (
+        <div className="mb-6 p-4 rounded-xl bg-emerald-50 border-2 border-emerald-500 text-emerald-800 font-bold text-xs flex items-center gap-2 shadow-brutal-xs">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span>{feedback}</span>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 shadow-brutal mb-6">
@@ -113,11 +149,11 @@ export const AdminProductsPage: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-warm-bg border-b-2 border-warm-text text-warm-text font-black uppercase text-[10px] tracking-wider">
               <tr>
-                <th className="py-3 px-3">ID / SKU</th>
-                <th className="py-3 px-3">Tên sản phẩm</th>
+                <th className="py-3 px-3">Sản phẩm</th>
                 <th className="py-3 px-3">Ngành hàng</th>
                 <th className="py-3 px-3">Thương hiệu</th>
                 <th className="py-3 px-3">Giá bán</th>
+                <th className="py-3 px-3">Tồn kho / Trạng thái</th>
                 <th className="py-3 px-3">Đánh giá</th>
                 <th className="py-3 px-3">Thông số Specs (JSONB)</th>
                 <th className="py-3 px-3 text-right">Thao tác</th>
@@ -139,13 +175,27 @@ export const AdminProductsPage: React.FC = () => {
               ) : (
                 products.map((prod) => (
                   <tr key={prod.id} className="hover:bg-warm-bg/70 transition-colors">
-                    <td className="py-3.5 px-3 font-mono font-bold text-warm-text">
-                      #{prod.id}
-                      {prod.sku && <div className="text-[10px] text-warm-muted">{prod.sku}</div>}
-                    </td>
                     <td className="py-3.5 px-3">
-                      <div className="font-extrabold text-warm-text text-xs line-clamp-2">
-                        {prod.name}
+                      <div className="flex items-center gap-3">
+                        {prod.imageUrls && prod.imageUrls.length > 0 ? (
+                          <img
+                            src={prod.imageUrls[0]}
+                            alt={prod.name}
+                            className="w-12 h-12 rounded-lg object-contain bg-white border border-warm-text/20 p-1 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-warm-bg border border-warm-text/20 flex items-center justify-center flex-shrink-0">
+                            <Package className="w-6 h-6 text-warm-muted" />
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-mono text-[10px] font-bold text-warm-muted">
+                            #{prod.id} {prod.sku && `• ${prod.sku}`}
+                          </div>
+                          <div className="font-extrabold text-warm-text text-xs line-clamp-2 max-w-[220px]">
+                            {prod.name}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="py-3.5 px-3">
@@ -158,6 +208,16 @@ export const AdminProductsPage: React.FC = () => {
                       {formatPrice(prod.price)}
                     </td>
                     <td className="py-3.5 px-3 whitespace-nowrap">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[11px] font-bold text-warm-text">
+                          SL: {prod.stockQuantity ?? 10}
+                        </span>
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 w-max">
+                          Đang bán
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-3 whitespace-nowrap">
                       <div className="flex items-center gap-1 font-bold text-warm-text">
                         <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
                         <span>{prod.avgRating ? prod.avgRating.toFixed(1) : '5.0'}</span>
@@ -165,7 +225,7 @@ export const AdminProductsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="py-3.5 px-3">
-                      <div className="flex flex-wrap gap-1 max-w-xs">
+                      <div className="flex flex-wrap gap-1 max-w-[180px]">
                         {prod.specs &&
                           Object.entries(prod.specs).slice(0, 3).map(([k, v]) => (
                             <span
@@ -178,14 +238,33 @@ export const AdminProductsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="py-3.5 px-3 text-right">
-                      <Link
-                        to={`/product/${prod.id}`}
-                        target="_blank"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-warm-bg hover:bg-warm-secondary border border-warm-text text-warm-text font-bold text-[11px] shadow-brutal-xs"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        <span>Xem chi tiết</span>
-                      </Link>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Link
+                          to={`/admin/products/${prod.id}/edit`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-warm-bg hover:bg-warm-secondary border border-warm-text text-warm-text font-bold text-[11px] shadow-brutal-xs"
+                          title="Sửa thông tin sản phẩm"
+                        >
+                          <Edit className="w-3 h-3 text-blue-600" />
+                          <span>Sửa</span>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteId(prod.id)}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-bold text-[11px] cursor-pointer"
+                          title="Xóa sản phẩm"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Xóa</span>
+                        </button>
+                        <Link
+                          to={`/product/${prod.id}`}
+                          target="_blank"
+                          className="p-1 rounded-lg hover:bg-warm-bg border border-warm-text/20 text-warm-muted hover:text-warm-text"
+                          title="Xem trang khách hàng"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -205,7 +284,7 @@ export const AdminProductsPage: React.FC = () => {
                 type="button"
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0}
-                className="px-3 py-1 rounded-lg border border-warm-text bg-white disabled:opacity-50 text-xs font-bold"
+                className="px-3 py-1 rounded-lg border border-warm-text bg-white disabled:opacity-50 text-xs font-bold cursor-pointer"
               >
                 Trước
               </button>
@@ -213,7 +292,7 @@ export const AdminProductsPage: React.FC = () => {
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                 disabled={page >= totalPages - 1}
-                className="px-3 py-1 rounded-lg border border-warm-text bg-white disabled:opacity-50 text-xs font-bold"
+                className="px-3 py-1 rounded-lg border border-warm-text bg-white disabled:opacity-50 text-xs font-bold cursor-pointer"
               >
                 Tiếp
               </button>
@@ -221,6 +300,40 @@ export const AdminProductsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteId !== null && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-6 max-w-md w-full shadow-brutal space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <AlertCircle className="w-6 h-6 flex-shrink-0" />
+              <h3 className="text-lg font-black text-warm-text">Xác nhận xóa sản phẩm</h3>
+            </div>
+            <p className="text-xs text-warm-muted font-medium">
+              Bạn có chắc chắn muốn xóa sản phẩm <strong>#{deleteId}</strong>? Sản phẩm sẽ được đánh dấu vô hiệu hóa (soft delete) và ẩn khỏi trang tìm kiếm cũng như danh mục.
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteId(null)}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl bg-warm-bg border border-warm-text font-bold text-xs cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs border border-warm-text shadow-brutal-xs cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{deleting ? 'Đang xóa...' : 'Xóa sản phẩm'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

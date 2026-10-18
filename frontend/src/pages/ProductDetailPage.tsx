@@ -1,29 +1,99 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { productApi } from '../api/productApi';
 import { reviewApi } from '../api/reviewApi';
 import type { ProductDetailDTO } from '../types/product';
 import type { SummaryDTO, ReviewResponseDTO, ReviewCreateRequest } from '../types/review';
-import { Sparkles, Star, ArrowLeft, ExternalLink, Cpu, CheckCircle2, AlertTriangle, RefreshCw, MessageSquare, Send, Check, AlertCircle, Loader2, Database } from 'lucide-react';
+import {
+  getAuthUser,
+  addUserReview,
+  toggleFavoriteId,
+  isFavoriteId,
+  toggleCompareId,
+  isInCompare,
+  type AuthUser,
+} from '../utils/storage';
+import {
+  Sparkles,
+  Star,
+  ArrowLeft,
+  ExternalLink,
+  Cpu,
+  CheckCircle2,
+  AlertTriangle,
+  RefreshCw,
+  MessageSquare,
+  Send,
+  Check,
+  AlertCircle,
+  Loader2,
+  Database,
+  LogIn,
+  Heart,
+  Scale,
+} from 'lucide-react';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const productId = Number(id);
+  const location = useLocation();
+  const navigate = useNavigate();
 
+  const [user, setUser] = useState<AuthUser | null>(getAuthUser());
   const [product, setProduct] = useState<ProductDetailDTO | null>(null);
   const [summary, setSummary] = useState<SummaryDTO | null>(null);
   const [reviews, setReviews] = useState<ReviewResponseDTO[]>([]);
   const [loadingProduct, setLoadingProduct] = useState(true);
+  const [isFav, setIsFav] = useState<boolean>(false);
+  const [isComp, setIsComp] = useState<boolean>(false);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [refreshingSummary, setRefreshingSummary] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Form review state
-  const [reviewerName, setReviewerName] = useState('');
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  useEffect(() => {
+    if (productId) {
+      setIsFav(isFavoriteId(productId));
+      setIsComp(isInCompare(productId));
+    }
+  }, [productId]);
+
+  useEffect(() => {
+    const handleStorageUpdate = () => {
+      setUser(getAuthUser());
+      if (productId) {
+        setIsFav(isFavoriteId(productId));
+        setIsComp(isInCompare(productId));
+      }
+    };
+    window.addEventListener('auth-updated', handleStorageUpdate);
+    window.addEventListener('favorites-updated', handleStorageUpdate);
+    window.addEventListener('compare-updated', handleStorageUpdate);
+    return () => {
+      window.removeEventListener('auth-updated', handleStorageUpdate);
+      window.removeEventListener('favorites-updated', handleStorageUpdate);
+      window.removeEventListener('compare-updated', handleStorageUpdate);
+    };
+  }, [productId]);
+
+  const handleFavoriteToggle = () => {
+    if (!user) {
+      navigate('/auth?redirect=' + encodeURIComponent(location.pathname));
+      return;
+    }
+    const nextState = toggleFavoriteId(productId);
+    setIsFav(nextState);
+  };
+
+  const handleCompareToggle = () => {
+    const nextState = toggleCompareId(productId);
+    setIsComp(nextState);
+  };
 
   const loadData = async () => {
     if (!productId) return;
@@ -85,19 +155,30 @@ export const ProductDetailPage: React.FC = () => {
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reviewerName.trim() || !content.trim()) return;
+    if (!user) return;
+    if (!content.trim()) return;
 
     setSubmittingReview(true);
     setSubmitSuccess(false);
     try {
       const payload: ReviewCreateRequest = {
-        reviewerName: reviewerName.trim(),
+        reviewerName: user.name,
         rating,
         content: content.trim(),
       };
       await reviewApi.createReview(productId, payload);
+
+      // Lưu vào danh sách đánh giá của tôi
+      if (product) {
+        addUserReview({
+          productId: product.id,
+          productName: product.name,
+          rating,
+          content: content.trim(),
+        });
+      }
+
       setSubmitSuccess(true);
-      setReviewerName('');
       setContent('');
       setRating(5);
 
@@ -199,7 +280,7 @@ export const ProductDetailPage: React.FC = () => {
             <span>{product.reviewCount || 0} bài đánh giá từ người dùng</span>
           </div>
 
-          <div className="p-4 rounded-2xl border-2 border-warm-border bg-warm-bg flex items-center justify-between">
+          <div className="p-4 rounded-2xl border-2 border-warm-border bg-warm-bg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="text-xs text-warm-muted font-bold">Giá bán niêm yết:</div>
               <div className="text-2xl sm:text-3xl font-black text-amber-700">
@@ -207,17 +288,47 @@ export const ProductDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {product.productUrl && (
-              <a
-                href={product.productUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="brutal-btn px-4 py-2.5 text-xs font-black shadow-brutal-xs"
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleFavoriteToggle}
+                title={isFav ? 'Bỏ lưu yêu thích' : 'Lưu vào yêu thích'}
+                className={`px-3 py-2 rounded-xl border-2 transition-all flex items-center gap-1.5 text-xs font-black shadow-brutal-xs cursor-pointer ${
+                  isFav
+                    ? 'bg-rose-100 border-rose-600 text-rose-800'
+                    : 'bg-warm-surface border-warm-border text-warm-text hover:bg-rose-50'
+                }`}
               >
-                <span>Xem trên TGDĐ</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            )}
+                <Heart className={`w-4 h-4 ${isFav ? 'text-rose-600 fill-rose-600' : 'text-warm-muted'}`} />
+                <span>{isFav ? 'Đã lưu' : 'Lưu yêu thích'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCompareToggle}
+                title={isComp ? 'Đã thêm vào so sánh' : 'Thêm vào so sánh'}
+                className={`px-3 py-2 rounded-xl border-2 transition-all flex items-center gap-1.5 text-xs font-black shadow-brutal-xs cursor-pointer ${
+                  isComp
+                    ? 'bg-amber-400 border-warm-border text-warm-text'
+                    : 'bg-warm-surface border-warm-border text-warm-text hover:bg-warm-secondary'
+                }`}
+              >
+                <Scale className="w-4 h-4 text-warm-text" />
+                <span>{isComp ? 'Đã thêm so sánh' : 'So sánh'}</span>
+              </button>
+
+              {product.productUrl && (
+                <a
+                  href={product.productUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="brutal-btn px-4 py-2 text-xs font-black shadow-brutal-xs flex items-center gap-1.5"
+                >
+                  <span>TGDĐ</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
           </div>
 
           {/* Technical specs table */}
@@ -390,76 +501,108 @@ export const ProductDetailPage: React.FC = () => {
         {/* Submit Review Form (5 cols) */}
         <div className="lg:col-span-5">
           <div className="brutal-card p-6 bg-warm-surface space-y-4">
-            <h3 className="text-base font-extrabold text-warm-text">Gửi Đánh Giá Của Bạn</h3>
+            <h3 className="text-base font-extrabold text-warm-text flex items-center justify-between">
+              <span>Gửi Đánh Giá Của Bạn</span>
+              {user && (
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                  Thành viên đã xác thực
+                </span>
+              )}
+            </h3>
 
-            {submitSuccess && (
-              <div className="p-3 rounded-xl border border-emerald-600 bg-emerald-50 text-emerald-900 text-xs font-bold flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-600" />
-                <span>Gửi đánh giá thành công! Dữ liệu đã được cập nhật.</span>
-              </div>
-            )}
+            {user ? (
+              <>
+                {submitSuccess && (
+                  <div className="p-3 rounded-xl border border-emerald-600 bg-emerald-50 text-emerald-900 text-xs font-bold flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Gửi đánh giá thành công! Dữ liệu đã được cập nhật.</span>
+                  </div>
+                )}
 
-            <form onSubmit={handleReviewSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-warm-muted mb-1">
-                  Họ và Tên:
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={reviewerName}
-                  onChange={(e) => setReviewerName(e.target.value)}
-                  placeholder="Ví dụ: Nguyễn Văn A"
-                  className="w-full px-3 py-2 rounded-xl border-2 border-warm-border bg-warm-bg text-warm-text font-bold text-xs focus:outline-none focus:bg-white focus:border-amber-500 shadow-brutal-xs"
-                />
-              </div>
+                {/* Identity banner showing current logged-in user */}
+                <div className="flex items-center gap-3 p-3 rounded-xl border-2 border-warm-border bg-warm-bg shadow-brutal-xs">
+                  <div className="w-9 h-9 rounded-xl bg-warm-primary border border-warm-border flex items-center justify-center text-warm-primary-text font-black text-xs shrink-0 shadow-inner">
+                    {user.avatarText || user.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black text-warm-text truncate">{user.name}</span>
+                      <span className="text-[10px] font-bold text-warm-muted">({user.role || 'Thành viên'})</span>
+                    </div>
+                    <span className="text-[11px] text-warm-muted truncate">{user.email}</span>
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-warm-muted mb-1">
-                  Số Sao Đánh Giá:
-                </label>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setRating(star)}
-                      className={`p-2 rounded-xl border-2 transition-all ${
-                        rating >= star
-                          ? 'bg-amber-400 border-warm-border text-warm-text shadow-brutal-xs'
-                          : 'bg-warm-bg border-warm-border-subtle text-warm-hint'
-                      }`}
-                    >
-                      <Star className="w-4 h-4 fill-current" />
-                    </button>
-                  ))}
-                  <span className="text-xs font-extrabold text-amber-700 ml-2">{rating} / 5 Sao</span>
+                <form onSubmit={handleReviewSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-extrabold uppercase tracking-wider text-warm-muted mb-1">
+                      Số Sao Đánh Giá:
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setRating(star)}
+                          className={`p-2 rounded-xl border-2 transition-all cursor-pointer ${
+                            rating >= star
+                              ? 'bg-amber-400 border-warm-border text-warm-text shadow-brutal-xs'
+                              : 'bg-warm-bg border-warm-border-subtle text-warm-hint hover:border-warm-border'
+                          }`}
+                        >
+                          <Star className="w-4 h-4 fill-current" />
+                        </button>
+                      ))}
+                      <span className="text-xs font-extrabold text-amber-700 ml-2">{rating} / 5 Sao</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-extrabold uppercase tracking-wider text-warm-muted mb-1">
+                      Nhận Xét Chi Tiết:
+                    </label>
+                    <textarea
+                      required
+                      rows={3}
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="Chia sẻ trải nghiệm thực tế về pin, màn hình, hiệu năng..."
+                      className="w-full px-3 py-2.5 rounded-xl border-2 border-warm-border bg-warm-bg text-warm-text font-bold text-xs focus:outline-none focus:bg-white focus:border-amber-500 shadow-brutal-xs"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submittingReview}
+                    className="brutal-btn w-full py-2.5 text-xs font-black shadow-brutal-xs disabled:opacity-50"
+                  >
+                    {submittingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    <span>{submittingReview ? 'Đang gửi...' : 'Gửi Đánh Giá'}</span>
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="text-center py-6 px-4 bg-warm-bg rounded-2xl border-2 border-warm-border space-y-3">
+                <div className="w-12 h-12 rounded-2xl border-2 border-warm-border bg-warm-secondary flex items-center justify-center mx-auto shadow-brutal-xs">
+                  <LogIn className="w-6 h-6 text-warm-secondary-text" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-black text-warm-text">Yêu Cầu Đăng Nhập</h4>
+                  <p className="text-xs text-warm-muted max-w-xs mx-auto">
+                    Chỉ thành viên đã đăng nhập mới có thể gửi đánh giá và nhận xét sản phẩm.
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <Link
+                    to={`/auth?redirect=${encodeURIComponent(location.pathname)}`}
+                    className="brutal-btn px-5 py-2.5 text-xs font-black shadow-brutal-xs inline-flex items-center gap-1.5"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Đăng nhập để đánh giá</span>
+                  </Link>
                 </div>
               </div>
-
-              <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-warm-muted mb-1">
-                  Nhận Xét Chi Tiết:
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Chia sẻ trải nghiệm thực tế về pin, màn hình, hiệu năng..."
-                  className="w-full px-3 py-2 rounded-xl border-2 border-warm-border bg-warm-bg text-warm-text font-bold text-xs focus:outline-none focus:bg-white focus:border-amber-500 shadow-brutal-xs"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={submittingReview}
-                className="brutal-btn w-full py-2.5 text-xs font-black shadow-brutal-xs disabled:opacity-50"
-              >
-                {submittingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                <span>{submittingReview ? 'Đang gửi...' : 'Gửi Đánh Giá'}</span>
-              </button>
-            </form>
+            )}
           </div>
         </div>
       </section>

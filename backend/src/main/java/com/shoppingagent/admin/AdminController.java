@@ -132,4 +132,38 @@ public class AdminController {
         }
         return ResponseEntity.ok(adminService.runGinBenchmark(req));
     }
+
+    // ── 6. Quản trị Người dùng ──────────────────────────────────────────────
+
+    @GetMapping("/users")
+    @Operation(summary = "Danh sách người dùng phân trang và tìm kiếm")
+    public ResponseEntity<Page<AdminUserDTO>> getUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String role) {
+        int safeSize = Math.min(size, 100);
+        return ResponseEntity.ok(adminService.getUsers(PageRequest.of(page, safeSize, Sort.by("id").ascending()), keyword, role));
+    }
+
+    @PutMapping("/users/{id}/role")
+    @Operation(summary = "Cập nhật vai trò người dùng (admin / user)")
+    public ResponseEntity<AdminUserDTO> updateUserRole(
+            @PathVariable Integer id,
+            @RequestBody UpdateUserRoleRequest request) {
+        return ResponseEntity.ok(adminService.updateUserRole(id, request.getRole()));
+    }
+
+    @PutMapping("/users/{id}/toggle-status")
+    @Operation(summary = "Khóa hoặc mở khóa tài khoản người dùng")
+    public ResponseEntity<AdminUserDTO> toggleUserStatus(@PathVariable Integer id) {
+        return ResponseEntity.ok(adminService.toggleUserStatus(id));
+    }
+
+    @DeleteMapping("/users/{id}")
+    @Operation(summary = "Vô hiệu hóa người dùng")
+    public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
+        adminService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
 }

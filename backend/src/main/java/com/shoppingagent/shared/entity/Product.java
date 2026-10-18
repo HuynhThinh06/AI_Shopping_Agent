@@ -80,6 +80,7 @@ public class Product {
     @OneToOne(mappedBy = "product", fetch = FetchType.LAZY)
     private ReviewSummary reviewSummary;
 
-    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @org.hibernate.annotations.BatchSize(size = 50)
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductImage> images;
 }

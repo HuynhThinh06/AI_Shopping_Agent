@@ -78,8 +78,10 @@ public class ProductService {
                 size,
                 Sort.by("avgRating").descending()
         );
+        String cleanCategory = (categoryCode != null && !categoryCode.isBlank()) ? categoryCode.trim() : null;
+        String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : "";
         return productRepository
-                .searchProducts(categoryCode, minPrice, maxPrice, keyword, pageable)
+                .searchProducts(cleanCategory, minPrice, maxPrice, cleanKeyword, pageable)
                 .map(this::toDetailDTO);
     }
 
@@ -94,26 +96,44 @@ public class ProductService {
                 .name(request.getName())
                 .brand(request.getBrand())
                 .price(request.getPrice())
+                .stockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 10)
                 .productUrl(request.getProductUrl())
-                .specs(request.getSpecs())
+                .specs(request.getSpecs() != null ? request.getSpecs() : Collections.emptyMap())
+                .isActive(true)
                 .build();
 
         List<ProductImage> productImages = new ArrayList<>();
-        if (images != null && !images.isEmpty()) {
-            boolean isFirst = true;
-            for (MultipartFile file : images) {
-                try {
-                    String url = cloudinaryService.uploadImage(file);
-                    ProductImage img = ProductImage.builder()
+        boolean isFirst = true;
+
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            for (String url : request.getImageUrls()) {
+                if (url != null && !url.isBlank()) {
+                    productImages.add(ProductImage.builder()
                             .product(product)
-                            .imageUrl(url)
+                            .imageUrl(url.trim())
                             .isPrimary(isFirst)
-                            .build();
-                    productImages.add(img);
+                            .build());
                     isFirst = false;
-                } catch (IOException e) {
-                    log.error("Error uploading image to Cloudinary", e);
-                    throw new RuntimeException("Failed to upload image", e);
+                }
+            }
+        }
+
+        if (images != null && !images.isEmpty()) {
+            for (MultipartFile file : images) {
+                if (file != null && !file.isEmpty()) {
+                    try {
+                        String url = cloudinaryService.uploadImage(file);
+                        ProductImage img = ProductImage.builder()
+                                .product(product)
+                                .imageUrl(url)
+                                .isPrimary(isFirst)
+                                .build();
+                        productImages.add(img);
+                        isFirst = false;
+                    } catch (IOException e) {
+                        log.error("Error uploading image to Cloudinary", e);
+                        throw new RuntimeException("Failed to upload image", e);
+                    }
                 }
             }
         }
@@ -123,6 +143,79 @@ public class ProductService {
         return toDetailDTO(saved);
     }
 
+    @Transactional
+    public ProductDetailDTO updateProduct(Long id, com.shoppingagent.product.dto.ProductUpdateRequest request, List<MultipartFile> images) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException(id));
+
+        if (request.getCategoryCode() != null && !request.getCategoryCode().isBlank()) {
+            Category category = categoryRepository.findByCode(request.getCategoryCode())
+                    .orElseThrow(() -> new IllegalArgumentException("Category not found: " + request.getCategoryCode()));
+            product.setCategory(category);
+        }
+
+        if (request.getName() != null) product.setName(request.getName());
+        if (request.getBrand() != null) product.setBrand(request.getBrand());
+        if (request.getSku() != null) product.setSku(request.getSku());
+        if (request.getPrice() != null) product.setPrice(request.getPrice());
+        if (request.getStockQuantity() != null) product.setStockQuantity(request.getStockQuantity());
+        if (request.getProductUrl() != null) product.setProductUrl(request.getProductUrl());
+        if (request.getSpecs() != null) product.setSpecs(request.getSpecs());
+        if (request.getIsActive() != null) product.setIsActive(request.getIsActive());
+
+        if (product.getImages() == null) {
+            product.setImages(new ArrayList<>());
+        }
+
+        if (request.getImageUrls() != null) {
+            product.getImages().clear();
+            boolean isFirst = true;
+            for (String url : request.getImageUrls()) {
+                if (url != null && !url.isBlank()) {
+                    product.getImages().add(ProductImage.builder()
+                            .product(product)
+                            .imageUrl(url.trim())
+                            .isPrimary(isFirst)
+                            .build());
+                    isFirst = false;
+                }
+            }
+        }
+
+        if (images != null && !images.isEmpty()) {
+            boolean isFirst = product.getImages().isEmpty();
+            for (MultipartFile file : images) {
+                if (file != null && !file.isEmpty()) {
+                    try {
+                        String url = cloudinaryService.uploadImage(file);
+                        ProductImage img = ProductImage.builder()
+                                .product(product)
+                                .imageUrl(url)
+                                .isPrimary(isFirst)
+                                .build();
+                        product.getImages().add(img);
+                        isFirst = false;
+                    } catch (IOException e) {
+                        log.error("Error uploading image to Cloudinary", e);
+                        throw new RuntimeException("Failed to upload image", e);
+                    }
+                }
+            }
+        }
+
+        Product saved = productRepository.save(product);
+        return toDetailDTO(saved);
+    }
+
+    @Transactional
+    public void deleteProduct(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException(id));
+        product.setIsActive(false);
+        productRepository.save(product);
+        log.info("Product #{} marked as inactive (soft deleted)", id);
+    }
+
     private ProductDetailDTO toDetailDTO(Product p) {
         List<String> imageUrls = p.getImages() != null ? 
                 p.getImages().stream().map(ProductImage::getImageUrl).collect(Collectors.toList()) : 
@@ -130,11 +223,13 @@ public class ProductService {
 
         return ProductDetailDTO.builder()
                 .id(p.getId())
-                .categoryCode(p.getCategory().getCode())
+                .categoryCode(p.getCategory() != null ? p.getCategory().getCode() : null)
                 .sku(p.getSku())
                 .name(p.getName())
                 .brand(p.getBrand())
                 .price(p.getPrice())
+                .stockQuantity(p.getStockQuantity())
+                .isActive(p.getIsActive())
                 .productUrl(p.getProductUrl())
                 .avgRating(p.getAvgRating())
                 .reviewCount(p.getReviewCount())
