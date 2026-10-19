@@ -1,13 +1,31 @@
+export interface AdminRecentQueryDTO {
+  id: number;
+  queryText: string;
+  category: string;
+  criteriaSummary: string;
+  topRecommendation: string;
+  latencyMs: number;
+  status: string;
+  createdAt: string;
+}
+
 export interface SystemStatsDTO {
   totalProducts: number;
+  laptopProducts?: number;
+  phoneProducts?: number;
   totalReviews: number;
+  activeReviews?: number;
+  spamReviews?: number;
   totalQueries: number;
+  totalSearches?: number;
   totalLlmCalls: number;
   successLlmCalls: number;
   failedLlmCalls: number;
   avgLatencyMs: number;
   totalTokensUsed: number;
+  totalTokens?: number;
   estimatedCostUsd: number;
+  recentQueries?: AdminRecentQueryDTO[];
 }
 
 export interface LlmLogItem {
@@ -20,6 +38,20 @@ export interface LlmLogItem {
   tokensUsed: number;
   promptExcerpt: string;
   responseExcerpt: string;
+  promptText?: string;
+  responseText?: string;
+  createdAt: string;
+}
+
+export interface AdminReviewDTO {
+  id: number;
+  productId: number;
+  productName: string;
+  reviewerName: string;
+  rating: number;
+  content: string;
+  isSpam: boolean;
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -57,3 +89,10 @@ export interface AdminUserDTO {
   updatedAt?: string;
 }
 
+export interface CategoryOption {
+  id: number;
+  code: string;
+  name: string;
+  description?: string;
+  isActive?: boolean;
+}

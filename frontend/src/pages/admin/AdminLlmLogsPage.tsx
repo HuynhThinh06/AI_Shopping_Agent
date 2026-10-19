@@ -2,27 +2,41 @@ import React, { useState, useEffect } from 'react';
 import { AdminNav } from '../../components/admin/AdminNav';
 import { getLlmLogs, getSystemStats } from '../../api/adminApi';
 import type { LlmLogItem, SystemStatsDTO } from '../../types/admin';
-import { Activity, RefreshCw, Eye, CheckCircle2, AlertTriangle, XCircle, DollarSign, Clock, Cpu } from 'lucide-react';
+import {
+  Activity,
+  RefreshCw,
+  Eye,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  DollarSign,
+  Clock,
+  Cpu,
+  Copy,
+} from 'lucide-react';
 
 export const AdminLlmLogsPage: React.FC = () => {
   const [stats, setStats] = useState<SystemStatsDTO | null>(null);
   const [logs, setLogs] = useState<LlmLogItem[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(false);
   const [filterType, setFilterType] = useState<string>('ALL');
   const [selectedLog, setSelectedLog] = useState<LlmLogItem | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const loadData = async (pageIdx = page) => {
+  const loadData = async (pageIdx = page, currentType = filterType) => {
     setLoading(true);
     try {
       const [statsData, logsData] = await Promise.all([
         getSystemStats(),
-        getLlmLogs(pageIdx, 15)
+        getLlmLogs(pageIdx, 15, currentType),
       ]);
       setStats(statsData);
       setLogs(logsData.content);
       setTotalPages(logsData.totalPages);
+      setTotalElements(logsData.totalElements);
     } catch (err) {
       console.error('Failed to load LLM logs:', err);
     } finally {
@@ -31,13 +45,14 @@ export const AdminLlmLogsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    loadData(page);
-  }, [page]);
+    loadData(page, filterType);
+  }, [page, filterType]);
 
-  const filteredLogs = logs.filter((l) => {
-    if (filterType === 'ALL') return true;
-    return l.requestType.toLowerCase().includes(filterType.toLowerCase());
-  });
+  const handleCopyText = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   return (
     <div>
@@ -52,17 +67,17 @@ export const AdminLlmLogsPage: React.FC = () => {
               Giám Sát Nhật Ký LLM & Chi Phí Token
             </h1>
             <span className="px-2.5 py-0.5 rounded-full bg-warm-secondary border border-warm-text text-warm-secondary-text text-xs font-black">
-              Bảng `llm_request_logs`
+              {totalElements} bản ghi (`llm_request_logs`)
             </span>
           </div>
           <p className="text-xs sm:text-sm text-warm-muted font-medium mt-1">
-            Theo dõi chi tiết các cuộc gọi Google Gemini 1.5 Flash / Flash Lite (Độ trễ, Token tiêu thụ, Prompt trích xuất và JSON phản hồi).
+            Theo dõi chi tiết các cuộc gọi Google Gemini (Độ trễ, Token tiêu thụ, toàn văn Prompt trích xuất và JSON phản hồi).
           </p>
         </div>
 
         <button
           type="button"
-          onClick={() => loadData(page)}
+          onClick={() => loadData(page, filterType)}
           disabled={loading}
           className="px-4 py-2 rounded-xl bg-warm-surface hover:bg-warm-bg text-warm-text font-bold text-xs border-2 border-warm-text shadow-brutal-xs flex items-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-60"
         >
@@ -110,7 +125,7 @@ export const AdminLlmLogsPage: React.FC = () => {
             ${stats ? stats.estimatedCostUsd.toFixed(4) : '0.0000'}
           </div>
           <div className="text-[11px] font-bold text-warm-muted mt-1">
-            Tiết kiệm nhờ Gemini Flash Lite
+            ≈ {stats ? Math.round(stats.estimatedCostUsd * 25400).toLocaleString('vi-VN') : 0} ₫ ($0.15 / 1M tokens)
           </div>
         </div>
 
@@ -123,7 +138,7 @@ export const AdminLlmLogsPage: React.FC = () => {
             {stats ? stats.avgLatencyMs.toFixed(0) : '0'} ms
           </div>
           <div className="text-[11px] font-bold text-warm-muted mt-1">
-            Gồm trích xuất & tóm tắt review
+            Gồm trích xuất, xếp hạng & tóm tắt
           </div>
         </div>
       </div>
@@ -131,7 +146,7 @@ export const AdminLlmLogsPage: React.FC = () => {
       {/* Filter Toolbar */}
       <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 shadow-brutal mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold text-warm-muted">Loại Request:</span>
+          <span className="text-xs font-bold text-warm-muted">Loại Request (Lọc từ Server):</span>
           {[
             { id: 'ALL', label: 'Tất cả' },
             { id: 'extract', label: 'extract_query' },
@@ -140,8 +155,12 @@ export const AdminLlmLogsPage: React.FC = () => {
           ].map((item) => (
             <button
               key={item.id}
-              onClick={() => setFilterType(item.id)}
-              className={`px-3 py-1 rounded-xl text-xs font-black border border-warm-text transition-all ${
+              type="button"
+              onClick={() => {
+                setFilterType(item.id);
+                setPage(0);
+              }}
+              className={`px-3 py-1 rounded-xl text-xs font-black border border-warm-text transition-all cursor-pointer ${
                 filterType === item.id
                   ? 'bg-warm-primary text-warm-primary-text shadow-brutal-xs'
                   : 'bg-white hover:bg-warm-secondary text-warm-text'
@@ -164,24 +183,35 @@ export const AdminLlmLogsPage: React.FC = () => {
                 <th className="py-3 px-3">Loại Request</th>
                 <th className="py-3 px-3">Trạng thái</th>
                 <th className="py-3 px-3">Latency</th>
-                <th className="py-3 px-3">Tokens</th>
+                <th className="py-3 px-3">Tokens & Chi phí</th>
                 <th className="py-3 px-3">Prompt tóm tắt</th>
                 <th className="py-3 px-3 text-right">Chi tiết</th>
               </tr>
             </thead>
             <tbody className="divide-y-2 divide-warm-border-subtle font-medium">
-              {filteredLogs.length === 0 ? (
+              {loading ? (
                 <tr>
                   <td colSpan={8} className="py-8 text-center text-warm-muted">
-                    Chưa có bản ghi log nào hoặc không khớp bộ lọc.
+                    Đang tải dữ liệu log từ máy chủ...
+                  </td>
+                </tr>
+              ) : logs.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-warm-muted">
+                    Chưa có bản ghi log nào khớp bộ lọc.
                   </td>
                 </tr>
               ) : (
-                filteredLogs.map((log) => (
+                logs.map((log) => (
                   <tr key={log.id} className="hover:bg-warm-bg/70 transition-colors">
-                    <td className="py-3.5 px-3 font-mono font-bold text-warm-text">#{log.id}</td>
+                    <td className="py-3.5 px-3 font-mono font-bold text-warm-text">
+                      <div>#{log.id}</div>
+                      {log.queryId && (
+                        <div className="text-[10px] text-warm-muted">Query #{log.queryId}</div>
+                      )}
+                    </td>
                     <td className="py-3.5 px-3 font-mono text-warm-muted whitespace-nowrap">
-                      {new Date(log.createdAt).toLocaleTimeString('vi-VN')}
+                      {new Date(log.createdAt).toLocaleString('vi-VN')}
                     </td>
                     <td className="py-3.5 px-3">
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-warm-pastel-amber border border-warm-text text-warm-secondary-text">
@@ -206,8 +236,19 @@ export const AdminLlmLogsPage: React.FC = () => {
                     <td className="py-3.5 px-3 font-mono font-bold text-emerald-700 whitespace-nowrap">
                       {log.latencyMs != null ? `${log.latencyMs} ms` : '-'}
                     </td>
-                    <td className="py-3.5 px-3 font-mono text-warm-muted whitespace-nowrap">
-                      {log.tokensUsed != null ? log.tokensUsed.toLocaleString() : '-'}
+                    <td className="py-3.5 px-3 font-mono whitespace-nowrap">
+                      {log.tokensUsed != null ? (
+                        <div>
+                          <div className="font-bold text-warm-text">
+                            {log.tokensUsed.toLocaleString()} tok
+                          </div>
+                          <div className="text-[10px] text-emerald-700">
+                            ${(log.tokensUsed * 0.00000015).toFixed(5)}
+                          </div>
+                        </div>
+                      ) : (
+                        '-'
+                      )}
                     </td>
                     <td className="py-3.5 px-3 max-w-xs truncate text-warm-muted">
                       {log.promptExcerpt || '-'}
@@ -233,14 +274,14 @@ export const AdminLlmLogsPage: React.FC = () => {
         {totalPages > 1 && (
           <div className="p-3 bg-warm-bg border-t-2 border-warm-text flex items-center justify-between">
             <span className="text-xs font-bold text-warm-muted">
-              Trang {page + 1} / {totalPages}
+              Trang {page + 1} / {totalPages} (Tổng {totalElements} bản ghi)
             </span>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0}
-                className="px-3 py-1 rounded-lg border border-warm-text bg-white disabled:opacity-50 text-xs font-bold"
+                className="px-3 py-1 rounded-lg border border-warm-text bg-white disabled:opacity-50 text-xs font-bold cursor-pointer"
               >
                 Trước
               </button>
@@ -248,7 +289,7 @@ export const AdminLlmLogsPage: React.FC = () => {
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                 disabled={page >= totalPages - 1}
-                className="px-3 py-1 rounded-lg border border-warm-text bg-white disabled:opacity-50 text-xs font-bold"
+                className="px-3 py-1 rounded-lg border border-warm-text bg-white disabled:opacity-50 text-xs font-bold cursor-pointer"
               >
                 Tiếp
               </button>
@@ -260,14 +301,15 @@ export const AdminLlmLogsPage: React.FC = () => {
       {/* Payload Modal / Drawer */}
       {selectedLog && (
         <div className="fixed inset-0 z-50 bg-warm-text/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-6 shadow-brutal max-w-2xl w-full max-h-[85vh] overflow-y-auto space-y-4">
+          <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-6 shadow-brutal max-w-3xl w-full max-h-[88vh] overflow-y-auto space-y-4">
             <div className="flex items-center justify-between pb-3 border-b-2 border-warm-border-subtle">
               <div>
                 <h3 className="text-sm font-black text-warm-text uppercase tracking-wider flex items-center gap-2">
-                  <span>📄</span> Chi tiết Payload LLM Log #{selectedLog.id}
+                  <span>📄</span> Toàn Văn Chi Tiết Payload LLM Log #{selectedLog.id}
                 </h3>
                 <span className="text-[11px] text-warm-muted font-mono">
-                  {selectedLog.requestType} • {selectedLog.latencyMs}ms • {selectedLog.tokensUsed} tokens
+                  {selectedLog.requestType} • {selectedLog.latencyMs}ms • {selectedLog.tokensUsed} tokens •{' '}
+                  {new Date(selectedLog.createdAt).toLocaleString('vi-VN')}
                 </span>
               </div>
               <button
@@ -280,16 +322,44 @@ export const AdminLlmLogsPage: React.FC = () => {
             </div>
 
             <div>
-              <div className="text-xs font-black text-warm-text uppercase mb-1">Prompt gửi đến Gemini:</div>
-              <pre className="text-xs font-mono bg-warm-bg p-3 rounded-xl border-2 border-warm-text overflow-x-auto whitespace-pre-wrap max-h-48">
-                {selectedLog.promptExcerpt}
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-black text-warm-text uppercase">
+                  Prompt đầy đủ gửi đến Gemini:
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleCopyText(selectedLog.promptText || selectedLog.promptExcerpt || '', 'prompt')
+                  }
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-warm-bg hover:bg-warm-secondary border border-warm-text/40 text-[11px] font-bold cursor-pointer"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>{copiedField === 'prompt' ? 'Đã chép!' : 'Sao chép Prompt'}</span>
+                </button>
+              </div>
+              <pre className="text-xs font-mono bg-warm-bg p-3.5 rounded-xl border-2 border-warm-text overflow-x-auto whitespace-pre-wrap max-h-64 leading-relaxed">
+                {selectedLog.promptText || selectedLog.promptExcerpt || '(Trống)'}
               </pre>
             </div>
 
             <div>
-              <div className="text-xs font-black text-warm-text uppercase mb-1">JSON Phản Hồi:</div>
-              <pre className="text-xs font-mono bg-warm-bg p-3 rounded-xl border-2 border-warm-text overflow-x-auto whitespace-pre-wrap max-h-48 text-emerald-800 font-semibold">
-                {selectedLog.responseExcerpt}
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-black text-warm-text uppercase">
+                  JSON Phản Hồi Đầy Đủ Từ Gemini:
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleCopyText(selectedLog.responseText || selectedLog.responseExcerpt || '', 'response')
+                  }
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-warm-bg hover:bg-warm-secondary border border-warm-text/40 text-[11px] font-bold cursor-pointer"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>{copiedField === 'response' ? 'Đã chép!' : 'Sao chép JSON'}</span>
+                </button>
+              </div>
+              <pre className="text-xs font-mono bg-warm-bg p-3.5 rounded-xl border-2 border-warm-text overflow-x-auto whitespace-pre-wrap max-h-72 text-emerald-800 font-semibold leading-relaxed">
+                {selectedLog.responseText || selectedLog.responseExcerpt || '(Trống)'}
               </pre>
             </div>
 
@@ -297,9 +367,9 @@ export const AdminLlmLogsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedLog(null)}
-                className="px-4 py-2 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs border border-warm-text shadow-brutal-xs cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs border-2 border-warm-text shadow-brutal-xs cursor-pointer"
               >
-                Đóng
+                Đóng cửa sổ
               </button>
             </div>
           </div>

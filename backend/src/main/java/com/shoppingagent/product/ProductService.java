@@ -78,7 +78,7 @@ public class ProductService {
                 size,
                 Sort.by("avgRating").descending()
         );
-        String cleanCategory = (categoryCode != null && !categoryCode.isBlank()) ? categoryCode.trim() : null;
+        String cleanCategory = (categoryCode != null && !categoryCode.isBlank()) ? categoryCode.trim() : "";
         String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : "";
         return productRepository
                 .searchProducts(cleanCategory, minPrice, maxPrice, cleanKeyword, pageable)

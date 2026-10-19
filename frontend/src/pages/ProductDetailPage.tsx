@@ -16,7 +16,6 @@ import {
 import {
   Sparkles,
   Star,
-  ArrowLeft,
   ExternalLink,
   Cpu,
   CheckCircle2,
@@ -25,7 +24,6 @@ import {
   MessageSquare,
   Send,
   Check,
-  AlertCircle,
   Loader2,
   Heart,
   Scale,
@@ -34,6 +32,8 @@ import {
   RotateCcw,
   ChevronDown,
   ChevronUp,
+  Database,
+  LogIn,
 } from 'lucide-react';
 
 export const ProductDetailPage: React.FC = () => {
@@ -130,7 +130,11 @@ export const ProductDetailPage: React.FC = () => {
         const related = (featured || [])
           .filter((p) => p.id !== productId && p.categoryCode === prodData.categoryCode)
           .slice(0, 3);
-        setRelatedProducts(related.length > 0 ? related : (featured || []).filter((p) => p.id !== productId).slice(0, 3));
+        setRelatedProducts(
+          related.length > 0
+            ? related
+            : (featured || []).filter((p) => p.id !== productId).slice(0, 3)
+        );
       } catch (e) {
         console.warn('Lỗi tải gợi ý liên quan:', e);
       }
@@ -275,7 +279,7 @@ export const ProductDetailPage: React.FC = () => {
     setTimeout(() => {
       const qLower = qText.toLowerCase();
       let ans = '';
-      const specs = product.specs || {};
+      const specs = (typeof product.specs === 'object' && product.specs) || {};
 
       if (qLower.includes('game') || qLower.includes('chơi')) {
         const vga = specs.vga || specs.gpu || '';
@@ -310,12 +314,12 @@ export const ProductDetailPage: React.FC = () => {
 
   if (error || !product) {
     return (
-      <div className="brutal-card p-12 text-center bg-warm-surface max-w-lg mx-auto space-y-4 mt-8">
-        <AlertCircle className="w-12 h-12 text-rose-500 mx-auto" />
-        <h2 className="text-xl font-extrabold text-warm-text">{error || 'Sản phẩm không tồn tại'}</h2>
-        <Link to="/search" className="brutal-btn px-6 py-2.5 text-xs font-bold inline-flex">
-          <ArrowLeft className="w-4 h-4" />
-          <span>Quay lại tìm kiếm</span>
+      <div className="brutal-card p-12 text-center bg-warm-surface space-y-4 max-w-lg mx-auto my-12">
+        <AlertTriangle className="w-12 h-12 text-rose-500 mx-auto" />
+        <h2 className="text-xl font-black text-warm-text">Không Tìm Thấy Sản Phẩm</h2>
+        <p className="text-xs text-warm-muted">{error || 'Sản phẩm không tồn tại hoặc đã bị xóa.'}</p>
+        <Link to="/search" className="brutal-btn inline-block px-6 py-2.5 text-xs font-black shadow-brutal-xs">
+          Quay lại tìm kiếm
         </Link>
       </div>
     );
@@ -323,37 +327,37 @@ export const ProductDetailPage: React.FC = () => {
 
   const isPhone = (product.categoryCode || '').toLowerCase().includes('phone');
   const vendorInfo = getVendorProvenance(product);
-  const specs = product.specs || {};
+  const specs = (typeof product.specs === 'object' && product.specs) || {};
 
   // Quick specs calculation
   const quickSpecs = isPhone
     ? [
         {
           title: 'Chipset',
-          val: specs.chipset || specs.cpu || 'Tiêu chuẩn',
+          val: specs.chipset || specs.cpu || 'Vi xử lý cao cấp',
           desc: specs.os || 'Hệ điều hành tối ưu',
         },
         {
-          title: 'RAM & ROM',
-          val: specs.ram ? (String(specs.ram).includes('GB') ? specs.ram : `${specs.ram} GB`) : '8 GB',
-          desc: specs.storage ? (String(specs.storage).includes('GB') || String(specs.storage).includes('TB') ? specs.storage : `${specs.storage} GB ROM`) : 'Bộ nhớ chuẩn',
+          title: 'Bộ Nhớ RAM',
+          val: specs.ram ? (String(specs.ram).toUpperCase().includes('GB') ? specs.ram : specs.ram + ' GB') : '8 GB',
+          desc: specs.ram_type || 'Đa nhiệm mượt mà',
         },
         {
           title: 'Màn Hình',
-          val: `${specs.screen_size ? specs.screen_size + '"' : '6.7"'} ${specs.panel || 'AMOLED'}`,
-          desc: `${specs.refresh_rate ? specs.refresh_rate + ' Hz' : '120 Hz'} ${specs.resolution || ''}`,
+          val: `${specs.screen_size ? specs.screen_size + '"' : '6.5"'} ${specs.panel || 'AMOLED'}`,
+          desc: specs.refresh_rate ? specs.refresh_rate + ' Hz' : 'Sắc nét chuẩn màu',
         },
         {
           title: 'Pin & Sạc',
-          val: specs.battery ? (String(specs.battery).includes('mAh') ? specs.battery : `${specs.battery} mAh`) : '5000 mAh',
-          desc: specs.charging ? `Sạc nhanh ${specs.charging}W` : 'Sạc siêu tốc',
+          val: specs.battery ? (String(specs.battery).toUpperCase().includes('MAH') ? specs.battery : specs.battery + ' mAh') : '5000 mAh',
+          desc: specs.charging ? specs.charging + 'W' : 'Sạc nhanh',
         },
       ]
     : [
         {
-          title: 'Vi Xử Lý',
-          val: specs.cpu || specs.CPU || 'Tiêu chuẩn',
-          desc: specs.vga ? `Đồ họa: ${specs.vga}` : 'Xử lý đa nhiệm',
+          title: 'Vi Xử Lý (CPU)',
+          val: specs.cpu || 'Intel Core / AMD Ryzen',
+          desc: specs.vga || 'Đồ họa tích hợp',
         },
         {
           title: 'Bộ Nhớ RAM',
@@ -377,11 +381,10 @@ export const ProductDetailPage: React.FC = () => {
     {
       title: '1. Bộ Xử Lý & Đồ Họa',
       fields: [
-        { key: 'cpu', label: 'Model CPU / Vi xử lý' },
-        { key: 'cpu_cores', label: 'Số nhân & Số luồng' },
+        { key: 'cpu', label: 'Vi xử lý (CPU)' },
+        { key: 'cpu_cores', label: 'Số nhân / Số luồng' },
         { key: 'cpu_speed', label: 'Tốc độ xung nhịp' },
         { key: 'vga', label: 'Card đồ họa (GPU)' },
-        { key: 'npu', label: 'Xử lý AI (NPU)' },
       ],
     },
     {
@@ -417,11 +420,10 @@ export const ProductDetailPage: React.FC = () => {
 
   const phoneGroups = [
     {
-      title: '1. Vi Xử Lý & Hệ Điều Hành',
+      title: '1. Vi Xử Lý & Hiệu Năng',
       fields: [
-        { key: 'chipset', label: 'Chipset / Vi xử lý' },
-        { key: 'cpu', label: 'CPU' },
-        { key: 'gpu', label: 'GPU' },
+        { key: 'chipset', label: 'Vi xử lý (Chipset)' },
+        { key: 'gpu', label: 'Chip đồ họa (GPU)' },
         { key: 'os', label: 'Hệ điều hành' },
       ],
     },
@@ -490,7 +492,7 @@ export const ProductDetailPage: React.FC = () => {
                 }}
               />
             ) : (
-              <Cpu className="w-16 h-16 text-warm-hint" />
+              <Cpu className="w-20 h-20 text-warm-hint" />
             )}
           </div>
 
@@ -549,16 +551,18 @@ export const ProductDetailPage: React.FC = () => {
               {product.categoryCode}
             </span>
             {product.sku && (
-              <span className="text-xs text-warm-hint font-medium">SKU: {product.sku}</span>
+              <span className="text-[11px] text-warm-muted font-mono font-bold">
+                Mã SP: {product.sku}
+              </span>
             )}
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black text-warm-text leading-tight">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-warm-text tracking-tight">
             {product.name}
           </h1>
 
-          <div className="flex items-center gap-4 text-sm font-bold text-warm-muted">
-            <div className="flex items-center gap-1 text-amber-500">
+          <div className="flex items-center gap-3 text-xs font-bold text-warm-muted">
+            <div className="flex items-center gap-1 text-amber-600">
               <Star className="w-4 h-4 fill-current" />
               <span>{product.avgRating ? Number(product.avgRating).toFixed(1) : '5.0'}</span>
             </div>
@@ -610,7 +614,7 @@ export const ProductDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsAskAiOpen(true)}
-                className="brutal-btn px-4 py-2.5 text-xs font-black shadow-brutal-xs flex items-center gap-1.5"
+                className="brutal-btn px-4 py-2.5 text-xs font-black shadow-brutal-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Hỏi AI</span>
@@ -674,7 +678,7 @@ export const ProductDetailPage: React.FC = () => {
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black text-warm-text">
-                AI Phân Tích &amp; Tóm Tắt Đánh Giá
+                Tóm Tắt Đánh Giá Bằng Google Gemini
               </h2>
               <span className="text-xs text-warm-muted">
                 Tổng hợp tự động từ {product.reviewCount || reviews.length || 0} bài đánh giá của người dùng
@@ -682,15 +686,39 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleRefreshSummary}
-            disabled={refreshingSummary}
-            className="brutal-btn px-3 py-1.5 text-xs font-bold shadow-brutal-xs flex items-center gap-1.5 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshingSummary ? 'animate-spin' : ''}`} />
-            <span>Làm mới tóm tắt</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {summary && (
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-warm-border text-xs font-black shadow-brutal-xs ${
+                  summary.cached
+                    ? 'bg-emerald-100 text-emerald-950'
+                    : 'bg-amber-200 text-amber-950'
+                }`}
+              >
+                {summary.cached ? (
+                  <>
+                    <Database className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>⚡ Đọc tức thì từ Cache Postgres</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                    <span>✨ Vừa tóm tắt mới bằng Google Gemini</span>
+                  </>
+                )}
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={handleRefreshSummary}
+              disabled={refreshingSummary}
+              className="brutal-btn px-3 py-1.5 text-xs font-bold shadow-brutal-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshingSummary ? 'animate-spin' : ''}`} />
+              <span>Làm mới tóm tắt</span>
+            </button>
+          </div>
         </div>
 
         {loadingSummary ? (
@@ -760,7 +788,7 @@ export const ProductDetailPage: React.FC = () => {
           </div>
         ) : (
           <div className="py-6 text-center text-warm-muted text-xs font-semibold">
-            Chưa có tóm tắt AI cho sản phẩm này. Hãy bấm "Làm mới tóm tắt" để kích hoạt.
+            Chưa có tóm tắt AI cho sản phẩm này. Hãy bấm &quot;Làm mới tóm tắt&quot; để kích hoạt.
           </div>
         )}
       </section>
@@ -770,12 +798,12 @@ export const ProductDetailPage: React.FC = () => {
         <div className="flex items-center justify-between pb-3 border-b-2 border-warm-border/10">
           <h2 className="text-base sm:text-lg font-black text-warm-text flex items-center gap-2">
             <Cpu className="w-5 h-5 text-amber-600" />
-            <span>Thông Số Kỹ Thuật Chi Tiết (Chuẩn Hóa PostgreSQL JSONB)</span>
+            <span>Thông Số Kỹ Thuật Chi Tiết</span>
           </h2>
           <button
             type="button"
             onClick={() => setSpecsExpanded((prev) => !prev)}
-            className="text-xs font-bold text-amber-700 hover:underline flex items-center gap-1"
+            className="text-xs font-bold text-amber-700 hover:underline flex items-center gap-1 cursor-pointer"
           >
             <span>{specsExpanded ? 'Thu gọn' : 'Xem toàn bộ'}</span>
             {specsExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -864,7 +892,7 @@ export const ProductDetailPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {relatedProducts.map((item, idx) => {
-              const itemSpecs = item.specs || {};
+              const itemSpecs = (typeof item.specs === 'object' && item.specs) || {};
               const sub = [
                 itemSpecs.cpu || itemSpecs.chipset || '',
                 itemSpecs.ram ? itemSpecs.ram + 'GB RAM' : '',
@@ -888,6 +916,17 @@ export const ProductDetailPage: React.FC = () => {
                       <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
                         ★ {item.avgRating ? Number(item.avgRating).toFixed(1) : '4.8'}
                       </span>
+                    </div>
+
+                    <div className="w-full aspect-[4/3] rounded-xl border-2 border-warm-border bg-warm-subtle mt-3 p-3 flex items-center justify-center overflow-hidden shadow-brutal-xs">
+                      <img
+                        src={(item.imageUrls && item.imageUrls[0]) || 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300'}
+                        alt={item.name}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as any).src = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300';
+                        }}
+                      />
                     </div>
 
                     <h3 className="font-extrabold text-base text-warm-text mt-3 truncate" title={item.name}>
@@ -928,7 +967,7 @@ export const ProductDetailPage: React.FC = () => {
           <div>
             <h2 className="text-base sm:text-lg font-black text-warm-text flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-amber-600" />
-              <span>Đánh Giá Từ Người Dùng Xác Thực</span>
+              <span>Đánh Giá Từ Người Dùng</span>
             </h2>
             <span className="text-xs text-warm-muted font-medium">
               ({reviews.length} đánh giá đã được kiểm duyệt nội dung)
@@ -956,7 +995,7 @@ export const ProductDetailPage: React.FC = () => {
                     key={star}
                     type="button"
                     onClick={() => setRating(star)}
-                    className="p-1 text-amber-500 hover:scale-110 transition-transform"
+                    className="p-1 text-amber-500 hover:scale-110 transition-transform cursor-pointer"
                   >
                     <Star
                       className={`w-5 h-5 ${star <= rating ? 'fill-current' : 'text-warm-border'}`}
@@ -988,7 +1027,7 @@ export const ProductDetailPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submittingReview || !content.trim()}
-                  className="brutal-btn px-5 py-2 text-xs font-black shadow-brutal-xs flex items-center gap-1.5 disabled:opacity-50"
+                  className="brutal-btn px-5 py-2 text-xs font-black shadow-brutal-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>{submittingReview ? 'Đang gửi...' : 'Gửi Đánh Giá'}</span>
@@ -996,11 +1035,15 @@ export const ProductDetailPage: React.FC = () => {
               </div>
             </form>
           ) : (
-            <div className="text-center py-4">
+            <div className="text-center py-4 space-y-2">
+              <p className="text-xs text-warm-muted">
+                Chỉ thành viên đã đăng nhập mới có thể gửi nhận xét và đánh giá sản phẩm.
+              </p>
               <Link
                 to={`/auth?redirect=${encodeURIComponent(location.pathname)}`}
                 className="brutal-btn px-6 py-2 text-xs font-black shadow-brutal-xs inline-flex items-center gap-1.5"
               >
+                <LogIn className="w-3.5 h-3.5" />
                 <span>Đăng nhập để chia sẻ đánh giá</span>
               </Link>
             </div>
@@ -1057,12 +1100,12 @@ export const ProductDetailPage: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b-2 border-warm-border/10">
               <h3 className="text-base font-extrabold text-warm-text flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-600" />
-                <span>Trợ Lý AI Phân Tích: {product.name}</span>
+                <span>Trợ Lý Google Gemini Phân Tích: {product.name}</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setIsAskAiOpen(false)}
-                className="text-warm-muted hover:text-warm-text font-black text-sm p-1"
+                className="text-warm-muted hover:text-warm-text font-black text-sm p-1 cursor-pointer"
               >
                 ✕
               </button>
@@ -1084,7 +1127,7 @@ export const ProductDetailPage: React.FC = () => {
                       setAiQuestion(chip);
                       handleAskAiSubmit(chip);
                     }}
-                    className="p-1.5 rounded-lg border border-warm-border bg-warm-bg text-[11px] font-bold text-warm-text hover:bg-amber-100 text-left"
+                    className="p-1.5 rounded-lg border border-warm-border bg-warm-bg text-[11px] font-bold text-warm-text hover:bg-amber-100 text-left cursor-pointer"
                   >
                     {chip}
                   </button>
@@ -1110,7 +1153,7 @@ export const ProductDetailPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={aiThinking || !aiQuestion.trim()}
-                className="brutal-btn px-4 py-2 text-xs font-black shadow-brutal-xs disabled:opacity-50"
+                className="brutal-btn px-4 py-2 text-xs font-black shadow-brutal-xs disabled:opacity-50 cursor-pointer"
               >
                 {aiThinking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               </button>
@@ -1120,13 +1163,13 @@ export const ProductDetailPage: React.FC = () => {
             {aiThinking && (
               <div className="p-4 rounded-xl border border-warm-border bg-amber-50 text-xs font-semibold text-amber-900 flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
-                <span>AI đang phân tích bảng thông số kỹ thuật...</span>
+                <span>Google Gemini đang phân tích bảng thông số kỹ thuật...</span>
               </div>
             )}
 
             {aiAnswer && !aiThinking && (
               <div className="p-4 rounded-xl border-2 border-amber-400 bg-amber-50 text-xs text-amber-950 font-medium leading-relaxed space-y-1">
-                <div className="font-extrabold text-[11px] text-amber-900 uppercase">Câu trả lời từ Gemini AI:</div>
+                <div className="font-extrabold text-[11px] text-amber-900 uppercase">Câu trả lời từ Google Gemini:</div>
                 <p>{aiAnswer}</p>
               </div>
             )}

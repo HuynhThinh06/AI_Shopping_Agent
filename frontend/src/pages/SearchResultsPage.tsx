@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { searchApi } from '../api/searchApi';
 import { categoryApi } from '../api/categoryApi';
@@ -95,7 +95,7 @@ export const testFacetOptionMatch = (
 };
 
 /**
- * Siêu dữ liệu bộ lọc dự phòng (Graceful Degradation / Progressive Enhancement)
+ * Dữ liệu bộ lọc dự phòng (Graceful Degradation / Progressive Enhancement)
  * Tự động kích hoạt khi Backend chưa hoàn tất hoặc offline
  */
 export const getDefaultFacets = (categoryCode: string): CategoryFacetDTO[] => {
@@ -240,6 +240,9 @@ export const SearchResultsPage: React.FC = () => {
   const [editScreenHz, setEditScreenHz] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Deduplication guard against React 18 StrictMode duplicate invocations
+  const lastSearchedQueryRef = useRef<string>('');
+
   useEffect(() => {
     const handleCompareUpdate = () => {
       setCompareIds(getCompareIds());
@@ -258,7 +261,7 @@ export const SearchResultsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await searchApi.searchProducts(text.trim(), 20);
+      const data = await searchApi.searchProducts(text.trim());
       setResult(data);
       setDisplayedCount(6);
 
@@ -276,27 +279,38 @@ export const SearchResultsPage: React.FC = () => {
         data.extractedCriteria?.categoryCode,
         data.extractedCriteria?.target,
         data.extractedCriteria?.budgetMax,
-        data.totalMatched
+        data.totalMatched ?? (data.results ? data.results.length : 0)
       );
     } catch (err: any) {
       console.error('Search error:', err);
-      setError(err?.response?.data?.detail || 'Không thể kết nối đến máy chủ hoặc dịch vụ AI. Vui lòng thử lại.');
+      setError('Đã có lỗi xảy ra trong quá trình phân tích truy vấn. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (queryParam) {
-      setQueryInput(queryParam);
-      fetchResults(queryParam);
+    const cleanQ = queryParam.trim();
+    if (cleanQ && lastSearchedQueryRef.current !== cleanQ) {
+      lastSearchedQueryRef.current = cleanQ;
+      setQueryInput(cleanQ);
+      resetAllFilters();
+      fetchResults(cleanQ);
     }
   }, [queryParam]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!queryInput.trim()) return;
-    setSearchParams({ q: queryInput.trim() });
+    const nextQ = queryInput.trim();
+    if (!nextQ) return;
+    if (nextQ === queryParam.trim()) {
+      resetAllFilters();
+      fetchResults(nextQ);
+    } else {
+      lastSearchedQueryRef.current = nextQ;
+      resetAllFilters();
+      setSearchParams({ q: nextQ });
+    }
   };
 
   const formatVnd = (price: number) => {
@@ -627,21 +641,21 @@ export const SearchResultsPage: React.FC = () => {
     }
     if (pos === 2) {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-200 text-slate-800 font-bold text-xs border border-warm-border shadow-brutal-xs">
-          <span>Top 2</span>
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-200 text-slate-800 font-extrabold text-xs border border-warm-border">
+          <span>Top 2 Cân Nhắc</span>
         </span>
       );
     }
     if (pos === 3) {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-200 text-amber-900 font-bold text-xs border border-warm-border shadow-brutal-xs">
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-100 text-amber-900 font-bold text-xs border border-warm-border">
           <span>Top 3</span>
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-warm-subtle text-warm-muted font-bold text-xs border border-warm-border">
-        Hạng #{pos}
+      <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-warm-bg text-warm-muted font-bold text-xs border border-warm-border">
+        <span>#{pos}</span>
       </span>
     );
   };
@@ -667,6 +681,8 @@ export const SearchResultsPage: React.FC = () => {
     const generatedQuery = newQueryTerms.join(', ');
     setIsEditModalOpen(false);
     showToast('Đang cập nhật tìm kiếm theo tiêu chí mới...');
+    lastSearchedQueryRef.current = generatedQuery;
+    resetAllFilters();
     setSearchParams({ q: generatedQuery });
   };
 
@@ -699,7 +715,7 @@ export const SearchResultsPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="brutal-btn px-6 py-2.5 text-xs sm:text-sm font-extrabold shadow-brutal shrink-0 disabled:opacity-50"
+            className="brutal-btn px-6 py-2.5 text-xs sm:text-sm font-extrabold shadow-brutal shrink-0 disabled:opacity-50 cursor-pointer"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             <span>{loading ? 'Đang phân tích...' : 'Phân tích & Tìm'}</span>
@@ -707,14 +723,15 @@ export const SearchResultsPage: React.FC = () => {
         </form>
       </section>
 
-      {/* Loading State */}
+      {/* Loading Skeleton Banner */}
       {loading && (
-        <div className="brutal-card p-12 text-center bg-warm-surface space-y-4">
-          <div className="w-14 h-14 mx-auto rounded-2xl border-2 border-warm-border bg-amber-200 flex items-center justify-center shadow-brutal-sm animate-bounce">
-            <Sparkles className="w-7 h-7 text-amber-900 animate-spin" />
+        <div className="brutal-card p-8 bg-warm-surface text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-200 border-2 border-warm-border flex items-center justify-center text-amber-900 mx-auto shadow-brutal-xs">
+            <Loader2 className="w-6 h-6 animate-spin text-amber-600" />
           </div>
+
           <div className="space-y-1">
-            <h3 className="font-extrabold text-lg text-warm-text">Gemini AI đang phân tích truy vấn...</h3>
+            <h3 className="font-extrabold text-lg text-warm-text">Google Gemini đang phân tích truy vấn...</h3>
             <p className="text-xs text-warm-muted">
               Đang trích xuất ràng buộc ngôn ngữ tự nhiên → Lọc qua CSDL PostgreSQL GIN Index → Tính điểm xếp hạng Weighted Scoring.
             </p>
@@ -722,14 +739,11 @@ export const SearchResultsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Error Alert */}
+      {/* Error Banner */}
       {error && !loading && (
-        <div className="p-4 rounded-xl border-2 border-rose-600 bg-rose-50 text-rose-900 shadow-brutal-xs flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-          <div>
-            <div className="font-extrabold text-sm">Có lỗi xảy ra khi gọi AI Search:</div>
-            <div className="text-xs mt-1">{error}</div>
-          </div>
+        <div className="brutal-card p-4 bg-rose-50 border-rose-500 text-rose-900 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+          <p className="text-xs font-bold">{error}</p>
         </div>
       )}
 
@@ -741,10 +755,10 @@ export const SearchResultsPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-warm-border bg-amber-100 text-amber-950 font-extrabold text-xs shadow-brutal-xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                Gemini 3.8 Flash • Criteria Extracted
+                Google Gemini • Tiêu chí đã trích xuất
               </span>
               <span className="text-xs text-warm-muted font-semibold hidden md:inline">
-                Độ trễ: <strong>280ms</strong> • Tokens tiêu thụ: <strong>68</strong>
+                Tìm thấy <strong>{result.totalMatched}</strong> sản phẩm ứng viên
               </span>
             </div>
 
@@ -774,16 +788,16 @@ export const SearchResultsPage: React.FC = () => {
                 Câu hỏi gốc từ bạn:
               </span>
               <h1 className="text-base sm:text-lg font-extrabold text-warm-text tracking-tight flex items-center gap-1">
-                <span className="text-amber-600 font-serif text-xl">“</span>
+                <span className="text-amber-600 font-serif text-xl">&ldquo;</span>
                 <span>{queryParam}</span>
-                <span className="text-amber-600 font-serif text-xl">”</span>
+                <span className="text-amber-600 font-serif text-xl">&rdquo;</span>
               </h1>
             </div>
 
             <button
               type="button"
               onClick={() => setIsEditModalOpen(true)}
-              className="brutal-btn self-start md:self-auto px-3.5 py-1.5 text-xs font-bold shadow-brutal-xs flex items-center gap-1.5"
+              className="brutal-btn self-start md:self-auto px-3.5 py-1.5 text-xs font-bold shadow-brutal-xs flex items-center gap-1.5 cursor-pointer"
             >
               <Edit3 className="w-3.5 h-3.5" />
               <span>Sửa tiêu chí AI</span>
@@ -812,7 +826,7 @@ export const SearchResultsPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsEditModalOpen(true)}
-                    className="hover:text-amber-700 ml-1 font-bold"
+                    className="hover:text-amber-700 ml-1 font-bold cursor-pointer"
                     title="Chỉnh sửa"
                   >
                     ✎
@@ -838,7 +852,7 @@ export const SearchResultsPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsEditModalOpen(true)}
-                      className="hover:text-amber-700 ml-1 font-bold"
+                      className="hover:text-amber-700 ml-1 font-bold cursor-pointer"
                       title="Chỉnh sửa"
                     >
                       ✎
@@ -985,7 +999,7 @@ export const SearchResultsPage: React.FC = () => {
                       key={p.id || p.label}
                       type="button"
                       onClick={() => handlePricePresetSelect(idx)}
-                      className={`px-2.5 py-1.5 rounded-xl border-2 text-xs font-bold transition-all shadow-brutal-xs ${
+                      className={`px-2.5 py-1.5 rounded-xl border-2 text-xs font-bold transition-all shadow-brutal-xs cursor-pointer ${
                         isActive
                           ? 'border-warm-border bg-amber-400 text-amber-950 font-black'
                           : 'border-warm-border bg-warm-bg text-warm-text hover:bg-amber-100'
@@ -1076,7 +1090,7 @@ export const SearchResultsPage: React.FC = () => {
                         key={opt.id}
                         type="button"
                         onClick={() => toggleRam(opt.label)}
-                        className={`px-3 py-1.5 rounded-xl border-2 text-xs font-bold transition-all shadow-brutal-xs ${
+                        className={`px-3 py-1.5 rounded-xl border-2 text-xs font-bold transition-all shadow-brutal-xs cursor-pointer ${
                           isChecked
                             ? 'border-warm-border bg-amber-400 text-amber-950 font-black'
                             : 'border-warm-border bg-warm-bg text-warm-text hover:bg-amber-100'
@@ -1191,7 +1205,7 @@ export const SearchResultsPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setLayoutView('list')}
-                    className={`p-1.5 ${layoutView === 'list' ? 'bg-amber-400 text-amber-950' : 'bg-warm-bg text-warm-text'}`}
+                    className={`p-1.5 cursor-pointer ${layoutView === 'list' ? 'bg-amber-400 text-amber-950' : 'bg-warm-bg text-warm-text'}`}
                     title="Dạng danh sách"
                   >
                     <LayoutList className="w-4 h-4" />
@@ -1199,7 +1213,7 @@ export const SearchResultsPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setLayoutView('grid')}
-                    className={`p-1.5 ${layoutView === 'grid' ? 'bg-amber-400 text-amber-950' : 'bg-warm-bg text-warm-text'}`}
+                    className={`p-1.5 cursor-pointer ${layoutView === 'grid' ? 'bg-amber-400 text-amber-950' : 'bg-warm-bg text-warm-text'}`}
                     title="Dạng lưới"
                   >
                     <LayoutGrid className="w-4 h-4" />
@@ -1214,12 +1228,12 @@ export const SearchResultsPage: React.FC = () => {
                 <AlertCircle className="w-10 h-10 text-warm-muted mx-auto" />
                 <h3 className="font-extrabold text-base text-warm-text">Không tìm thấy sản phẩm phù hợp</h3>
                 <p className="text-xs text-warm-muted max-w-md mx-auto">
-                  Hãy thử mở rộng khoảng ngân sách hoặc nhấn "Thiết lập lại" để gỡ bỏ bớt các bộ lọc tiêu chí.
+                  Hãy thử mở rộng khoảng ngân sách hoặc nhấn &quot;Thiết lập lại&quot; để gỡ bỏ bớt các bộ lọc tiêu chí.
                 </p>
                 <button
                   type="button"
                   onClick={resetAllFilters}
-                  className="brutal-btn px-4 py-2 text-xs font-bold inline-flex items-center gap-1.5 mt-2"
+                  className="brutal-btn px-4 py-2 text-xs font-bold inline-flex items-center gap-1.5 mt-2 cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Xóa bộ lọc</span>
@@ -1369,13 +1383,13 @@ export const SearchResultsPage: React.FC = () => {
               </div>
             )}
 
-            {/* 5. Progressive Pagination ("Tải thêm 3 sản phẩm tiếp theo") */}
+            {/* 5. Progressive Pagination */}
             {processedProducts.length > displayedCount && (
               <div className="text-center pt-4">
                 <button
                   type="button"
                   onClick={() => setDisplayedCount((prev) => prev + 3)}
-                  className="brutal-btn px-8 py-3 text-sm font-black shadow-brutal inline-flex items-center gap-2"
+                  className="brutal-btn px-8 py-3 text-sm font-black shadow-brutal inline-flex items-center gap-2 cursor-pointer"
                 >
                   <RefreshCw className="w-4 h-4" />
                   <span>
@@ -1417,7 +1431,7 @@ export const SearchResultsPage: React.FC = () => {
                 localStorage.setItem('shopping_agent_compare', JSON.stringify([]));
                 setCompareIds([]);
               }}
-              className="text-xs font-bold text-warm-muted hover:text-rose-600 px-2.5 py-1.5"
+              className="text-xs font-bold text-warm-muted hover:text-rose-600 px-2.5 py-1.5 cursor-pointer"
             >
               Xóa hết
             </button>
@@ -1444,7 +1458,7 @@ export const SearchResultsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsEditModalOpen(false)}
-                className="text-warm-muted hover:text-warm-text font-black text-sm p-1"
+                className="text-warm-muted hover:text-warm-text font-black text-sm p-1 cursor-pointer"
               >
                 ✕
               </button>
@@ -1507,13 +1521,13 @@ export const SearchResultsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-warm-border bg-warm-bg font-bold text-warm-text"
+                  className="px-4 py-2 rounded-xl border border-warm-border bg-warm-bg font-bold text-warm-text cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="brutal-btn px-5 py-2 text-xs font-black shadow-brutal-xs"
+                  className="brutal-btn px-5 py-2 text-xs font-black shadow-brutal-xs cursor-pointer"
                 >
                   Áp dụng &amp; Chạy lại AI
                 </button>
@@ -1523,23 +1537,70 @@ export const SearchResultsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Empty State / Welcome Guide when no query yet */}
-      {!queryParam && !loading && !result && (
-        <div className="space-y-6">
-          <div className="brutal-card p-6 sm:p-8 bg-warm-surface text-center space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border-2 border-warm-border bg-warm-secondary text-warm-secondary-text font-black text-xs shadow-brutal-xs">
-              <Sparkles className="w-4 h-4 text-warm-primary animate-pulse" />
-              <span>Khám Phá Sức Mạnh Trợ Lý Mua Sắm Bằng AI</span>
-            </div>
+      {/* Initial / Empty State with Suggestion Chips */}
+      {!result && !loading && (
+        <div className="brutal-card p-8 sm:p-12 text-center bg-warm-surface space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-amber-200 border-2 border-warm-border flex items-center justify-center text-warm-text mx-auto shadow-brutal-xs">
+            <Sparkles className="w-8 h-8 text-amber-900" />
+          </div>
 
-            <h2 className="text-2xl sm:text-4xl font-black text-warm-text tracking-tight">
-              Tìm Thiết Bị Công Nghệ Theo Ngôn Ngữ Tự Nhiên
+          <div className="space-y-2">
+            <h2 className="text-xl sm:text-2xl font-black text-warm-text">
+              Tìm Kiếm Mua Sắm Bằng Trợ Lý Google Gemini
             </h2>
 
             <p className="text-xs sm:text-sm text-warm-muted max-w-2xl mx-auto font-medium">
               Không cần lọc thông số phức tạp thủ công. Hãy diễn tả nhu cầu và ngân sách của bạn,
-              Gemini LLM sẽ trích xuất tiêu chí và xếp hạng sản phẩm tối ưu nhất.
+              Google Gemini sẽ trích xuất tiêu chí và xếp hạng sản phẩm tối ưu nhất.
             </p>
+
+            {/* Prompt Suggestion Chips */}
+            <div className="pt-4 max-w-3xl mx-auto text-left">
+              <div className="text-xs font-black uppercase tracking-wider text-warm-muted mb-3 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Gợi ý câu hỏi tìm kiếm nhanh (Click để thử ngay):</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {[
+                  {
+                    title: 'Laptop sinh viên IT pin trâu',
+                    query: 'Laptop sinh viên 15 củ học IT pin trâu RAM 16GB',
+                  },
+                  {
+                    title: 'Điện thoại chụp ảnh đẹp < 10 triệu',
+                    query: 'Điện thoại chụp ảnh đẹp RAM 8GB dưới 10 triệu pin trâu',
+                  },
+                  {
+                    title: 'Laptop Gaming đồ họa mượt',
+                    query: 'Laptop gaming i7 RAM 16GB SSD 512 tầm 25 củ',
+                  },
+                  {
+                    title: 'MacBook mỏng nhẹ văn phòng',
+                    query: 'MacBook mỏng nhẹ cho dân văn phòng pin dùng cả ngày dưới 22 triệu',
+                  },
+                ].map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setQueryInput(item.query);
+                      setSearchParams({ q: item.query });
+                    }}
+                    className="p-3 rounded-xl border-2 border-warm-border bg-warm-bg hover:bg-warm-secondary hover:-translate-y-0.5 text-warm-text shadow-brutal-xs transition-all text-left flex items-center justify-between group cursor-pointer"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-xs font-extrabold group-hover:text-warm-primary transition-colors">
+                        {item.title}
+                      </span>
+                      <span className="text-[11px] text-warm-muted truncate mt-0.5">
+                        &ldquo;{item.query}&rdquo;
+                      </span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-warm-primary group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

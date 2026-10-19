@@ -2,14 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { AdminNav } from '../../components/admin/AdminNav';
 import { apiClient } from '../../api/client';
+import { getCategoriesList } from '../../api/adminApi';
+import type { CategoryOption } from '../../types/admin';
 import type { ProductDetailDTO } from '../../types/product';
 import { Package, Save, ArrowLeft, Plus, Trash2, CheckCircle2, Code, Image as ImageIcon, AlertCircle } from 'lucide-react';
+
+const DEFAULT_CATEGORIES: CategoryOption[] = [
+  { id: 1, code: 'laptop', name: 'Laptop' },
+  { id: 2, code: 'phone', name: 'Điện thoại' },
+];
 
 export const AdminProductEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
 
+  const [categories, setCategories] = useState<CategoryOption[]>(DEFAULT_CATEGORIES);
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [sku, setSku] = useState('');
@@ -28,6 +36,14 @@ export const AdminProductEditPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCategoriesList()
+      .then((list) => {
+        if (list && list.length > 0) setCategories(list);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (isEdit && id) {
@@ -255,8 +271,11 @@ export const AdminProductEditPage: React.FC = () => {
                   onChange={(e) => handleCategoryPreset(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none"
                 >
-                  <option value="laptop">Laptop (laptop)</option>
-                  <option value="phone">Điện thoại (phone)</option>
+                  {categories.map((cat) => (
+                    <option key={cat.code} value={cat.code}>
+                      {cat.name} ({cat.code})
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

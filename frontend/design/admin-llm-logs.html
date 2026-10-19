@@ -169,7 +169,7 @@
             </span>
           </div>
           <p class="text-xs sm:text-sm text-warm-muted font-medium mt-1">
-            Theo dõi chi tiết mọi lần backend gọi Gemini 1.5 Flash (Latency, Token tiêu thụ, Request Prompt và JSON trả về).
+            Theo dõi chi tiết mọi lần backend gọi Google Gemini (Latency, Token tiêu thụ, Request Prompt và JSON trả về).
           </p>
         </div>
 
@@ -397,7 +397,7 @@
         }
         document.getElementById('modal-meta-info').innerHTML = `
           <span>Latency: ${logItem.latencyMs} ms • Tokens: ${logItem.tokensUsed ? logItem.tokensUsed.toLocaleString() : 'N/A'} • HTTP Status: ${logItem.status}</span>
-          <span class="font-bold text-emerald-800">Model: Gemini 1.5 Flash</span>
+          <span class="font-bold text-emerald-800">Model: Google Gemini</span>
         `;
       }
 

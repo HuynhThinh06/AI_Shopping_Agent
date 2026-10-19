@@ -2,12 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminNav } from '../../components/admin/AdminNav';
 import { apiClient } from '../../api/client';
+import { getCategoriesList } from '../../api/adminApi';
+import type { CategoryOption } from '../../types/admin';
 import type { ProductDetailDTO } from '../../types/product';
 import type { PageResponse } from '../../types/review';
 import { Package, Search, ExternalLink, Star, Plus, Edit, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 
+const DEFAULT_CATEGORIES: CategoryOption[] = [
+  { id: 1, code: 'laptop', name: 'Laptop' },
+  { id: 2, code: 'phone', name: 'Điện thoại' },
+];
+
 export const AdminProductsPage: React.FC = () => {
   const [products, setProducts] = useState<ProductDetailDTO[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>(DEFAULT_CATEGORIES);
   const [categoryCode, setCategoryCode] = useState<string>('');
   const [keyword, setKeyword] = useState<string>('');
   const [page, setPage] = useState<number>(0);
@@ -17,6 +25,14 @@ export const AdminProductsPage: React.FC = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCategoriesList()
+      .then((list) => {
+        if (list && list.length > 0) setCategories(list);
+      })
+      .catch(() => {});
+  }, []);
 
   const loadProducts = async (pageIdx = page) => {
     setLoading(true);
@@ -30,6 +46,26 @@ export const AdminProductsPage: React.FC = () => {
       setTotalPages(res.data.totalPages);
       setTotalElements(res.data.totalElements);
     } catch (err) {
+      // Fallback nếu Backend chưa restart (lỗi PostgreSQL LOWER(bytea) khi categoryCode rỗng)
+      if (!categoryCode) {
+        try {
+          const fallbackParams: Record<string, any> = {
+            page: pageIdx,
+            size: 10,
+            categoryCode: 'laptop',
+          };
+          if (keyword.trim()) fallbackParams.keyword = keyword.trim();
+          const resFallback = await apiClient.get<PageResponse<ProductDetailDTO>>('/products', {
+            params: fallbackParams,
+          });
+          setProducts(resFallback.data.content);
+          setTotalPages(resFallback.data.totalPages);
+          setTotalElements(resFallback.data.totalElements);
+          return;
+        } catch (fallbackErr) {
+          console.error('Fallback failed to load products:', fallbackErr);
+        }
+      }
       console.error('Failed to load products:', err);
     } finally {
       setLoading(false);
@@ -129,8 +165,11 @@ export const AdminProductsPage: React.FC = () => {
               className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none"
             >
               <option value="">Tất cả ngành hàng</option>
-              <option value="laptop">Laptop (laptop)</option>
-              <option value="phone">Điện thoại (phone)</option>
+              {categories.map((cat) => (
+                <option key={cat.code} value={cat.code}>
+                  {cat.name} ({cat.code})
+                </option>
+              ))}
             </select>
           </div>
 
