@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { searchApi } from '../api/searchApi';
-import type { SearchResponse, RankedProduct } from '../types/search';
+import { categoryApi } from '../api/categoryApi';
+import type { SearchResponse, RankedProduct, CategoryFacetDTO, FacetOptionDTO } from '../types/search';
 import {
   addSearchHistory,
   getAuthUser,
@@ -29,24 +30,6 @@ import {
 type AlgoPreset = 'balanced' | 'spec' | 'price' | 'review';
 type SortOrder = 'score' | 'price_asc' | 'price_desc' | 'rating';
 
-interface PricePreset {
-  label: string;
-  min: number | null;
-  max: number | null;
-}
-
-interface ChipFamily {
-  id: string;
-  label: string;
-  pattern: RegExp;
-}
-
-interface FeatureDef {
-  id: string;
-  label: string;
-  test: (item: RankedProduct, specs: Record<string, any>) => boolean;
-}
-
 export const getProductName = (item?: { productName?: string; name?: string } | null): string => {
   return item?.productName || item?.name || 'Sản phẩm';
 };
@@ -63,122 +46,160 @@ export const getSpecs = (item?: { specs?: any } | null): Record<string, any> => 
   return typeof item.specs === 'object' ? item.specs : {};
 };
 
-const CATEGORY_FACETS = {
-  phone: {
-    name: 'Điện thoại',
-    pricePresets: [
-      { label: '< 5 triệu', min: 0, max: 5000000 },
-      { label: '5 - 10 triệu', min: 5000000, max: 10000000 },
-      { label: '10 - 15 triệu', min: 10000000, max: 15000000 },
-      { label: '15 - 20 triệu', min: 15000000, max: 20000000 },
-      { label: 'Trên 20 triệu', min: 20000000, max: null },
-    ] as PricePreset[],
-    rams: ['4GB', '6GB', '8GB', '12GB', '16GB'],
-    chips: [
-      { id: 'apple_a', label: 'Apple A-Series Bionic', pattern: /apple|bionic|a15|a16|a17|a18/i },
-      { id: 'snapdragon', label: 'Snapdragon (Qualcomm)', pattern: /snapdragon|qualcomm|8 gen|7 gen|778|695|870|888/i },
-      { id: 'dimensity', label: 'MediaTek Dimensity / Helio', pattern: /dimensity|helio|mediatek|mtk/i },
-      { id: 'exynos', label: 'Samsung Exynos', pattern: /exynos/i },
-    ] as ChipFamily[],
-    features: [
+/**
+ * Hàm kiểm tra sự phù hợp của sản phẩm với một tiêu chí bộ lọc động.
+ * Phục vụ Metadata-Driven Faceted Search:
+ * 1. Khớp theo queryPattern (Regex) cho dòng CPU / Chipset / Tính năng chuỗi
+ * 2. Khớp theo specKey và toán tử (>=, <=, ==) cho các thông số số liệu (Hz, MP, Wh, kg, inch)
+ */
+export const testFacetOptionMatch = (
+  item: RankedProduct,
+  specs: Record<string, any>,
+  opt: FacetOptionDTO
+): boolean => {
+  const pName = getProductName(item);
+
+  // 1. Kiểm tra qua queryPattern (Regex)
+  if (opt.queryPattern) {
+    try {
+      const reg = new RegExp(opt.queryPattern, 'i');
+      const cpuStr = ((specs.cpu || specs.chipset || '') + ' ' + pName).toLowerCase();
+      const specsStr = (JSON.stringify(specs) + ' ' + pName).toLowerCase();
+      if (reg.test(cpuStr) || reg.test(specsStr)) {
+        return true;
+      }
+    } catch {
+      // bỏ qua nếu pattern không hợp lệ
+    }
+  }
+
+  // 2. Kiểm tra qua SpecKey và Toán tử
+  if (opt.specKey) {
+    const rawVal = specs[opt.specKey];
+    if (rawVal != null) {
+      if (opt.operator === '>=' || opt.operator === '<=') {
+        const numVal = parseFloat(String(rawVal));
+        const targetNum = typeof opt.value === 'number' ? opt.value : parseFloat(String(opt.value || 0));
+        if (!isNaN(numVal) && !isNaN(targetNum)) {
+          if (opt.operator === '>=') return numVal >= targetNum;
+          if (opt.operator === '<=') return numVal > 0 && numVal <= targetNum;
+        }
+      }
+      if (opt.operator === '==') {
+        return String(rawVal).toLowerCase() === String(opt.value).toLowerCase();
+      }
+    }
+  }
+
+  return false;
+};
+
+/**
+ * Siêu dữ liệu bộ lọc dự phòng (Graceful Degradation / Progressive Enhancement)
+ * Tự động kích hoạt khi Backend chưa hoàn tất hoặc offline
+ */
+export const getDefaultFacets = (categoryCode: string): CategoryFacetDTO[] => {
+  const isPhone = categoryCode.includes('phone') || categoryCode.includes('thoai');
+  if (isPhone) {
+    return [
       {
-        id: 'phone_camera',
-        label: 'Camera xịn (≥ 50MP / OIS)',
-        test: (item, specs) => {
-          const cam = parseFloat(specs.camera || specs.rear_camera || '0');
-          const str = (getProductName(item) + ' ' + JSON.stringify(specs)).toLowerCase();
-          return cam >= 50 || str.includes('50mp') || str.includes('108mp') || str.includes('200mp') || str.includes('ois');
-        },
+        groupKey: 'price',
+        groupLabel: 'Mức giá',
+        filterType: 'preset',
+        options: [
+          { id: 'p1', label: '< 5 triệu', min: 0, max: 5000000 },
+          { id: 'p2', label: '5 - 10 triệu', min: 5000000, max: 10000000 },
+          { id: 'p3', label: '10 - 15 triệu', min: 10000000, max: 15000000 },
+          { id: 'p4', label: '15 - 20 triệu', min: 15000000, max: 20000000 },
+          { id: 'p5', label: 'Trên 20 triệu', min: 20000000, max: null },
+        ],
       },
       {
-        id: 'phone_battery',
-        label: 'Pin trâu (≥ 5000 mAh)',
-        test: (_item, specs) => {
-          const b = parseFloat(specs.battery || '0');
-          return b >= 5000;
-        },
+        groupKey: 'chipset',
+        groupLabel: 'Thế hệ Chip xử lý',
+        filterType: 'multiselect',
+        options: [
+          { id: 'apple_a', label: 'Apple A-Series Bionic', queryPattern: 'apple|bionic|a15|a16|a17|a18' },
+          { id: 'snapdragon', label: 'Snapdragon (Qualcomm)', queryPattern: 'snapdragon|qualcomm|8 gen|7 gen|778|695|870|888' },
+          { id: 'dimensity', label: 'MediaTek Dimensity / Helio', queryPattern: 'dimensity|helio|mediatek|mtk' },
+          { id: 'exynos', label: 'Samsung Exynos', queryPattern: 'exynos' },
+        ],
       },
       {
-        id: 'phone_amoled',
-        label: 'Màn hình AMOLED / 120Hz',
-        test: (item, specs) => {
-          const str = (getProductName(item) + ' ' + JSON.stringify(specs)).toLowerCase();
-          return str.includes('amoled') || str.includes('120hz') || str.includes('oled');
-        },
-      },
-    ] as FeatureDef[],
-  },
-  laptop: {
-    name: 'Laptop',
-    pricePresets: [
-      { label: '< 15 triệu', min: 0, max: 15000000 },
-      { label: '15 - 20 triệu', min: 15000000, max: 20000000 },
-      { label: '20 - 25 triệu', min: 20000000, max: 25000000 },
-      { label: '25 - 30 triệu', min: 25000000, max: 30000000 },
-      { label: 'Trên 30 triệu', min: 30000000, max: null },
-    ] as PricePreset[],
-    rams: ['8GB', '16GB', '32GB', '64GB'],
-    chips: [
-      { id: 'intel_ultra', label: 'Intel Core Ultra (AI Boost)', pattern: /ultra|core ultra|125h|155h|165h/i },
-      { id: 'intel_core_i7_i9', label: 'Intel Core i7 / i9 / Core 7', pattern: /i7|i9|core 7|13700|13620|13650|14700|14900|150u/i },
-      { id: 'intel_core_i5', label: 'Intel Core i5 / Core 5', pattern: /i5|core 5|13420|13450|13500|12450|12500|1334u/i },
-      { id: 'intel_core_i3', label: 'Intel Core i3 / Core 3', pattern: /i3|core 3|1215u|1315u/i },
-      { id: 'amd_ryzen', label: 'AMD Ryzen (5 / 7 / 8000 Series)', pattern: /ryzen|amd|7535|7735|7840|8845/i },
-      { id: 'apple_m', label: 'Apple Silicon (M1 / M2 / M3 / M4)', pattern: /apple|m1|m2|m3|m4/i },
-      { id: 'snapdragon', label: 'Snapdragon X Elite / Plus', pattern: /snapdragon|x elite|x plus/i },
-    ] as ChipFamily[],
-    features: [
-      {
-        id: 'screen_high_hz',
-        label: 'Màn hình tần số cao (≥ 90Hz / 120Hz)',
-        test: (item, specs) => {
-          const hz = parseFloat(specs.refresh_rate || '0');
-          const name = getProductName(item).toLowerCase();
-          return hz >= 90 || name.includes('120hz') || name.includes('144hz') || name.includes('165hz');
-        },
+        groupKey: 'ram',
+        groupLabel: 'Dung lượng RAM',
+        filterType: 'multiselect',
+        options: ['4GB', '6GB', '8GB', '12GB', '16GB'].map((r) => ({
+          id: r.toLowerCase(),
+          label: r,
+          queryPattern: r,
+        })),
       },
       {
-        id: 'screen_large',
-        label: 'Màn hình lớn (≥ 15.6 inch)',
-        test: (_item, specs) => {
-          const sz = parseFloat(specs.screen_size || '0');
-          return sz >= 15.6;
-        },
+        groupKey: 'feature',
+        groupLabel: 'Tính năng & Tiện ích nổi bật',
+        filterType: 'multiselect',
+        options: [
+          { id: 'phone_camera', label: 'Camera xịn (≥ 50MP / OIS)', specKey: 'camera', operator: '>=', value: 50, queryPattern: '50mp|108mp|200mp|ois' },
+          { id: 'phone_battery', label: 'Pin trâu (≥ 5000 mAh)', specKey: 'battery', operator: '>=', value: 5000 },
+          { id: 'phone_amoled', label: 'Màn hình AMOLED / 120Hz', queryPattern: 'amoled|120hz|oled' },
+        ],
       },
-      {
-        id: 'screen_compact',
-        label: 'Màn hình gọn nhẹ (≤ 14.0 inch)',
-        test: (_item, specs) => {
-          const sz = parseFloat(specs.screen_size || '0');
-          return sz > 0 && sz <= 14.0;
-        },
-      },
-      {
-        id: 'battery_high',
-        label: 'Pin dung lượng cao (≥ 50 Wh)',
-        test: (_item, specs) => {
-          const b = parseFloat(specs.battery || '0');
-          return b >= 50;
-        },
-      },
-      {
-        id: 'lightweight',
-        label: 'Mỏng nhẹ di động (≤ 1.5 kg)',
-        test: (_item, specs) => {
-          const w = parseFloat(specs.weight || '0');
-          return w > 0 && w <= 1.5;
-        },
-      },
-      {
-        id: 'dedicated_gpu',
-        label: 'Có Card đồ họa rời (RTX / GTX)',
-        test: (_item, specs) => {
-          const vga = (specs.vga || '').toLowerCase();
-          return vga.includes('rtx') || vga.includes('gtx') || (vga.includes('geforce') && !vga.includes('tích hợp'));
-        },
-      },
-    ] as FeatureDef[],
-  },
+    ];
+  }
+
+  // Laptop default
+  return [
+    {
+      groupKey: 'price',
+      groupLabel: 'Mức giá',
+      filterType: 'preset',
+      options: [
+        { id: 'p1', label: '< 15 triệu', min: 0, max: 15000000 },
+        { id: 'p2', label: '15 - 20 triệu', min: 15000000, max: 20000000 },
+        { id: 'p3', label: '20 - 25 triệu', min: 20000000, max: 25000000 },
+        { id: 'p4', label: '25 - 30 triệu', min: 25000000, max: 30000000 },
+        { id: 'p5', label: 'Trên 30 triệu', min: 30000000, max: null },
+      ],
+    },
+    {
+      groupKey: 'chipset',
+      groupLabel: 'Thế hệ Chip xử lý',
+      filterType: 'multiselect',
+      options: [
+        { id: 'intel_ultra', label: 'Intel Core Ultra (AI Boost)', queryPattern: 'ultra|core ultra|125h|155h|165h' },
+        { id: 'intel_core_i7_i9', label: 'Intel Core i7 / i9 / Core 7', queryPattern: 'i7|i9|core 7|13700|13620|13650|14700|14900|150u' },
+        { id: 'intel_core_i5', label: 'Intel Core i5 / Core 5', queryPattern: 'i5|core 5|13420|13450|13500|12450|12500|1334u' },
+        { id: 'intel_core_i3', label: 'Intel Core i3 / Core 3', queryPattern: 'i3|core 3|1215u|1315u' },
+        { id: 'amd_ryzen', label: 'AMD Ryzen (5 / 7 / 8000 Series)', queryPattern: 'ryzen|amd|7535|7735|7840|8845' },
+        { id: 'apple_m', label: 'Apple Silicon (M1 / M2 / M3 / M4)', queryPattern: 'apple|m1|m2|m3|m4' },
+        { id: 'snapdragon', label: 'Snapdragon X Elite / Plus', queryPattern: 'snapdragon|x elite|x plus' },
+      ],
+    },
+    {
+      groupKey: 'ram',
+      groupLabel: 'Dung lượng RAM',
+      filterType: 'multiselect',
+      options: ['8GB', '16GB', '32GB', '64GB'].map((r) => ({
+        id: r.toLowerCase(),
+        label: r,
+        queryPattern: r,
+      })),
+    },
+    {
+      groupKey: 'feature',
+      groupLabel: 'Tính năng & Tiện ích nổi bật',
+      filterType: 'multiselect',
+      options: [
+        { id: 'screen_high_hz', label: 'Màn hình tần số cao (≥ 90Hz / 120Hz)', specKey: 'refresh_rate', operator: '>=', value: 90, queryPattern: '90hz|120hz|144hz|165hz' },
+        { id: 'screen_large', label: 'Màn hình lớn (≥ 15.6 inch)', specKey: 'screen_size', operator: '>=', value: 15.6 },
+        { id: 'screen_compact', label: 'Màn hình gọn nhẹ (≤ 14.0 inch)', specKey: 'screen_size', operator: '<=', value: 14.0 },
+        { id: 'pin_high', label: 'Pin dung lượng cao (≥ 50 Wh)', specKey: 'battery', operator: '>=', value: 50 },
+        { id: 'ultra_light', label: 'Mỏng nhẹ di động (≤ 1.5 kg)', specKey: 'weight', operator: '<=', value: 1.5 },
+        { id: 'discrete_gpu', label: 'Có Card đồ họa rời (RTX / GTX)', specKey: 'gpu', queryPattern: 'rtx|gtx|geforce|radeon rx|dedicated' },
+      ],
+    },
+  ];
 };
 
 export const SearchResultsPage: React.FC = () => {
@@ -307,7 +328,32 @@ export const SearchResultsPage: React.FC = () => {
     return 'laptop';
   }, [result, queryParam]);
 
-  const currentFacetConfig = CATEGORY_FACETS[category] || CATEGORY_FACETS.laptop;
+  // Dynamic Facets loaded from Backend API (with Metadata Fallback)
+  const [facetGroups, setFacetGroups] = useState<CategoryFacetDTO[]>(() => getDefaultFacets(category));
+
+  useEffect(() => {
+    let isMounted = true;
+    categoryApi
+      .getCategoryFacets(category)
+      .then((res) => {
+        if (isMounted && res && res.length > 0) {
+          setFacetGroups(res);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setFacetGroups(getDefaultFacets(category));
+        }
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [category]);
+
+  const priceGroup = useMemo(() => facetGroups.find((g) => g.groupKey === 'price'), [facetGroups]);
+  const chipGroup = useMemo(() => facetGroups.find((g) => g.groupKey === 'chipset'), [facetGroups]);
+  const ramGroup = useMemo(() => facetGroups.find((g) => g.groupKey === 'ram'), [facetGroups]);
+  const featureGroup = useMemo(() => facetGroups.find((g) => g.groupKey === 'feature'), [facetGroups]);
 
   // Dynamic brand extraction & counts
   const brandCounts = useMemo(() => {
@@ -329,33 +375,32 @@ export const SearchResultsPage: React.FC = () => {
   // Dynamic chip family counts
   const chipCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    if (!result?.results) return counts;
+    if (!result?.results || !chipGroup) return counts;
     result.results.forEach((p) => {
       const specs = getSpecs(p);
-      const cpuStr = ((specs.cpu || specs.chipset || '') + ' ' + getProductName(p)).toLowerCase();
-      currentFacetConfig.chips.forEach((fam) => {
-        if (fam.pattern.test(cpuStr)) {
-          counts[fam.id] = (counts[fam.id] || 0) + 1;
+      chipGroup.options.forEach((opt) => {
+        if (testFacetOptionMatch(p, specs, opt)) {
+          counts[opt.id] = (counts[opt.id] || 0) + 1;
         }
       });
     });
     return counts;
-  }, [result, currentFacetConfig]);
+  }, [result, chipGroup]);
 
   // Dynamic feature counts
   const featureCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    if (!result?.results) return counts;
+    if (!result?.results || !featureGroup) return counts;
     result.results.forEach((p) => {
       const specs = getSpecs(p);
-      currentFacetConfig.features.forEach((feat) => {
-        if (feat.test(p, specs)) {
-          counts[feat.id] = (counts[feat.id] || 0) + 1;
+      featureGroup.options.forEach((opt) => {
+        if (testFacetOptionMatch(p, specs, opt)) {
+          counts[opt.id] = (counts[opt.id] || 0) + 1;
         }
       });
     });
     return counts;
-  }, [result, currentFacetConfig]);
+  }, [result, featureGroup]);
 
   // Reset all filters
   const resetAllFilters = () => {
@@ -377,10 +422,13 @@ export const SearchResultsPage: React.FC = () => {
       setCustomMinPrice(null);
       setCustomMaxPrice(null);
     } else {
-      const preset = currentFacetConfig.pricePresets[idx];
-      setActivePricePresetIndex(idx);
-      setCustomMinPrice(preset.min);
-      setCustomMaxPrice(preset.max);
+      const presets = priceGroup?.options || [];
+      const preset = presets[idx];
+      if (preset) {
+        setActivePricePresetIndex(idx);
+        setCustomMinPrice(preset.min != null ? preset.min : null);
+        setCustomMaxPrice(preset.max != null ? preset.max : null);
+      }
     }
     setDisplayedCount(6);
   };
@@ -448,7 +496,6 @@ export const SearchResultsPage: React.FC = () => {
 
       const specs = getSpecs(item);
       const nameLower = getProductName(item).toLowerCase();
-      const specsStr = (JSON.stringify(specs) + ' ' + nameLower).toLowerCase();
 
       // RAM
       if (selectedRams.size > 0) {
@@ -464,12 +511,12 @@ export const SearchResultsPage: React.FC = () => {
         if (!ramMatched) return false;
       }
 
-      // Chip
-      if (selectedChips.size > 0) {
+      // Chip (Dynamic Metadata Match)
+      if (selectedChips.size > 0 && chipGroup) {
         let chipMatched = false;
         for (const chipId of selectedChips) {
-          const fam = currentFacetConfig.chips.find((c) => c.id === chipId);
-          if (fam && fam.pattern.test(specsStr)) {
+          const opt = chipGroup.options.find((c) => c.id === chipId);
+          if (opt && testFacetOptionMatch(item, specs, opt)) {
             chipMatched = true;
             break;
           }
@@ -477,12 +524,12 @@ export const SearchResultsPage: React.FC = () => {
         if (!chipMatched) return false;
       }
 
-      // Feature
-      if (selectedFeatures.size > 0) {
+      // Feature (Dynamic Metadata Match)
+      if (selectedFeatures.size > 0 && featureGroup) {
         let featMatched = false;
         for (const featId of selectedFeatures) {
-          const fd = currentFacetConfig.features.find((f) => f.id === featId);
-          if (fd && fd.test(item, specs)) {
+          const opt = featureGroup.options.find((f) => f.id === featId);
+          if (opt && testFacetOptionMatch(item, specs, opt)) {
             featMatched = true;
             break;
           }
@@ -563,7 +610,7 @@ export const SearchResultsPage: React.FC = () => {
     }
 
     return scored;
-  }, [result, customMinPrice, customMaxPrice, selectedBrands, selectedRams, selectedChips, selectedFeatures, algoPreset, sortOrder, currentFacetConfig]);
+  }, [result, customMinPrice, customMaxPrice, selectedBrands, selectedRams, selectedChips, selectedFeatures, algoPreset, sortOrder, chipGroup, featureGroup]);
 
   const visibleProducts = useMemo(() => {
     return processedProducts.slice(0, displayedCount);
@@ -926,16 +973,16 @@ export const SearchResultsPage: React.FC = () => {
                 <label className="text-xs font-extrabold text-warm-text">Khoảng giá mong muốn:</label>
                 {activePricePresetIndex !== null && (
                   <span className="text-[11px] font-bold text-amber-700">
-                    ({currentFacetConfig.pricePresets[activePricePresetIndex]?.label})
+                    ({priceGroup?.options[activePricePresetIndex]?.label})
                   </span>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                {currentFacetConfig.pricePresets.map((p, idx) => {
+                {(priceGroup?.options || []).map((p, idx) => {
                   const isActive = activePricePresetIndex === idx;
                   return (
                     <button
-                      key={p.label}
+                      key={p.id || p.label}
                       type="button"
                       onClick={() => handlePricePresetSelect(idx)}
                       className={`px-2.5 py-1.5 rounded-xl border-2 text-xs font-bold transition-all shadow-brutal-xs ${
@@ -1015,89 +1062,101 @@ export const SearchResultsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Filter 3: RAM Capacity */}
-            <div className="pt-4 border-t border-warm-border/10">
-              <label className="block text-xs font-extrabold text-warm-text mb-2">Dung lượng RAM:</label>
-              <div className="flex flex-wrap gap-2 text-xs">
-                {currentFacetConfig.rams.map((r) => {
-                  const isChecked = selectedRams.has(r);
-                  return (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => toggleRam(r)}
-                      className={`px-3 py-1.5 rounded-xl border-2 text-xs font-bold transition-all shadow-brutal-xs ${
-                        isChecked
-                          ? 'border-warm-border bg-amber-400 text-amber-950 font-black'
-                          : 'border-warm-border bg-warm-bg text-warm-text hover:bg-amber-100'
-                      }`}
-                    >
-                      {r} {isChecked ? '✓' : ''}
-                    </button>
-                  );
-                })}
+            {/* Filter 3: RAM Capacity (Dynamic Metadata) */}
+            {ramGroup && ramGroup.options.length > 0 && (
+              <div className="pt-4 border-t border-warm-border/10">
+                <label className="block text-xs font-extrabold text-warm-text mb-2">
+                  {ramGroup.groupLabel}:
+                </label>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {ramGroup.options.map((opt) => {
+                    const isChecked = selectedRams.has(opt.label);
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => toggleRam(opt.label)}
+                        className={`px-3 py-1.5 rounded-xl border-2 text-xs font-bold transition-all shadow-brutal-xs ${
+                          isChecked
+                            ? 'border-warm-border bg-amber-400 text-amber-950 font-black'
+                            : 'border-warm-border bg-warm-bg text-warm-text hover:bg-amber-100'
+                        }`}
+                      >
+                        {opt.label} {isChecked ? '✓' : ''}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Filter 4: Processor / Chip family */}
-            <div className="pt-4 border-t border-warm-border/10">
-              <label className="block text-xs font-extrabold text-warm-text mb-2">Thế hệ Chip xử lý:</label>
-              <div className="space-y-1.5 text-xs">
-                {currentFacetConfig.chips.map((chip) => {
-                  const isChecked = selectedChips.has(chip.id);
-                  const count = chipCounts[chip.id] || 0;
-                  return (
-                    <label
-                      key={chip.id}
-                      className="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/40 cursor-pointer"
-                    >
-                      <span className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => toggleChip(chip.id)}
-                          className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
-                        />
-                        <span className={isChecked ? 'font-black text-amber-900' : 'font-bold text-warm-text'}>
-                          {chip.label}
+            {/* Filter 4: Processor / Chip family (Dynamic Metadata) */}
+            {chipGroup && chipGroup.options.length > 0 && (
+              <div className="pt-4 border-t border-warm-border/10">
+                <label className="block text-xs font-extrabold text-warm-text mb-2">
+                  {chipGroup.groupLabel}:
+                </label>
+                <div className="space-y-1.5 text-xs">
+                  {chipGroup.options.map((chip) => {
+                    const isChecked = selectedChips.has(chip.id);
+                    const count = chipCounts[chip.id] || 0;
+                    return (
+                      <label
+                        key={chip.id}
+                        className="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/40 cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleChip(chip.id)}
+                            className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                          />
+                          <span className={isChecked ? 'font-black text-amber-900' : 'font-bold text-warm-text'}>
+                            {chip.label}
+                          </span>
                         </span>
-                      </span>
-                      {count > 0 && <span className="text-warm-muted text-[11px] font-bold">{count} máy</span>}
-                    </label>
-                  );
-                })}
+                        {count > 0 && <span className="text-warm-muted text-[11px] font-bold">{count} máy</span>}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Filter 5: Dynamic Features */}
-            <div className="pt-4 border-t border-warm-border/10">
-              <label className="block text-xs font-extrabold text-warm-text mb-2">Tính năng &amp; Tiện ích nổi bật:</label>
-              <div className="space-y-1.5 text-xs">
-                {currentFacetConfig.features.map((feat) => {
-                  const isChecked = selectedFeatures.has(feat.id);
-                  const count = featureCounts[feat.id] || 0;
-                  return (
-                    <label
-                      key={feat.id}
-                      className="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/40 cursor-pointer"
-                    >
-                      <span className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => toggleFeature(feat.id)}
-                          className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
-                        />
-                        <span className={isChecked ? 'font-black text-amber-900' : 'font-bold text-warm-text'}>
-                          {feat.label}
+            {/* Filter 5: Dynamic Features (Dynamic Metadata) */}
+            {featureGroup && featureGroup.options.length > 0 && (
+              <div className="pt-4 border-t border-warm-border/10">
+                <label className="block text-xs font-extrabold text-warm-text mb-2">
+                  {featureGroup.groupLabel}:
+                </label>
+                <div className="space-y-1.5 text-xs">
+                  {featureGroup.options.map((feat) => {
+                    const isChecked = selectedFeatures.has(feat.id);
+                    const count = featureCounts[feat.id] || 0;
+                    return (
+                      <label
+                        key={feat.id}
+                        className="flex items-center justify-between p-1.5 rounded-lg hover:bg-warm-subtle/40 cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleFeature(feat.id)}
+                            className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                          />
+                          <span className={isChecked ? 'font-black text-amber-900' : 'font-bold text-warm-text'}>
+                            {feat.label}
+                          </span>
                         </span>
-                      </span>
-                      {count > 0 && <span className="text-warm-muted text-[11px] font-bold">{count} máy</span>}
-                    </label>
-                  );
-                })}
+                        {count > 0 && <span className="text-warm-muted text-[11px] font-bold">{count} máy</span>}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </aside>
 
           {/* Right Area: Results List & Toolbar */}

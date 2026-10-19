@@ -38,3 +38,22 @@ export interface SearchResponse {
   results: RankedProduct[];
   totalMatched: number;
 }
+
+export interface FacetOptionDTO {
+  id: string;
+  label: string;
+  queryPattern?: string;
+  min?: number | null;
+  max?: number | null;
+  specKey?: string;
+  operator?: string;
+  value?: any;
+  count?: number;
+}
+
+export interface CategoryFacetDTO {
+  groupKey: string;
+  groupLabel: string;
+  filterType: 'preset' | 'multiselect' | 'boolean';
+  options: FacetOptionDTO[];
+}
