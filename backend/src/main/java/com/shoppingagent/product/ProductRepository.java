@@ -81,4 +81,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT COUNT(p) FROM Product p JOIN p.category c WHERE LOWER(c.code) = LOWER(:code) AND p.isActive = TRUE")
     long countByCategoryCode(@Param("code") String code);
+
+    @Query("""
+        SELECT p.brand, COUNT(p.id)
+        FROM Product p
+        JOIN p.category c
+        WHERE LOWER(c.code) = LOWER(:code)
+          AND p.isActive = TRUE
+          AND p.brand IS NOT NULL
+        GROUP BY p.brand
+        ORDER BY COUNT(p.id) DESC, p.brand ASC
+    """)
+    List<Object[]> findBrandCountsByCategoryCode(@Param("code") String code);
 }

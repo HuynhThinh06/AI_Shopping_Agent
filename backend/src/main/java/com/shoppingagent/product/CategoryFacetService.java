@@ -21,6 +21,7 @@ import java.util.List;
 public class CategoryFacetService {
 
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
 
     /**
      * Lấy cấu hình các nhóm bộ lọc cho một ngành hàng cụ thể.
@@ -34,16 +35,19 @@ public class CategoryFacetService {
 
         List<CategoryFacetDTO> facetGroups = new ArrayList<>();
 
-        // 1. Nhóm Mức giá (Price Presets)
+        // 1. Nhóm Thương hiệu (Dynamic Data-Driven Brands từ DB)
+        facetGroups.add(buildBrandFacetGroup(cleanCode));
+
+        // 2. Nhóm Mức giá (Price Presets)
         facetGroups.add(buildPriceFacetGroup(cleanCode));
 
-        // 2. Nhóm Chipset / CPU (Dynamic Processor Generations)
+        // 3. Nhóm Chipset / CPU (Dynamic Processor Generations)
         facetGroups.add(buildChipsetFacetGroup(cleanCode));
 
-        // 3. Nhóm Dung lượng RAM
+        // 4. Nhóm Dung lượng RAM
         facetGroups.add(buildRamFacetGroup(cleanCode));
 
-        // 4. Nhóm Tính năng & Tiện ích nổi bật (Key Features)
+        // 5. Nhóm Tính năng & Tiện ích nổi bật (Key Features)
         facetGroups.add(buildFeatureFacetGroup(cleanCode));
 
         return facetGroups;
@@ -237,6 +241,28 @@ public class CategoryFacetService {
         return CategoryFacetDTO.builder()
                 .groupKey("feature")
                 .groupLabel("Tính năng & Tiện ích nổi bật")
+                .filterType("multiselect")
+                .options(options)
+                .build();
+    }
+
+    private CategoryFacetDTO buildBrandFacetGroup(String categoryCode) {
+        List<Object[]> brandCounts = productRepository.findBrandCountsByCategoryCode(categoryCode);
+        List<FacetOptionDTO> options = new ArrayList<>();
+        for (Object[] row : brandCounts) {
+            if (row != null && row[0] != null) {
+                String brand = row[0].toString().trim();
+                Long count = row[1] instanceof Number ? ((Number) row[1]).longValue() : 0L;
+                options.add(FacetOptionDTO.builder()
+                        .id(brand.toLowerCase())
+                        .label(brand + " (" + count + ")")
+                        .queryPattern(brand.toLowerCase())
+                        .build());
+            }
+        }
+        return CategoryFacetDTO.builder()
+                .groupKey("brand")
+                .groupLabel("Thương hiệu")
                 .filterType("multiselect")
                 .options(options)
                 .build();

@@ -51,7 +51,7 @@ public class ProductController {
             @Parameter(description = "Số sản phẩm mỗi trang, tối đa 50")
             @RequestParam(defaultValue = "20") int size) {
 
-        int safeSize = Math.min(size, 50);  // giới hạn tối đa 50
+        int safeSize = Math.min(size, 100);  // cho phép tải tối đa 100 sản phẩm mỗi trang
         return ResponseEntity.ok(
                 productService.searchProducts(categoryCode, minPrice, maxPrice, keyword, page, safeSize));
     }
