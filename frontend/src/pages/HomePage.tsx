@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 const SAMPLE_PROMPTS = [
-  'Laptop sinh viên 15 củ học IT pin trâu',
+  'Laptop sinh viên học IT tầm 20 đến 25 triệu pin trâu RAM 16GB',
   'Điện thoại chụp ảnh đẹp RAM 8GB dưới 10 triệu',
   'Laptop gaming i7 RAM 16GB SSD 512 tầm 25 củ',
   'Điện thoại pin trâu dưới 8 chai màn hình to',
