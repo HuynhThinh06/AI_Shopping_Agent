@@ -304,9 +304,37 @@ public class GeminiClient implements LlmClient {
         );
     }
 
+    private static final ThreadLocal<List<LlmRequestLog>> PENDING_QUERY_LOGS =
+            ThreadLocal.withInitial(java.util.ArrayList::new);
+
+    public void clearPendingLogs() {
+        PENDING_QUERY_LOGS.get().clear();
+    }
+
+    public void bindLogsToSearchQuery(SearchQuery searchQuery) {
+        if (searchQuery == null || searchQuery.getId() == null) return;
+        try {
+            List<LlmRequestLog> logs = PENDING_QUERY_LOGS.get();
+            for (LlmRequestLog logItem : logs) {
+                logItem.setSearchQuery(searchQuery);
+                entityManager.merge(logItem);
+            }
+        } catch (Exception e) {
+            GeminiClient.log.warn("Could not bind LLM logs to SearchQuery #{}", searchQuery.getId(), e);
+        } finally {
+            PENDING_QUERY_LOGS.remove();
+        }
+    }
+
     private void saveLog(String requestType, String prompt, String response,
                           String status, short retryCount, int latencyMs, int totalTokenCount, Long queryId) {
         try {
+            int resolvedTokens = totalTokenCount;
+            if (resolvedTokens <= 0 && prompt != null) {
+                int charLen = prompt.length() + (response != null ? response.length() : 0);
+                resolvedTokens = Math.max(1, charLen / 4);
+            }
+
             LlmRequestLog.LlmRequestLogBuilder builder = LlmRequestLog.builder()
                     .requestType(requestType)
                     .promptText(prompt)
@@ -314,13 +342,15 @@ public class GeminiClient implements LlmClient {
                     .status(status)
                     .retryCount(retryCount)
                     .latencyMs(latencyMs)
-                    .tokensUsed(totalTokenCount > 0 ? totalTokenCount : null);
+                    .tokensUsed(resolvedTokens > 0 ? resolvedTokens : null);
 
             if (queryId != null) {
                 builder.searchQuery(entityManager.getReference(SearchQuery.class, queryId));
             }
 
-            entityManager.persist(builder.build());
+            LlmRequestLog savedLog = builder.build();
+            entityManager.persist(savedLog);
+            PENDING_QUERY_LOGS.get().add(savedLog);
         } catch (Exception e) {
             // Log lỗi không được phép làm fail luồng chính
             GeminiClient.log.error("Failed to persist LLM log", e);

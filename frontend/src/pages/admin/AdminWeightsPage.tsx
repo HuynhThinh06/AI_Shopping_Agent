@@ -1,15 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { AdminNav } from '../../components/admin/AdminNav';
-import { getCategoryWeights, updateCategoryWeights } from '../../api/adminApi';
+import { getCategoryWeights, updateCategoryWeights, getCategoriesList } from '../../api/adminApi';
+import type { CategoryOption } from '../../types/admin';
 import { Sliders, Save, CheckCircle2, RotateCcw, Info, Sparkles } from 'lucide-react';
 
+const DEFAULT_CATEGORIES: CategoryOption[] = [
+  { id: 1, code: 'laptop', name: 'Laptop' },
+  { id: 2, code: 'phone', name: 'Điện thoại' },
+];
+
 export const AdminWeightsPage: React.FC = () => {
+  const [categories, setCategories] = useState<CategoryOption[]>(DEFAULT_CATEGORIES);
   const [categoryCode, setCategoryCode] = useState('laptop');
   const [wPrice, setWPrice] = useState(0.35);
   const [wRating, setWRating] = useState(0.20);
   const [wSpec, setWSpec] = useState(0.45);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    getCategoriesList()
+      .then((list) => {
+        if (list && list.length > 0) setCategories(list);
+      })
+      .catch(() => {});
+  }, []);
 
   const loadWeights = async (code = categoryCode) => {
     try {
@@ -120,8 +135,11 @@ export const AdminWeightsPage: React.FC = () => {
                 onChange={(e) => setCategoryCode(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg font-bold text-xs focus:outline-none shadow-brutal-xs"
               >
-                <option value="laptop">Laptop (laptop) — Máy tính xách tay</option>
-                <option value="phone">Điện thoại (phone) — Smartphone</option>
+                {categories.map((cat) => (
+                  <option key={cat.code} value={cat.code}>
+                    {cat.name} ({cat.code})
+                  </option>
+                ))}
               </select>
             </div>
 

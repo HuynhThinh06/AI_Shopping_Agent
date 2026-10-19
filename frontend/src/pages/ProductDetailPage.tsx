@@ -31,6 +31,9 @@ import {
   LogIn,
   Heart,
   Scale,
+  ChevronDown,
+  ChevronUp,
+  Layers,
 } from 'lucide-react';
 
 export const ProductDetailPage: React.FC = () => {
@@ -50,6 +53,11 @@ export const ProductDetailPage: React.FC = () => {
   const [refreshingSummary, setRefreshingSummary] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Gallery & Specs states
+  const [selectedImgIndex, setSelectedImgIndex] = useState<number>(0);
+  const [relatedProducts, setRelatedProducts] = useState<ProductDetailDTO[]>([]);
+  const [specsExpanded, setSpecsExpanded] = useState<boolean>(true);
+
   // Form review state
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState('');
@@ -58,6 +66,7 @@ export const ProductDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (productId) {
+      setSelectedImgIndex(0);
       setIsFav(isFavoriteId(productId));
       setIsComp(isInCompare(productId));
     }
@@ -114,6 +123,14 @@ export const ProductDetailPage: React.FC = () => {
 
     // Load Reviews
     loadReviews();
+
+    // Load Related Products
+    try {
+      const feat = await productApi.getFeaturedProducts(8);
+      setRelatedProducts(feat.filter((p) => p.id !== productId).slice(0, 3));
+    } catch (e) {
+      console.warn('Error fetching related products:', e);
+    }
   };
 
   const loadSummary = async () => {
@@ -198,6 +215,34 @@ export const ProductDetailPage: React.FC = () => {
     return new Intl.NumberFormat('vi-VN').format(price) + ' đ';
   };
 
+  const parseSpecs = (specs: any): Record<string, any> => {
+    if (!specs) return {};
+    if (typeof specs === 'object') return specs;
+    try {
+      return JSON.parse(specs);
+    } catch {
+      return {};
+    }
+  };
+
+  const getProductSource = (url?: string, sku?: string) => {
+    const safeUrl = (url || '').toLowerCase();
+    const safeSku = (sku || '').toUpperCase();
+    if (safeUrl.includes('thegioididong.com') || safeSku.includes('TGDD')) {
+      return { name: 'Thế Giới Di Động (Hệ thống phân phối toàn quốc)', badge: 'Thế Giới Di Động' };
+    }
+    if (safeUrl.includes('fptshop.com.vn') || safeSku.includes('FPT')) {
+      return { name: 'FPT Shop (Hệ thống bán lẻ ủy quyền)', badge: 'FPT Shop' };
+    }
+    if (safeUrl.includes('cellphones.com.vn') || safeSku.includes('CPS')) {
+      return { name: 'CellphoneS (Hệ thống thiết bị công nghệ)', badge: 'CellphoneS' };
+    }
+    if (safeUrl.includes('phongvu.vn')) {
+      return { name: 'Phong Vũ (Đại lý phân phối)', badge: 'Phong Vũ' };
+    }
+    return { name: 'Hệ thống đối soát chính hãng', badge: 'Chính Hãng' };
+  };
+
   if (loadingProduct) {
     return (
       <div className="py-20 text-center space-y-4">
@@ -220,6 +265,148 @@ export const ProductDetailPage: React.FC = () => {
     );
   }
 
+  const images = product.imageUrls && product.imageUrls.length > 0
+    ? product.imageUrls
+    : ['https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500'];
+  const currentImg = images[selectedImgIndex] || images[0];
+
+  const sourceInfo = getProductSource(product.productUrl, product.sku);
+  const specs = parseSpecs(product.specs);
+  const isPhone = (product.categoryCode || '').toLowerCase().includes('phone');
+
+  // Quick spec highlight cards
+  const quickSpecCards = isPhone
+    ? [
+        {
+          title: 'Chipset',
+          val: specs.chipset || specs.cpu || 'Tiêu chuẩn',
+          desc: specs.os || 'Hệ điều hành tối ưu',
+        },
+        {
+          title: 'RAM & ROM',
+          val: specs.ram ? (String(specs.ram).includes('GB') ? specs.ram : `${specs.ram} GB`) : '8 GB',
+          desc: specs.storage ? (String(specs.storage).includes('GB') || String(specs.storage).includes('TB') ? specs.storage : `${specs.storage} GB ROM`) : 'Bộ nhớ chuẩn',
+        },
+        {
+          title: 'Màn Hình',
+          val: `${specs.screen_size ? specs.screen_size + '"' : '6.7"'} ${specs.panel || 'AMOLED'}`,
+          desc: `${specs.refresh_rate ? specs.refresh_rate + ' Hz' : '120 Hz'} ${specs.resolution || ''}`,
+        },
+        {
+          title: 'Pin & Sạc',
+          val: specs.battery ? (String(specs.battery).includes('mAh') ? specs.battery : `${specs.battery} mAh`) : '5000 mAh',
+          desc: specs.charging ? `Sạc nhanh ${specs.charging}W` : 'Sạc siêu tốc',
+        },
+      ]
+    : [
+        {
+          title: 'Vi Xử Lý',
+          val: specs.cpu || specs.CPU || 'Tiêu chuẩn',
+          desc: specs.vga ? `Đồ họa: ${specs.vga}` : 'Xử lý đa nhiệm',
+        },
+        {
+          title: 'Bộ Nhớ RAM',
+          val: specs.ram ? (String(specs.ram).toUpperCase().includes('GB') ? specs.ram : `${specs.ram} GB`) : '16 GB',
+          desc: specs.bus_ram ? `Bus ${specs.bus_ram} MHz` : (specs.ram_type || 'Đa nhiệm mượt mà'),
+        },
+        {
+          title: 'Ổ Cứng',
+          val: specs.storage ? (String(specs.storage).toUpperCase().includes('GB') || String(specs.storage).toUpperCase().includes('TB') ? specs.storage : `SSD ${specs.storage} GB`) : 'SSD 512 GB',
+          desc: specs.storage_type || 'Tốc độ đọc ghi cao',
+        },
+        {
+          title: 'Màn Hình',
+          val: `${specs.screen_size ? specs.screen_size + '"' : '15.6"'} ${specs.resolution || 'FHD'}`,
+          desc: `${specs.refresh_rate ? specs.refresh_rate + ' Hz' : '60 Hz'} ${specs.panel || 'IPS'}`,
+        },
+      ];
+
+  // Dynamic spec groups
+  const laptopGroups = [
+    {
+      title: '1. Bộ Xử Lý & Đồ Họa',
+      fields: [
+        { key: 'cpu', label: 'Model CPU / Vi xử lý' },
+        { key: 'cpu_cores', label: 'Số nhân & Số luồng' },
+        { key: 'cpu_speed', label: 'Tốc độ xung nhịp' },
+        { key: 'vga', label: 'Card đồ họa (GPU)' },
+        { key: 'npu', label: 'Xử lý AI (NPU)' },
+      ],
+    },
+    {
+      title: '2. Bộ Nhớ RAM & Ổ Cứng',
+      fields: [
+        { key: 'ram', label: 'Dung lượng RAM', format: (v: any) => (String(v).includes('GB') ? v : `${v} GB`) },
+        { key: 'bus_ram', label: 'Tốc độ Bus RAM', format: (v: any) => (String(v).includes('MHz') ? v : `${v} MHz`) },
+        { key: 'storage', label: 'Ổ cứng lưu trữ', format: (v: any) => (String(v).includes('GB') || String(v).includes('TB') ? v : `SSD ${v} GB`) },
+        { key: 'storage_upgrade', label: 'Khả năng nâng cấp' },
+      ],
+    },
+    {
+      title: '3. Màn Hình & Hiển Thị',
+      fields: [
+        { key: 'screen_size', label: 'Kích thước màn hình', format: (v: any) => (String(v).includes('inch') || String(v).includes('"') ? v : `${v} inch`) },
+        { key: 'resolution', label: 'Độ phân giải' },
+        { key: 'refresh_rate', label: 'Tần số quét', format: (v: any) => (String(v).includes('Hz') ? v : `${v} Hz`) },
+        { key: 'panel', label: 'Công nghệ tấm nền' },
+        { key: 'color_gamut', label: 'Độ phủ màu & Độ sáng' },
+      ],
+    },
+    {
+      title: '4. Pin, Cổng Kết Nối & Trọng Lượng',
+      fields: [
+        { key: 'battery', label: 'Dung lượng Pin', format: (v: any) => (String(v).includes('Wh') || String(v).includes('cell') ? v : `${v} Wh`) },
+        { key: 'charger', label: 'Bộ sạc & Công nghệ sạc' },
+        { key: 'weight', label: 'Trọng lượng máy', format: (v: any) => (String(v).includes('kg') ? v : `${v} kg`) },
+        { key: 'ports', label: 'Cổng kết nối vật lý' },
+        { key: 'os', label: 'Hệ điều hành tích hợp' },
+      ],
+    },
+  ];
+
+  const phoneGroups = [
+    {
+      title: '1. Vi Xử Lý & Hệ Điều Hành',
+      fields: [
+        { key: 'chipset', label: 'Chipset / Vi xử lý' },
+        { key: 'cpu', label: 'CPU' },
+        { key: 'gpu', label: 'GPU' },
+        { key: 'os', label: 'Hệ điều hành' },
+      ],
+    },
+    {
+      title: '2. Bộ Nhớ RAM & Dung Lượng Lưu Trữ',
+      fields: [
+        { key: 'ram', label: 'Dung lượng RAM', format: (v: any) => (String(v).includes('GB') ? v : `${v} GB`) },
+        { key: 'storage', label: 'Bộ nhớ trong (ROM)', format: (v: any) => (String(v).includes('GB') || String(v).includes('TB') ? v : `${v} GB`) },
+        { key: 'sim', label: 'SIM & Khay thẻ' },
+      ],
+    },
+    {
+      title: '3. Màn Hình & Camera',
+      fields: [
+        { key: 'screen_size', label: 'Kích thước màn hình', format: (v: any) => (String(v).includes('inch') || String(v).includes('"') ? v : `${v} inch`) },
+        { key: 'resolution', label: 'Độ phân giải màn hình' },
+        { key: 'refresh_rate', label: 'Tần số quét màn hình', format: (v: any) => (String(v).includes('Hz') ? v : `${v} Hz`) },
+        { key: 'panel', label: 'Công nghệ màn hình' },
+        { key: 'rear_camera', label: 'Camera sau' },
+        { key: 'front_camera', label: 'Camera trước' },
+      ],
+    },
+    {
+      title: '4. Pin, Sạc & Tiện Ích',
+      fields: [
+        { key: 'battery', label: 'Dung lượng pin', format: (v: any) => (String(v).includes('mAh') ? v : `${v} mAh`) },
+        { key: 'charging', label: 'Công nghệ sạc nhanh', format: (v: any) => (String(v).includes('W') ? v : `${v}W`) },
+        { key: 'weight', label: 'Trọng lượng máy', format: (v: any) => (String(v).includes('g') ? v : `${v} g`) },
+        { key: 'features', label: 'Tính năng đặc biệt' },
+      ],
+    },
+  ];
+
+  const activeGroups = isPhone ? phoneGroups : laptopGroups;
+  const renderedKeys = new Set<string>();
+
   return (
     <div className="space-y-8 py-4">
       {/* Back button */}
@@ -235,14 +422,14 @@ export const ProductDetailPage: React.FC = () => {
 
       {/* Main Product Info Card */}
       <section className="brutal-card p-6 sm:p-8 bg-warm-surface grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left: Product Image */}
-        <div className="lg:col-span-5 space-y-4">
+        {/* Left: Product Image Gallery */}
+        <div className="lg:col-span-5 space-y-3">
           <div className="w-full aspect-square rounded-2xl border-2 border-warm-border bg-warm-subtle p-6 flex items-center justify-center overflow-hidden shadow-brutal-sm">
-            {product.imageUrls && product.imageUrls.length > 0 ? (
+            {currentImg ? (
               <img
-                src={product.imageUrls[0]}
+                src={currentImg}
                 alt={product.name}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain transition-all duration-200"
                 onError={(e) => {
                   (e.target as any).src = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500';
                 }}
@@ -251,9 +438,35 @@ export const ProductDetailPage: React.FC = () => {
               <Cpu className="w-16 h-16 text-warm-hint" />
             )}
           </div>
+
+          {/* Thumbnails row */}
+          {images.length > 1 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] text-warm-muted font-bold px-1">
+                <span>Bộ sưu tập ({images.length} ảnh)</span>
+                <span>Click để đổi ảnh hiển thị</span>
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedImgIndex(idx)}
+                    className={`w-14 h-14 rounded-xl border-2 p-1 overflow-hidden shrink-0 transition-all cursor-pointer ${
+                      selectedImgIndex === idx
+                        ? 'border-warm-primary bg-warm-secondary/30 shadow-brutal-xs -translate-y-0.5'
+                        : 'border-warm-border bg-warm-bg hover:border-warm-text'
+                    }`}
+                  >
+                    <img src={img} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-contain" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Right: Details & Specs */}
+        {/* Right: Details & Actions */}
         <div className="lg:col-span-7 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-lg border border-warm-border bg-warm-subtle text-xs font-black uppercase tracking-wider text-warm-muted">
@@ -280,6 +493,7 @@ export const ProductDetailPage: React.FC = () => {
             <span>{product.reviewCount || 0} bài đánh giá từ người dùng</span>
           </div>
 
+          {/* Pricing & Actions */}
           <div className="p-4 rounded-2xl border-2 border-warm-border bg-warm-bg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="text-xs text-warm-muted font-bold">Giá bán niêm yết:</div>
@@ -316,39 +530,150 @@ export const ProductDetailPage: React.FC = () => {
                 <Scale className="w-4 h-4 text-warm-text" />
                 <span>{isComp ? 'Đã thêm so sánh' : 'So sánh'}</span>
               </button>
-
-              {product.productUrl && (
-                <a
-                  href={product.productUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="brutal-btn px-4 py-2 text-xs font-black shadow-brutal-xs flex items-center gap-1.5"
-                >
-                  <span>TGDĐ</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              )}
             </div>
           </div>
 
-          {/* Technical specs table */}
-          {product.specs && Object.keys(product.specs).length > 0 && (
-            <div className="pt-2 space-y-2">
-              <h3 className="text-xs font-extrabold uppercase tracking-wider text-warm-muted">
-                Thông số kỹ thuật (PostgreSQL JSONB):
-              </h3>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {Object.entries(product.specs).map(([key, value]) => (
-                  <div key={key} className="p-2 rounded-xl border border-warm-border bg-warm-subtle flex flex-col">
-                    <span className="font-extrabold uppercase text-[10px] text-warm-muted">{key}</span>
-                    <span className="font-bold text-warm-text mt-0.5 truncate">{String(value)}</span>
-                  </div>
-                ))}
-              </div>
+          {/* Retailer Source Banner */}
+          <div className="p-3.5 rounded-xl border-2 border-warm-border bg-warm-subtle/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-brutal-xs">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 font-extrabold text-[11px]">
+                {sourceInfo.badge}
+              </span>
+              <span className="text-xs font-bold text-warm-text">
+                {sourceInfo.name}
+              </span>
             </div>
-          )}
+            {product.productUrl && product.productUrl !== '#' ? (
+              <a
+                href={product.productUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-black text-amber-800 hover:underline inline-flex items-center gap-1"
+              >
+                <span>Xem tại đại lý phân phối</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            ) : (
+              <span className="text-xs text-warm-muted italic">Đã đối soát kho nội bộ</span>
+            )}
+          </div>
         </div>
       </section>
+
+      {/* Quick Specs Highlights (4 Cards) */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {quickSpecCards.map((card, idx) => (
+          <div key={idx} className="brutal-card p-4 bg-warm-surface space-y-1">
+            <div className="text-[11px] font-black uppercase tracking-wider text-warm-muted">
+              {card.title}
+            </div>
+            <div className="text-sm sm:text-base font-black text-warm-text truncate" title={card.val}>
+              {card.val}
+            </div>
+            <div className="text-[11px] text-warm-muted font-medium truncate" title={card.desc}>
+              {card.desc}
+            </div>
+          </div>
+        ))}
+      </section>
+
+      {/* Categorized Specifications */}
+      {specs && Object.keys(specs).length > 0 && (
+        <section className="brutal-card p-6 sm:p-8 bg-warm-surface space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-warm-border/10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl border-2 border-warm-border bg-warm-secondary flex items-center justify-center shadow-brutal-xs">
+                <Layers className="w-5 h-5 text-warm-secondary-text" />
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-xl font-black text-warm-text">
+                  Bảng Thông Số Kỹ Thuật Chi Tiết
+                </h2>
+                <p className="text-xs text-warm-muted font-medium">
+                  Chuẩn hóa theo cấu trúc catalog hỗ trợ truy vấn lọc đa tiêu chí AI.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSpecsExpanded(!specsExpanded)}
+              className="text-xs font-black text-warm-text px-3 py-1.5 rounded-xl border border-warm-border bg-warm-bg hover:bg-warm-secondary shadow-brutal-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>{specsExpanded ? 'Thu gọn tất cả' : 'Mở rộng tất cả'}</span>
+              {specsExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {activeGroups.map((grp, gIdx) => {
+              const rows = grp.fields
+                .filter((f) => {
+                  const val = specs[f.key];
+                  return val !== null && val !== undefined && val !== '';
+                })
+                .map((f) => {
+                  renderedKeys.add(f.key.toLowerCase());
+                  const rawVal = specs[f.key];
+                  const formatted = f.format ? f.format(rawVal) : String(rawVal);
+                  return (
+                    <div key={f.key} className="flex justify-between py-2 border-b border-warm-border/10 text-xs sm:text-sm">
+                      <span className="text-warm-muted font-medium">{f.label}</span>
+                      <span className="font-bold text-warm-text text-right max-w-[60%] break-words">{formatted}</span>
+                    </div>
+                  );
+                });
+
+              if (rows.length === 0) return null;
+
+              return (
+                <div key={gIdx} className="space-y-2">
+                  <h3 className="font-black text-sm text-warm-text flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-warm-primary"></span>
+                    <span>{grp.title}</span>
+                  </h3>
+                  {specsExpanded && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                      {rows}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Extra specifications */}
+            {(() => {
+              const extraRows = Object.keys(specs)
+                .filter((k) => !renderedKeys.has(k.toLowerCase()) && specs[k] !== null && specs[k] !== undefined && specs[k] !== '')
+                .map((k) => {
+                  const label = k.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+                  return (
+                    <div key={k} className="flex justify-between py-2 border-b border-warm-border/10 text-xs sm:text-sm">
+                      <span className="text-warm-muted font-medium">{label}</span>
+                      <span className="font-bold text-warm-text text-right max-w-[60%] break-words">{String(specs[k])}</span>
+                    </div>
+                  );
+                });
+
+              if (extraRows.length === 0) return null;
+
+              return (
+                <div className="space-y-2">
+                  <h3 className="font-black text-sm text-warm-text flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                    <span>Thông Số Bổ Sung</span>
+                  </h3>
+                  {specsExpanded && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                      {extraRows}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </section>
+      )}
 
       {/* =========================================================================
            AI REVIEW SUMMARY SECTION (Trọng tâm Giai đoạn 2)
@@ -606,6 +931,84 @@ export const ProductDetailPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* =========================================================================
+           RELATED PRODUCTS / GỢI Ý TƯƠNG TỰ
+           ========================================================================= */}
+      {relatedProducts.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-black text-warm-text flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              <span>Gợi Ý Sản Phẩm Cùng Phân Khúc</span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {relatedProducts.map((item) => {
+              const itemSpecs = parseSpecs(item.specs);
+              const sub = [
+                itemSpecs.cpu || itemSpecs.chipset || '',
+                itemSpecs.ram ? (String(itemSpecs.ram).includes('GB') ? itemSpecs.ram : `${itemSpecs.ram}GB RAM`) : '',
+                itemSpecs.storage ? (String(itemSpecs.storage).includes('GB') || String(itemSpecs.storage).includes('TB') ? itemSpecs.storage : `${itemSpecs.storage}GB`) : '',
+                itemSpecs.screen_size ? `${itemSpecs.screen_size}"` : '',
+              ]
+                .filter(Boolean)
+                .join(' • ');
+
+              return (
+                <div key={item.id} className="brutal-card p-5 bg-warm-surface flex flex-col justify-between space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="px-2 py-0.5 rounded-lg border border-warm-border bg-warm-subtle font-extrabold uppercase text-[10px] text-warm-muted">
+                        {item.brand || 'CHÍNH HÃNG'}
+                      </span>
+                      <span className="text-amber-600 font-extrabold flex items-center gap-1">
+                        <Star className="w-3.5 h-3.5 fill-current" />
+                        <span>{item.avgRating ? Number(item.avgRating).toFixed(1) : '5.0'}</span>
+                      </span>
+                    </div>
+
+                    <div className="w-full aspect-[4/3] rounded-xl border-2 border-warm-border bg-warm-subtle mt-3 p-3 flex items-center justify-center overflow-hidden shadow-brutal-xs">
+                      <img
+                        src={(item.imageUrls && item.imageUrls[0]) || 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300'}
+                        alt={item.name}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as any).src = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300';
+                        }}
+                      />
+                    </div>
+
+                    <h4 className="font-extrabold text-sm sm:text-base text-warm-text mt-3 line-clamp-2" title={item.name}>
+                      {item.name}
+                    </h4>
+                    <p className="text-xs text-warm-muted mt-1 truncate">{sub || 'Cấu hình tiêu chuẩn chính hãng'}</p>
+                    <div className="mt-2 text-lg font-black text-amber-700">
+                      {formatVnd(item.price)}
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-warm-border/10 flex items-center gap-2">
+                    <Link
+                      to={`/product/${item.id}`}
+                      className="flex-1 text-center py-2 rounded-xl bg-warm-bg hover:bg-warm-secondary text-warm-text font-bold text-xs border border-warm-border"
+                    >
+                      Chi tiết
+                    </Link>
+                    <Link
+                      to={`/compare?ids=${product.id},${item.id}`}
+                      className="flex-1 text-center py-2 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs border border-warm-border shadow-brutal-xs"
+                    >
+                      So sánh
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 };

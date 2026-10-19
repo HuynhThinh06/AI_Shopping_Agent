@@ -42,8 +42,14 @@ public class SearchService {
     private final SearchQueryRepository searchQueryRepository;
     private final SearchResultRepository searchResultRepository;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.shoppingagent.shared.llm.GeminiClient geminiClient;
+
     public SearchResponse search(SearchRequest request, Long userId) {
         log.info("[Search] New query: '{}' userId={}", request.getQueryText(), userId);
+        if (geminiClient != null) {
+            geminiClient.clearPendingLogs();
+        }
 
         // ── Bước 1: Xác định ngành hàng ──────────────────────────────────────
         String categoryCode = detectCategory(request.getQueryText());
@@ -85,6 +91,9 @@ public class SearchService {
 
         // ── Bước 6: Lưu SearchQuery + SearchResult vào DB ─────────────────────
         SearchQuery savedQuery = saveSearchQuery(request, userId, criteria, categoryCode);
+        if (geminiClient != null) {
+            geminiClient.bindLogsToSearchQuery(savedQuery);
+        }
         searchResultRepository.saveAll(ranked, savedQuery.getId());
 
         return SearchResponse.builder()

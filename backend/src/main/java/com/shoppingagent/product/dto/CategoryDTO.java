@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -15,4 +17,5 @@ public class CategoryDTO {
     private String name;
     private String description;
     private Boolean isActive;
+    private List<CategoryAttributeDTO> attributes;
 }

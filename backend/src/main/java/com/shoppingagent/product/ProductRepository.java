@@ -49,7 +49,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             SELECT p FROM Product p
             JOIN p.category c
             WHERE p.isActive = TRUE
-              AND (:categoryCode IS NULL OR LOWER(c.code) = LOWER(:categoryCode))
+              AND (:categoryCode IS NULL OR :categoryCode = '' OR LOWER(c.code) = LOWER(:categoryCode))
               AND (:minPrice     IS NULL OR p.price         >= :minPrice)
               AND (:maxPrice     IS NULL OR p.price         <= :maxPrice)
               AND (:keyword      IS NULL OR :keyword = ''

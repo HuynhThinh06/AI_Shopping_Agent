@@ -6,4 +6,8 @@ export const productApi = {
     const response = await apiClient.get<ProductDetailDTO>(`/products/${id}`);
     return response.data;
   },
+  getFeaturedProducts: async (limit: number = 8): Promise<ProductDetailDTO[]> => {
+    const response = await apiClient.get<ProductDetailDTO[]>(`/products/featured?limit=${limit}`);
+    return response.data;
+  },
 };

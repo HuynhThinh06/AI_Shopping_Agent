@@ -68,7 +68,7 @@ export const AuthPage: React.FC = () => {
   const [password, setPassword] = useState('password123');
   const [phone, setPhone] = useState('');
 
-  const redirectTarget = searchParams.get('redirect') || '/';
+  const explicitRedirect = searchParams.get('redirect');
 
   const handleSelectAccount = (acc: TestAccount, autoLogin = false) => {
     setName(acc.name);
@@ -84,7 +84,9 @@ export const AuthPage: React.FC = () => {
         avatarText: acc.avatarText,
         role: acc.role,
       });
-      navigate(redirectTarget, { replace: true });
+      const isAdminAccount = acc.email.toLowerCase().includes('admin') || acc.role.toLowerCase().includes('admin');
+      const target = explicitRedirect || (isAdminAccount ? '/admin/dashboard' : '/');
+      navigate(target, { replace: true });
     }
   };
 
@@ -94,15 +96,17 @@ export const AuthPage: React.FC = () => {
       ? name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
       : 'U';
 
+    const isAdminAccount = email.toLowerCase().includes('admin');
     saveAuthUser({
       name: name || (email.split('@')[0] || 'Người dùng'),
       email: email || 'user@example.com',
       phone: phone || '0900 000 000',
       avatarText: initials,
-      role: email.includes('admin') ? 'Quản trị viên (Admin)' : 'Thành viên mới',
+      role: isAdminAccount ? 'Quản trị viên (Admin)' : 'Thành viên mới',
     });
 
-    navigate(redirectTarget, { replace: true });
+    const target = explicitRedirect || (isAdminAccount ? '/admin/dashboard' : '/');
+    navigate(target, { replace: true });
   };
 
   return (
