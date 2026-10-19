@@ -47,6 +47,22 @@ interface FeatureDef {
   test: (item: RankedProduct, specs: Record<string, any>) => boolean;
 }
 
+export const getProductName = (item?: { productName?: string; name?: string } | null): string => {
+  return item?.productName || item?.name || 'Sản phẩm';
+};
+
+export const getSpecs = (item?: { specs?: any } | null): Record<string, any> => {
+  if (!item || !item.specs) return {};
+  if (typeof item.specs === 'string') {
+    try {
+      return JSON.parse(item.specs);
+    } catch {
+      return {};
+    }
+  }
+  return typeof item.specs === 'object' ? item.specs : {};
+};
+
 const CATEGORY_FACETS = {
   phone: {
     name: 'Điện thoại',
@@ -70,7 +86,7 @@ const CATEGORY_FACETS = {
         label: 'Camera xịn (≥ 50MP / OIS)',
         test: (item, specs) => {
           const cam = parseFloat(specs.camera || specs.rear_camera || '0');
-          const str = (item.productName + ' ' + JSON.stringify(specs)).toLowerCase();
+          const str = (getProductName(item) + ' ' + JSON.stringify(specs)).toLowerCase();
           return cam >= 50 || str.includes('50mp') || str.includes('108mp') || str.includes('200mp') || str.includes('ois');
         },
       },
@@ -86,7 +102,7 @@ const CATEGORY_FACETS = {
         id: 'phone_amoled',
         label: 'Màn hình AMOLED / 120Hz',
         test: (item, specs) => {
-          const str = (item.productName + ' ' + JSON.stringify(specs)).toLowerCase();
+          const str = (getProductName(item) + ' ' + JSON.stringify(specs)).toLowerCase();
           return str.includes('amoled') || str.includes('120hz') || str.includes('oled');
         },
       },
@@ -117,7 +133,7 @@ const CATEGORY_FACETS = {
         label: 'Màn hình tần số cao (≥ 90Hz / 120Hz)',
         test: (item, specs) => {
           const hz = parseFloat(specs.refresh_rate || '0');
-          const name = item.productName.toLowerCase();
+          const name = getProductName(item).toLowerCase();
           return hz >= 90 || name.includes('120hz') || name.includes('144hz') || name.includes('165hz');
         },
       },
@@ -282,8 +298,8 @@ export const SearchResultsPage: React.FC = () => {
     if (q.includes('laptop') || q.includes('máy tính xách tay') || q.includes('may tinh') || q.includes('macbook')) {
       return 'laptop';
     }
-    if (result && result.results.length > 0) {
-      const firstName = result.results[0].productName.toLowerCase();
+    if (result?.results && result.results.length > 0) {
+      const firstName = getProductName(result.results[0]).toLowerCase();
       if (firstName.includes('điện thoại') || firstName.includes('phone') || firstName.includes('galaxy') || firstName.includes('iphone') || firstName.includes('redmi')) {
         return 'phone';
       }
@@ -291,7 +307,7 @@ export const SearchResultsPage: React.FC = () => {
     return 'laptop';
   }, [result, queryParam]);
 
-  const currentFacetConfig = CATEGORY_FACETS[category];
+  const currentFacetConfig = CATEGORY_FACETS[category] || CATEGORY_FACETS.laptop;
 
   // Dynamic brand extraction & counts
   const brandCounts = useMemo(() => {
@@ -315,8 +331,8 @@ export const SearchResultsPage: React.FC = () => {
     const counts: Record<string, number> = {};
     if (!result?.results) return counts;
     result.results.forEach((p) => {
-      const specs = p.specs || {};
-      const cpuStr = ((specs.cpu || specs.chipset || '') + ' ' + p.productName).toLowerCase();
+      const specs = getSpecs(p);
+      const cpuStr = ((specs.cpu || specs.chipset || '') + ' ' + getProductName(p)).toLowerCase();
       currentFacetConfig.chips.forEach((fam) => {
         if (fam.pattern.test(cpuStr)) {
           counts[fam.id] = (counts[fam.id] || 0) + 1;
@@ -331,7 +347,7 @@ export const SearchResultsPage: React.FC = () => {
     const counts: Record<string, number> = {};
     if (!result?.results) return counts;
     result.results.forEach((p) => {
-      const specs = p.specs || {};
+      const specs = getSpecs(p);
       currentFacetConfig.features.forEach((feat) => {
         if (feat.test(p, specs)) {
           counts[feat.id] = (counts[feat.id] || 0) + 1;
@@ -430,8 +446,8 @@ export const SearchResultsPage: React.FC = () => {
         if (!selectedBrands.has(b)) return false;
       }
 
-      const specs = item.specs || {};
-      const nameLower = item.productName.toLowerCase();
+      const specs = getSpecs(item);
+      const nameLower = getProductName(item).toLowerCase();
       const specsStr = (JSON.stringify(specs) + ' ' + nameLower).toLowerCase();
 
       // RAM
@@ -1172,7 +1188,7 @@ export const SearchResultsPage: React.FC = () => {
                           {product.primaryImageUrl ? (
                             <img
                               src={product.primaryImageUrl}
-                              alt={product.productName}
+                              alt={getProductName(product)}
                               className="w-full h-full object-contain"
                               onError={(e) => {
                                 (e.target as any).src = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300';
@@ -1195,7 +1211,7 @@ export const SearchResultsPage: React.FC = () => {
 
                           <h3 className="font-extrabold text-base text-warm-text hover:text-amber-700 transition-colors">
                             <Link to={`/product/${product.productId}`}>
-                              {product.productName}
+                              {getProductName(product)}
                             </Link>
                           </h3>
 
@@ -1216,11 +1232,11 @@ export const SearchResultsPage: React.FC = () => {
                           )}
 
                           {/* Specs Badges */}
-                          {product.specs && (
+                          {Object.keys(getSpecs(product)).length > 0 && (
                             <div className="flex flex-wrap gap-1.5 pt-1 text-[11px] font-semibold text-warm-muted">
-                              {Object.entries(product.specs).slice(0, 4).map(([k, v]) => (
+                              {Object.entries(getSpecs(product)).slice(0, 4).map(([k, v]) => (
                                 <span key={k} className="px-2 py-0.5 rounded bg-warm-bg border border-warm-border/20">
-                                  {k.toUpperCase()}: {String(v)}
+                                  {k.toUpperCase()}: {typeof v === 'object' ? JSON.stringify(v) : String(v)}
                                 </span>
                               ))}
                             </div>

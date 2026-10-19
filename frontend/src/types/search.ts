@@ -14,12 +14,14 @@ export interface ExtractedCriteria {
 
 export interface RankedProduct {
   productId: number;
-  productName: string;
+  productName?: string;
+  name?: string;
   brand?: string;
   price: number;
   avgRating?: number;
   reviewCount?: number;
   primaryImageUrl?: string;
+  productUrl?: string;
   specs?: Record<string, any>;
   rankPosition: number;
   score: number;
@@ -27,6 +29,7 @@ export interface RankedProduct {
   priceScore?: number;
   ratingScore?: number;
   reasoning?: string;
+  calculatedReasoning?: string;
 }
 
 export interface SearchResponse {

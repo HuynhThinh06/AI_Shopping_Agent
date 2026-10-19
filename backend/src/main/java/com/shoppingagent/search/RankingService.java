@@ -88,6 +88,18 @@ public class RankingService {
                                  + wPrice  * normPrice
                                  + wSpec   * specMatch;
 
+                    String primaryImageUrl = null;
+                    try {
+                        if (p.getImages() != null && !p.getImages().isEmpty()) {
+                            primaryImageUrl = p.getImages().stream()
+                                    .filter(img -> Boolean.TRUE.equals(img.getIsPrimary()))
+                                    .map(com.shoppingagent.shared.entity.ProductImage::getImageUrl)
+                                    .findFirst()
+                                    .orElse(p.getImages().get(0).getImageUrl());
+                        }
+                    } catch (Exception ignored) {
+                    }
+
                     return RankedProduct.builder()
                             .productId(p.getId())
                             .name(p.getName())
@@ -96,6 +108,7 @@ public class RankingService {
                             .avgRating(p.getAvgRating())
                             .reviewCount(p.getReviewCount())
                             .productUrl(p.getProductUrl())
+                            .primaryImageUrl(primaryImageUrl)
                             .specs(p.getSpecs())
                             .score(Math.round(score * 10000.0) / 10000.0)
                             .specMatchScore(Math.round(specMatch * 10000.0) / 10000.0)
