@@ -98,7 +98,15 @@ export function getCompareIds(): number[] {
   }
 }
 
-export function toggleCompareId(id: number): boolean {
+export function getCompareCategory(): string | null {
+  try {
+    return localStorage.getItem('shopping_agent_compare_category');
+  } catch {
+    return null;
+  }
+}
+
+export function toggleCompareId(id: number, categoryCode?: string): boolean {
   const ids = getCompareIds();
   const exists = ids.includes(id);
   let next = exists ? ids.filter((x) => x !== id) : [...ids, id];
@@ -107,6 +115,11 @@ export function toggleCompareId(id: number): boolean {
   }
   try {
     localStorage.setItem(COMPARE_KEY, JSON.stringify(next));
+    if (next.length === 0) {
+      localStorage.removeItem('shopping_agent_compare_category');
+    } else if (categoryCode) {
+      localStorage.setItem('shopping_agent_compare_category', categoryCode.toLowerCase());
+    }
     window.dispatchEvent(new Event('compare-updated'));
   } catch (err) {
     console.error(err);
@@ -121,6 +134,7 @@ export function isInCompare(id: number): boolean {
 export function clearCompare(): void {
   try {
     localStorage.removeItem(COMPARE_KEY);
+    localStorage.removeItem('shopping_agent_compare_category');
     window.dispatchEvent(new Event('compare-updated'));
   } catch (err) {
     console.error(err);

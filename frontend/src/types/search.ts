@@ -14,18 +14,22 @@ export interface ExtractedCriteria {
 
 export interface RankedProduct {
   productId: number;
-  productName: string;
+  productName?: string;
+  name?: string;
   brand?: string;
   price: number;
   avgRating?: number;
   reviewCount?: number;
   primaryImageUrl?: string;
+  productUrl?: string;
   specs?: Record<string, any>;
   rankPosition: number;
   score: number;
   specMatchScore?: number;
   priceScore?: number;
   ratingScore?: number;
+  reasoning?: string;
+  calculatedReasoning?: string;
 }
 
 export interface SearchResponse {
@@ -33,4 +37,23 @@ export interface SearchResponse {
   extractedCriteria: ExtractedCriteria;
   results: RankedProduct[];
   totalMatched: number;
+}
+
+export interface FacetOptionDTO {
+  id: string;
+  label: string;
+  queryPattern?: string;
+  min?: number | null;
+  max?: number | null;
+  specKey?: string;
+  operator?: string;
+  value?: any;
+  count?: number;
+}
+
+export interface CategoryFacetDTO {
+  groupKey: string;
+  groupLabel: string;
+  filterType: 'preset' | 'multiselect' | 'boolean';
+  options: FacetOptionDTO[];
 }

@@ -1,19 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getAuthUser } from '../utils/storage';
-import { Sparkles, Search, Laptop, Smartphone, ArrowRight, Zap, Database, ShieldCheck, Flame } from 'lucide-react';
+import { getAuthUser, toggleCompareId, isInCompare } from '../utils/storage';
+import { productApi } from '../api/productApi';
+import { apiClient } from '../api/client';
+import type { ProductDetailDTO } from '../types/product';
+import {
+  Sparkles,
+  Search,
+  Laptop,
+  Smartphone,
+  ArrowRight,
+  Zap,
+  Database,
+  ShieldCheck,
+  Flame,
+  Star,
+  Cpu,
+  Scale,
+  Loader2,
+  Layers,
+} from 'lucide-react';
 
 const SAMPLE_PROMPTS = [
-  'Laptop sinh viên 15 củ học IT pin trâu',
+  'Laptop sinh viên học IT tầm 20 đến 25 triệu pin trâu RAM 16GB',
   'Điện thoại chụp ảnh đẹp RAM 8GB dưới 10 triệu',
   'Laptop gaming i7 RAM 16GB SSD 512 tầm 25 củ',
   'Điện thoại pin trâu dưới 8 chai màn hình to',
 ];
 
+interface CategoryItem {
+  id?: number;
+  code: string;
+  name: string;
+  description?: string;
+}
+
 export const HomePage: React.FC = () => {
   const [query, setQuery] = useState('');
+  const [featuredProducts, setFeaturedProducts] = useState<ProductDetailDTO[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [loadingFeatured, setLoadingFeatured] = useState<boolean>(true);
   const navigate = useNavigate();
   const user = getAuthUser();
+
+  useEffect(() => {
+    // 1. Tải danh sách sản phẩm nổi bật qua GET /api/products/featured
+    productApi
+      .getFeaturedProducts(6)
+      .then((data) => setFeaturedProducts(data || []))
+      .catch((err) => console.error('Lỗi khi tải sản phẩm nổi bật:', err))
+      .finally(() => setLoadingFeatured(false));
+
+    // 2. Tải danh mục ngành hàng qua GET /api/categories
+    apiClient
+      .get<CategoryItem[]>('/categories')
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setCategories(res.data);
+        }
+      })
+      .catch((err) => console.warn('Không thể tải categories từ API:', err));
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,24 +73,28 @@ export const HomePage: React.FC = () => {
     navigate(`/search?q=${encodeURIComponent(prompt)}`);
   };
 
+  const formatVnd = (price: number) => {
+    return new Intl.NumberFormat('vi-VN').format(price) + ' đ';
+  };
+
   return (
     <div className="space-y-12 py-6">
-      {/* Hero Section */}
+      {/* 1. Hero Section */}
       <section className="text-center max-w-4xl mx-auto space-y-6">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border-2 border-warm-border bg-warm-secondary text-warm-secondary-text font-extrabold text-xs shadow-brutal-xs">
           <Sparkles className="w-4 h-4 text-amber-600 animate-pulse" />
           <span>Hệ Thống Trợ Lý Mua Sắm Bằng Ngôn Ngữ Tự Nhiên (Gemini AI)</span>
         </div>
 
-        <h1 className="text-3xl sm:text-5xl font-black text-warm-text tracking-tight leading-tight">
+        <h1 className="text-3xl sm:text-5xl font-extrabold text-warm-text tracking-tight leading-tight">
           Tìm Thiết Bị Công Nghệ Phù Hợp <br />
-          <span className="text-amber-600 underline decoration-wavy decoration-amber-400">
+          <span className="text-amber-600 inline-block mt-1">
             Đúng Nhu Cầu &amp; Chuẩn Ngân Sách
           </span>
         </h1>
 
-        <p className="text-warm-muted text-base sm:text-lg max-w-2xl mx-auto font-medium">
-          Chỉ cần gõ câu hỏi tự nhiên hoặc tiếng lóng, AI sẽ tự trích xuất thông số, truy vấn qua CSDL <strong>PostgreSQL GIN Index</strong> và xếp hạng bằng thuật toán <strong>Weighted Scoring</strong>.
+        <p className="text-warm-muted text-sm sm:text-base max-w-2xl mx-auto font-medium leading-relaxed">
+          Trợ lý AI thông minh phân tích câu hỏi tự nhiên, trích xuất thông số kỹ thuật chuẩn xác và tổng hợp hàng ngàn đánh giá thực tế để đưa ra gợi ý tối ưu nhất cho bạn.
         </p>
 
         {/* AI Omnibox Search */}
@@ -82,7 +133,7 @@ export const HomePage: React.FC = () => {
                     key={idx}
                     type="button"
                     onClick={() => handleSelectPrompt(prompt)}
-                    className="px-3 py-1.5 rounded-xl border-2 border-warm-border bg-warm-subtle hover:bg-amber-100 text-warm-text text-xs font-bold shadow-brutal-xs transition-all text-left flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-xl border-2 border-warm-border bg-warm-subtle hover:bg-amber-100 text-warm-text text-xs font-bold shadow-brutal-xs transition-all text-left flex items-center gap-1.5 cursor-pointer"
                   >
                     <span>“{prompt}”</span>
                     <ArrowRight className="w-3 h-3 text-amber-600 shrink-0" />
@@ -94,10 +145,11 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Category Selection Cards */}
+      {/* 2. Category Selection Cards */}
       <section className="space-y-4">
         <h2 className="text-xl font-black text-warm-text flex items-center gap-2">
-          <span>Ngành Hàng Nổi Bật</span>
+          <Layers className="w-5 h-5 text-amber-600" />
+          <span>Ngành Hàng Nổi Bật ({categories.length > 0 ? `${categories.length} Danh mục` : 'Laptop & Điện thoại'})</span>
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div
@@ -146,7 +198,135 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Core Value Pillars Section */}
+      {/* 3. Featured Products Section (GET /api/products/featured) */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-xl font-black text-warm-text flex items-center gap-2">
+              <Flame className="w-5 h-5 text-amber-500" />
+              <span>Sản Phẩm Nổi Bật Được Đánh Giá Cao Nhất</span>
+            </h2>
+            <p className="text-xs text-warm-muted font-medium mt-0.5">
+              Top các thiết bị công nghệ chính hãng có điểm đánh giá thực tế cao từ cộng đồng người dùng
+            </p>
+          </div>
+          <Link
+            to="/search?q=laptop"
+            className="text-xs font-extrabold text-amber-700 hover:underline flex items-center gap-1 self-start sm:self-auto"
+          >
+            <span>Khám phá thêm bằng AI</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {loadingFeatured ? (
+          <div className="py-12 text-center text-warm-muted flex items-center justify-center gap-2">
+            <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
+            <span className="text-xs font-bold">Đang tải danh sách thiết bị nổi bật...</span>
+          </div>
+        ) : featuredProducts.length === 0 ? (
+          <div className="brutal-card p-8 text-center bg-warm-surface text-warm-muted text-xs font-bold">
+            Chưa có sản phẩm nổi bật nào trong cơ sở dữ liệu.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredProducts.map((p) => {
+              const specs = p.specs || {};
+              const cpu = specs.cpu || specs.chipset || specs.CPU || '';
+              const ram = specs.ram || specs.RAM ? `${specs.ram || specs.RAM}GB RAM` : '';
+              const storage = specs.storage ? `${specs.storage}GB` : '';
+              const screen = specs.screen_size ? `${specs.screen_size}"` : '';
+              const specSummary = [cpu, ram, storage, screen].filter(Boolean).join(' • ');
+
+              return (
+                <div
+                  key={p.id}
+                  className="brutal-card p-5 bg-warm-surface flex flex-col justify-between hover:-translate-y-1 transition-all"
+                >
+                  <div className="space-y-3">
+                    {/* Header Badges */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="px-2.5 py-0.5 rounded-lg border border-warm-border bg-amber-100 text-amber-950 font-black text-[11px] uppercase">
+                          {p.brand}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-lg border border-warm-border bg-sky-100 text-sky-950 font-bold text-[10px] uppercase">
+                          {p.categoryCode}
+                        </span>
+                      </div>
+
+                      <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-black text-xs">
+                        <Star className="w-3.5 h-3.5 fill-current text-amber-500" />
+                        <span>{p.avgRating ? Number(p.avgRating).toFixed(1) : '5.0'}</span>
+                      </div>
+                    </div>
+
+                    {/* Image Preview */}
+                    <div className="w-full h-40 rounded-xl border border-warm-border bg-white p-3 flex items-center justify-center overflow-hidden">
+                      {p.imageUrls && p.imageUrls.length > 0 ? (
+                        <img
+                          src={p.imageUrls[0]}
+                          alt={p.name}
+                          className="max-h-full max-w-full object-contain"
+                          onError={(e) => {
+                            (e.target as any).src = 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300';
+                          }}
+                        />
+                      ) : (
+                        <Cpu className="w-12 h-12 text-warm-hint" />
+                      )}
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="font-extrabold text-base text-warm-text hover:text-amber-700 transition-colors line-clamp-1" title={p.name}>
+                      <Link to={`/product/${p.id}`}>{p.name}</Link>
+                    </h3>
+
+                    {/* Specs String */}
+                    <p className="text-xs text-warm-muted font-medium line-clamp-1">
+                      {specSummary || 'Thông số tiêu chuẩn chính hãng'}
+                    </p>
+
+                    {/* Price */}
+                    <div>
+                      <div className="text-[11px] font-bold text-warm-muted">Giá niêm yết:</div>
+                      <div className="text-xl font-black text-amber-700">
+                        {formatVnd(p.price)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="pt-4 mt-4 border-t border-warm-border/10 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleCompareId(p.id)}
+                      className={`py-2 px-3 rounded-xl border-2 border-warm-border text-xs font-bold shadow-brutal-xs flex items-center gap-1 cursor-pointer transition-all ${
+                        isInCompare(p.id)
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-warm-secondary text-warm-secondary-text hover:bg-amber-300'
+                      }`}
+                    >
+                      <Scale className="w-3.5 h-3.5" />
+                      <span>{isInCompare(p.id) ? 'Đang so sánh' : '+ So sánh'}</span>
+                    </button>
+
+                    <Link
+                      to={`/product/${p.id}`}
+                      className="brutal-btn flex-1 py-2 text-xs font-black shadow-brutal-xs flex items-center justify-center gap-1"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Xem Chi Tiết</span>
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* 4. Core Value Pillars Section */}
       <section className="brutal-card p-6 sm:p-8 bg-warm-surface">
         <h3 className="text-lg font-extrabold text-warm-text mb-4 text-center">
           Cam Kết Giá Trị Đột Phá Của ShoppingAgent AI

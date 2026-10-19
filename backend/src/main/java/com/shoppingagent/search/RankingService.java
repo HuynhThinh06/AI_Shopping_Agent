@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 public class RankingService {
 
     private final ProductRepository productRepository;
+    private final com.shoppingagent.product.ProductImageRepository productImageRepository;
 
     // Trọng số mặc định (override bởi DB nếu có)
     private static final double DEFAULT_W_RATING   = 0.20;
@@ -69,6 +70,25 @@ public class RankingService {
                 .map(p -> p.getPrice().doubleValue())
                 .min(Double::compareTo).orElse(0.0);
 
+        // ── Batch load ảnh chính cho toàn bộ candidate trong đúng 1 query ────
+        List<Long> productIds = products.stream().map(Product::getId).collect(Collectors.toList());
+        Map<Long, String> imageMap = new HashMap<>();
+        try {
+            if (!productIds.isEmpty()) {
+                List<com.shoppingagent.shared.entity.ProductImage> images = productImageRepository.findByProductIds(productIds);
+                for (var img : images) {
+                    if (img.getProduct() != null && img.getImageUrl() != null) {
+                        Long pid = img.getProduct().getId();
+                        if (Boolean.TRUE.equals(img.getIsPrimary()) || !imageMap.containsKey(pid)) {
+                            imageMap.put(pid, img.getImageUrl());
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[Ranking] Failed to batch load product images: {}", e.getMessage());
+        }
+
         // ── Tính score cho từng sản phẩm ─────────────────────────────────────
         List<RankedProduct> ranked = products.stream()
                 .map(p -> {
@@ -88,6 +108,8 @@ public class RankingService {
                                  + wPrice  * normPrice
                                  + wSpec   * specMatch;
 
+                    String primaryImageUrl = imageMap.get(p.getId());
+
                     return RankedProduct.builder()
                             .productId(p.getId())
                             .name(p.getName())
@@ -96,6 +118,7 @@ public class RankingService {
                             .avgRating(p.getAvgRating())
                             .reviewCount(p.getReviewCount())
                             .productUrl(p.getProductUrl())
+                            .primaryImageUrl(primaryImageUrl)
                             .specs(p.getSpecs())
                             .score(Math.round(score * 10000.0) / 10000.0)
                             .specMatchScore(Math.round(specMatch * 10000.0) / 10000.0)
