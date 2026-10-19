@@ -25,6 +25,7 @@ public class CategoryController {
 
     private final CategoryRepository categoryRepository;
     private final CategoryAttributeRepository categoryAttributeRepository;
+    private final CategoryFacetService categoryFacetService;
 
     @GetMapping
     @Operation(summary = "Lấy danh sách tất cả ngành hàng kèm các thuộc tính lọc GIN")
@@ -35,6 +36,13 @@ public class CategoryController {
                 .map(this::toDTO)
                 .toList();
         return ResponseEntity.ok(list);
+    }
+
+    @GetMapping("/{code}/facets")
+    @Operation(summary = "Lấy cấu hình bộ lọc động theo ngành hàng (Metadata-driven facets)")
+    public ResponseEntity<List<com.shoppingagent.product.dto.CategoryFacetDTO>> getCategoryFacets(
+            @PathVariable String code) {
+        return ResponseEntity.ok(categoryFacetService.getFacetsForCategory(code));
     }
 
     @PostMapping

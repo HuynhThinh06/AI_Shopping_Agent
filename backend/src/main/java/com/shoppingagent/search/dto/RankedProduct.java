@@ -18,6 +18,7 @@ public class RankedProduct {
     private BigDecimal avgRating;
     private Integer reviewCount;
     private String productUrl;
+    private String primaryImageUrl;
     private Map<String, Object> specs;
 
     /** Điểm tổng hợp Weighted Score [0.0 – 1.0] */
@@ -28,4 +29,9 @@ public class RankedProduct {
 
     /** Hạng trong danh sách kết quả (1 = tốt nhất) */
     private Integer rankPosition;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("productName")
+    public String getProductName() {
+        return name;
+    }
 }

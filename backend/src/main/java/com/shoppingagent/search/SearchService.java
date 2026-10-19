@@ -69,6 +69,18 @@ public class SearchService {
             );
             log.debug("[Search] Found {} candidates (GIN-filtered by specs: {})",
                     candidates.size(), criteria.getRequiredSpecs().keySet());
+
+            // Fallback Relaxation: Nếu lọc cứng đồng thời cả specs lẫn budget ra 0 kết quả (Over-constrained query),
+            // nới lỏng điều kiện lọc specs tại tầng DB và nới ngân sách tối đa 40% để tìm sản phẩm tiệm cận nhất.
+            if (candidates.isEmpty()) {
+                log.info("[Search] 0 candidates with strict specs filter. Falling back to relaxed budget candidates...");
+                Long relaxedMax = criteria.getBudgetMax() != null ? (long) (criteria.getBudgetMax() * 1.40) : null;
+                candidates = productRepository.findCandidates(
+                        categoryCode,
+                        criteria.getBudgetMin(),
+                        relaxedMax
+                );
+            }
         } else {
             // Không có specs → query cơ bản (chỉ lọc category + price)
             candidates = productRepository.findCandidates(
@@ -77,6 +89,12 @@ public class SearchService {
                     criteria.getBudgetMax()
             );
             log.debug("[Search] Found {} candidates (no spec filter)", candidates.size());
+        }
+
+        // Nếu vẫn không có ứng viên nào (ngân sách quá thấp), fallback lấy toàn bộ sản phẩm cùng ngành hàng
+        if (candidates.isEmpty()) {
+            log.info("[Search] Still 0 candidates. Falling back to all products in category: {}", categoryCode);
+            candidates = productRepository.findCandidates(categoryCode, null, null);
         }
 
         // ── Bước 4: Lấy trọng số xếp hạng từ DB ──────────────────────────────

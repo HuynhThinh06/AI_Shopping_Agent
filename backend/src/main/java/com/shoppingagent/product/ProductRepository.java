@@ -45,7 +45,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * keyword khớp cả name lẫn brand (OR), không phân biệt hoa/thường.
      */
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category"})
-    @Query("""
+    @Query(
+        value = """
             SELECT p FROM Product p
             JOIN p.category c
             WHERE p.isActive = TRUE
@@ -55,7 +56,19 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
               AND (:keyword      IS NULL OR :keyword = ''
                    OR LOWER(p.name)  LIKE LOWER(CONCAT('%', :keyword, '%'))
                    OR LOWER(p.brand) LIKE LOWER(CONCAT('%', :keyword, '%')))
-            """)
+            """,
+        countQuery = """
+            SELECT COUNT(p) FROM Product p
+            JOIN p.category c
+            WHERE p.isActive = TRUE
+              AND (:categoryCode IS NULL OR LOWER(c.code) = LOWER(:categoryCode))
+              AND (:minPrice     IS NULL OR p.price         >= :minPrice)
+              AND (:maxPrice     IS NULL OR p.price         <= :maxPrice)
+              AND (:keyword      IS NULL OR :keyword = ''
+                   OR LOWER(p.name)  LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(p.brand) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            """
+    )
     Page<Product> searchProducts(
             @Param("categoryCode") String   categoryCode,
             @Param("minPrice")     Long     minPrice,
@@ -68,4 +81,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT COUNT(p) FROM Product p JOIN p.category c WHERE LOWER(c.code) = LOWER(:code) AND p.isActive = TRUE")
     long countByCategoryCode(@Param("code") String code);
+
+    @Query("""
+        SELECT p.brand, COUNT(p.id)
+        FROM Product p
+        JOIN p.category c
+        WHERE LOWER(c.code) = LOWER(:code)
+          AND p.isActive = TRUE
+          AND p.brand IS NOT NULL
+        GROUP BY p.brand
+        ORDER BY COUNT(p.id) DESC, p.brand ASC
+    """)
+    List<Object[]> findBrandCountsByCategoryCode(@Param("code") String code);
 }
