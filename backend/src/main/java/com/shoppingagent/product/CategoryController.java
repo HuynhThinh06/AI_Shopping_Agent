@@ -28,6 +28,7 @@ public class CategoryController {
     private final CategoryFacetService categoryFacetService;
 
     @GetMapping
+    @org.springframework.cache.annotation.Cacheable(value = "categories", key = "#includeInactive")
     @Operation(summary = "Lấy danh sách tất cả ngành hàng kèm các thuộc tính lọc GIN")
     public ResponseEntity<List<CategoryDTO>> getCategories(
             @RequestParam(required = false, defaultValue = "false") boolean includeInactive) {
@@ -47,6 +48,7 @@ public class CategoryController {
 
     @PostMapping
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"categories", "categoryFacets"}, allEntries = true)
     @Operation(summary = "Tạo mới ngành hàng (kèm danh sách thuộc tính tùy chọn)")
     public ResponseEntity<CategoryDTO> createCategory(@RequestBody CategoryCreateRequest req) {
         if (req.getCode() == null || req.getCode().isBlank()) {
@@ -74,6 +76,7 @@ public class CategoryController {
 
     @PutMapping("/{id}")
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"categories", "categoryFacets"}, allEntries = true)
     @Operation(summary = "Cập nhật thông tin ngành hàng và danh sách thuộc tính")
     public ResponseEntity<CategoryDTO> updateCategory(
             @PathVariable Integer id,
@@ -96,6 +99,7 @@ public class CategoryController {
 
     @PostMapping("/{id}/attributes")
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"categories", "categoryFacets"}, allEntries = true)
     @Operation(summary = "Thêm hoặc cập nhật một thuộc tính lọc GIN cho ngành hàng")
     public ResponseEntity<CategoryDTO> addCategoryAttribute(
             @PathVariable Integer id,
@@ -148,6 +152,7 @@ public class CategoryController {
 
     @DeleteMapping("/{id}/attributes/{attrId}")
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"categories", "categoryFacets"}, allEntries = true)
     @Operation(summary = "Xóa một thuộc tính lọc khỏi ngành hàng")
     public ResponseEntity<CategoryDTO> deleteCategoryAttribute(
             @PathVariable Integer id,
@@ -165,6 +170,7 @@ public class CategoryController {
 
     @DeleteMapping("/{id}")
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"categories", "categoryFacets"}, allEntries = true)
     @Operation(summary = "Vô hiệu hóa ngành hàng")
     public ResponseEntity<Void> deleteCategory(@PathVariable Integer id) {
         Category cat = categoryRepository.findById(id)

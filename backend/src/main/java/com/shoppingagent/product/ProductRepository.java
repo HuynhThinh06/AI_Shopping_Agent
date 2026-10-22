@@ -34,6 +34,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p JOIN p.category c WHERE LOWER(c.code) = LOWER(:code) AND p.isActive = TRUE")
     List<Product> findByCategoryCode(@Param("code") String code);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "images"})
+    @Query("SELECT p FROM Product p WHERE p.id = :id")
+    java.util.Optional<Product> findDetailById(@Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "images"})
+    @Query("SELECT p FROM Product p WHERE p.id IN :ids AND p.isActive = TRUE")
+    List<Product> findDetailByIds(@Param("ids") List<Long> ids);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category"})
+    @Query("SELECT p FROM Product p WHERE p.isActive = TRUE")
+    Page<Product> findFeaturedProducts(Pageable pageable);
+
     /**
      * [MỚI - B7] Tìm kiếm sản phẩm với filter tùy chọn + phân trang.
      *

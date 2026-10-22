@@ -115,8 +115,9 @@ public class ProductSpecRepository {
                     sql.append(" AND (jsonb_exists(p.specs, :").append(kl).append(") OR ")
                        .append("jsonb_exists(p.specs, :").append(ku).append(") OR ")
                        .append("jsonb_exists(p.specs, :").append(kc).append("))")
-                       .append(" AND (COALESCE(p.specs->>:").append(kl).append(", p.specs->>:").append(ku).append(", p.specs->>:").append(kc)
-                       .append("))::numeric ").append(operator).append(" :").append(valParam);
+                       .append(" AND NULLIF(REGEXP_REPLACE(COALESCE(p.specs->>:").append(kl)
+                       .append(", p.specs->>:").append(ku).append(", p.specs->>:").append(kc)
+                       .append("), '[^0-9.]', '', 'g'), '')::numeric ").append(operator).append(" :").append(valParam);
                        
                     params.put(kl, specKey.toLowerCase());
                     params.put(ku, specKey.toUpperCase());

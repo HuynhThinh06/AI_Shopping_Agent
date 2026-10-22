@@ -29,6 +29,7 @@ public class CategoryFacetService {
      * @param categoryCode mã ngành hàng (vd: 'laptop', 'phone')
      * @return Danh sách các nhóm bộ lọc động
      */
+    @org.springframework.cache.annotation.Cacheable(value = "categoryFacets", key = "#categoryCode != null ? #categoryCode.trim().toLowerCase() : 'laptop'")
     public List<CategoryFacetDTO> getFacetsForCategory(String categoryCode) {
         String cleanCode = (categoryCode != null ? categoryCode.trim().toLowerCase() : "laptop");
         List<CategoryAttribute> attributes = categoryRepository.findByCategoryCodeAndFilterable(cleanCode);

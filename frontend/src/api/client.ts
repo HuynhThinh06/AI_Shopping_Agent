@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { Category, Product, SearchResponse, SummaryDTO, Review } from '../types';
+import { getAuthToken } from '../utils/storage';
 
 // ── Axios Client for React app ─────────────────────────────────────────────
 export const apiClient = axios.create({
@@ -8,6 +9,14 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+apiClient.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 apiClient.interceptors.response.use(
@@ -20,6 +29,15 @@ apiClient.interceptors.response.use(
 
 // ── Native Fetch Helper Functions ──────────────────────────────────────────
 const API_BASE = 'http://localhost:8080/api';
+
+function getAuthHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+  const token = getAuthToken();
+  const headers: Record<string, string> = { ...extraHeaders };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 export async function fetchCategories(): Promise<Category[]> {
   const res = await fetch(`${API_BASE}/categories`);
@@ -75,7 +93,7 @@ export async function createProductReview(
 ): Promise<Review> {
   const res = await fetch(`${API_BASE}/products/${id}/reviews`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(review),
   });
   if (!res.ok) throw new Error(`Failed to create review (${res.status})`);

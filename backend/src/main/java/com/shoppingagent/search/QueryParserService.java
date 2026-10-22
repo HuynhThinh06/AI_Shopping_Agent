@@ -6,6 +6,7 @@ import com.shoppingagent.shared.entity.CategoryAttribute;
 import com.shoppingagent.shared.llm.LlmClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -33,6 +34,7 @@ public class QueryParserService {
      * @param queryText    Câu hỏi gốc
      * @param categoryCode Mã ngành hàng (nếu đã biết trước)
      */
+    @Cacheable(value = "queryCriteria", key = "#queryText.trim().toLowerCase() + '_' + (#categoryCode != null ? #categoryCode.trim().toLowerCase() : '')")
     public ExtractedCriteria parse(String queryText, String categoryCode) {
         log.info("[QueryParser] Parsing query: '{}' for category: {}", queryText, categoryCode);
 
