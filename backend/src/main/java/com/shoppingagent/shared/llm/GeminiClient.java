@@ -3,6 +3,7 @@ package com.shoppingagent.shared.llm;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shoppingagent.admin.LlmRequestLogRepository;
 import com.shoppingagent.review.dto.SummaryDTO;
 import com.shoppingagent.search.dto.ExtractedCriteria;
 import com.shoppingagent.shared.entity.LlmRequestLog;
@@ -30,6 +31,7 @@ public class GeminiClient implements LlmClient {
 
     private final ObjectMapper objectMapper;
     private final EntityManager entityManager;
+    private final LlmRequestLogRepository llmRequestLogRepository;
     private final RestClient restClient = RestClient.create();
 
     @Value("${llm.gemini.api-key}")
@@ -317,7 +319,9 @@ public class GeminiClient implements LlmClient {
             List<LlmRequestLog> logs = PENDING_QUERY_LOGS.get();
             for (LlmRequestLog logItem : logs) {
                 logItem.setSearchQuery(searchQuery);
-                entityManager.merge(logItem);
+            }
+            if (!logs.isEmpty()) {
+                llmRequestLogRepository.saveAll(logs);
             }
         } catch (Exception e) {
             GeminiClient.log.warn("Could not bind LLM logs to SearchQuery #{}", searchQuery.getId(), e);
@@ -348,8 +352,7 @@ public class GeminiClient implements LlmClient {
                 builder.searchQuery(entityManager.getReference(SearchQuery.class, queryId));
             }
 
-            LlmRequestLog savedLog = builder.build();
-            entityManager.persist(savedLog);
+            LlmRequestLog savedLog = llmRequestLogRepository.save(builder.build());
             PENDING_QUERY_LOGS.get().add(savedLog);
         } catch (Exception e) {
             // Log lỗi không được phép làm fail luồng chính

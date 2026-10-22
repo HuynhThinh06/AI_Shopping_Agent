@@ -1,8 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
+import { getAuthUser, type AuthUser } from '../../utils/storage';
 
 export const Footer: React.FC = () => {
+  const [user, setUser] = useState<AuthUser | null>(() => getAuthUser());
+
+  useEffect(() => {
+    const handleAuth = () => setUser(getAuthUser());
+    window.addEventListener('auth-updated', handleAuth);
+    return () => window.removeEventListener('auth-updated', handleAuth);
+  }, []);
+
   return (
     <footer className="mt-auto border-t-2 border-warm-border bg-warm-surface py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
@@ -35,9 +44,11 @@ export const Footer: React.FC = () => {
           <Link to="/favorites" className="hover:text-amber-700 transition-colors">
             Yêu thích
           </Link>
-          <Link to="/settings" className="hover:text-amber-700 transition-colors">
-            Cài đặt cá nhân
-          </Link>
+          {user && (
+            <Link to="/settings" className="hover:text-amber-700 transition-colors">
+              Cài đặt cá nhân
+            </Link>
+          )}
         </nav>
 
         {/* Right: Copyright */}

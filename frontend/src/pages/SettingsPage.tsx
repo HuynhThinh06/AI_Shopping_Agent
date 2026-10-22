@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { getAuthUser, saveAuthUser } from '../utils/storage';
-import { User, Settings, Save, CheckCircle2, Sliders } from 'lucide-react';
+import { User, Settings, Save, CheckCircle2, Sliders, AlertCircle } from 'lucide-react';
+
+const VN_PHONE_REGEX = /^(0|\+84)(3[2-9]|5[2689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export const SettingsPage: React.FC = () => {
   const currentUser = getAuthUser();
@@ -10,17 +13,41 @@ export const SettingsPage: React.FC = () => {
   const [priority, setPriority] = useState('balanced');
   const [defaultCategory, setDefaultCategory] = useState('laptop');
   const [saved, setSaved] = useState(false);
+  const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string }>({});
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    const newErrors: { name?: string; email?: string; phone?: string } = {};
+
+    if (!name.trim()) {
+      newErrors.name = 'Vui lòng nhập họ và tên.';
+    }
+
+    if (!email.trim()) {
+      newErrors.email = 'Vui lòng nhập địa chỉ email.';
+    } else if (!EMAIL_REGEX.test(email.trim())) {
+      newErrors.email = 'Email không hợp lệ (VD: name@example.com).';
+    }
+
+    const cleanPhone = phone.replace(/[\s.-]/g, '');
+    if (cleanPhone && !VN_PHONE_REGEX.test(cleanPhone)) {
+      newErrors.phone = 'Số điện thoại không hợp lệ (Phải gồm 10 số thuộc đầu số 03x, 05x, 07x, 08x, 09x).';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
     const initials = name
-      ? name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+      ? name.trim().split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
       : 'U';
 
     saveAuthUser({
-      name: name || 'Người dùng',
-      email: email || 'user@example.com',
-      phone,
+      name: name.trim() || 'Người dùng',
+      email: email.trim(),
+      phone: cleanPhone || '0900000000',
       avatarText: initials,
       role: currentUser?.role || 'Thành viên mới',
     });
@@ -68,23 +95,53 @@ export const SettingsPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-black text-warm-text mb-1">Họ và tên</label>
+              <label className="block text-xs font-black text-warm-text mb-1">
+                Họ và tên <span className="text-rose-600">*</span>
+              </label>
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none"
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
+                }}
+                className={`w-full px-3 py-2 rounded-xl border-2 text-xs font-bold focus:outline-none ${
+                  errors.name
+                    ? 'border-rose-500 bg-rose-50 text-rose-900'
+                    : 'border-warm-text bg-warm-bg text-warm-text'
+                }`}
               />
+              {errors.name && (
+                <p className="text-[11px] text-rose-600 font-bold mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{errors.name}</span>
+                </p>
+              )}
             </div>
 
             <div>
-              <label className="block text-xs font-black text-warm-text mb-1">Email</label>
+              <label className="block text-xs font-black text-warm-text mb-1">
+                Email <span className="text-rose-600">*</span>
+              </label>
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+                }}
+                className={`w-full px-3 py-2 rounded-xl border-2 text-xs font-bold focus:outline-none ${
+                  errors.email
+                    ? 'border-rose-500 bg-rose-50 text-rose-900'
+                    : 'border-warm-text bg-warm-bg text-warm-text'
+                }`}
               />
+              {errors.email && (
+                <p className="text-[11px] text-rose-600 font-bold mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{errors.email}</span>
+                </p>
+              )}
             </div>
 
             <div>
@@ -92,9 +149,23 @@ export const SettingsPage: React.FC = () => {
               <input
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none"
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
+                }}
+                placeholder="0988 123 456"
+                className={`w-full px-3 py-2 rounded-xl border-2 text-xs font-bold focus:outline-none ${
+                  errors.phone
+                    ? 'border-rose-500 bg-rose-50 text-rose-900'
+                    : 'border-warm-text bg-warm-bg text-warm-text'
+                }`}
               />
+              {errors.phone && (
+                <p className="text-[11px] text-rose-600 font-bold mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{errors.phone}</span>
+                </p>
+              )}
             </div>
 
             <div>

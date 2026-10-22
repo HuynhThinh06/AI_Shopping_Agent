@@ -1,3 +1,5 @@
+import { fetchUserFavoriteIds, toggleUserFavorite } from '../api/favorite';
+
 export interface AuthUser {
   name: string;
   email: string;
@@ -32,150 +34,172 @@ const HISTORY_KEY = 'shopping_agent_search_history';
 const USER_KEY = 'shopping_agent_auth_user';
 const REVIEWS_KEY = 'shopping_agent_user_reviews';
 
+/**
+ * Phân giải khóa lưu trữ động theo định danh người dùng (User-Scoped Key Resolver).
+ * Đảm bảo nguyên lý cách ly dữ liệu: Mỗi email có một vùng lưu trữ riêng biệt,
+ * khách vãng lai dùng vùng '_guest'.
+ */
+export function getScopedKey(baseKey: string, explicitEmail?: string): string {
+  const email = explicitEmail || getAuthUser()?.email;
+  return email ? `${baseKey}_${email.trim().toLowerCase()}` : `${baseKey}_guest`;
+}
+
 // --- Favorites ---
-export function getFavoriteIds(): number[] {
+export function getFavoriteIds(explicitEmail?: string): number[] {
   try {
-    const raw = localStorage.getItem(FAVORITES_KEY);
+    const key = getScopedKey(FAVORITES_KEY, explicitEmail);
+    const raw = localStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    // Migration: nếu còn lưu mảng demo cứng [1, 2, 4] từ code cũ thì dọn sạch về rỗng
-    if (
-      parsed.length === 3 &&
-      parsed[0] === 1 &&
-      parsed[1] === 2 &&
-      parsed[2] === 4 &&
-      !localStorage.getItem('shopping_agent_fav_migrated')
-    ) {
-      localStorage.setItem('shopping_agent_fav_migrated', 'true');
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify([]));
-      return [];
-    }
-    return parsed;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
-export function toggleFavoriteId(id: number): boolean {
-  const ids = getFavoriteIds();
+export function toggleFavoriteId(id: number, explicitEmail?: string): boolean {
+  const user = getAuthUser();
+  const email = explicitEmail || user?.email;
+  const key = getScopedKey(FAVORITES_KEY, email);
+  const ids = getFavoriteIds(email);
   const exists = ids.includes(id);
   const next = exists ? ids.filter((x) => x !== id) : [...ids, id];
+
   try {
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+    localStorage.setItem(key, JSON.stringify(next));
     window.dispatchEvent(new Event('favorites-updated'));
+
+    // Đồng bộ lên PostgreSQL Backend ngầm nếu người dùng đã đăng nhập (Optimistic Background Sync)
+    if (email) {
+      toggleUserFavorite(id, email).catch((err) => {
+        console.warn('[Favorites Sync] Failed background sync to DB:', err);
+      });
+    }
   } catch (err) {
-    console.error(err);
+    console.error('[Favorites Storage] Error toggling favorite:', err);
   }
   return !exists;
 }
 
-export function isFavoriteId(id: number): boolean {
-  return getFavoriteIds().includes(id);
+export function isFavoriteId(id: number, explicitEmail?: string): boolean {
+  return getFavoriteIds(explicitEmail).includes(id);
+}
+
+/**
+ * Đồng bộ danh sách yêu thích từ Database Backend xuống client state của User
+ */
+export async function syncFavoritesFromBackend(explicitEmail?: string): Promise<number[]> {
+  const user = getAuthUser();
+  const email = explicitEmail || user?.email;
+  if (!email) return [];
+
+  try {
+    const remoteIds = await fetchUserFavoriteIds(email);
+    const key = getScopedKey(FAVORITES_KEY, email);
+    const currentLocal = getFavoriteIds(email);
+
+    const isDifferent =
+      remoteIds.length !== currentLocal.length ||
+      remoteIds.some((id, idx) => id !== currentLocal[idx]);
+
+    if (isDifferent) {
+      localStorage.setItem(key, JSON.stringify(remoteIds));
+      window.dispatchEvent(new Event('favorites-updated'));
+    }
+    return remoteIds;
+  } catch (err) {
+    console.warn('[Favorites Sync] Failed to sync from backend:', err);
+    return getFavoriteIds(email);
+  }
 }
 
 // --- Compare ---
-export function getCompareIds(): number[] {
+export function getCompareIds(explicitEmail?: string): number[] {
+  const user = getAuthUser();
+  const email = explicitEmail || user?.email;
+  // Bắt buộc đăng nhập: Khách chưa đăng nhập không có danh sách so sánh
+  if (!email) return [];
+
   try {
-    const raw = localStorage.getItem(COMPARE_KEY);
+    const key = getScopedKey(COMPARE_KEY, email);
+    const raw = localStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    // Migration: nếu còn lưu mảng demo cứng [1, 2] từ code cũ thì dọn sạch về rỗng
-    if (
-      parsed.length === 2 &&
-      parsed[0] === 1 &&
-      parsed[1] === 2 &&
-      !localStorage.getItem('shopping_agent_comp_migrated')
-    ) {
-      localStorage.setItem('shopping_agent_comp_migrated', 'true');
-      localStorage.setItem(COMPARE_KEY, JSON.stringify([]));
-      return [];
-    }
-    return parsed;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
-export function getCompareCategory(): string | null {
+export function getCompareCategory(explicitEmail?: string): string | null {
+  const user = getAuthUser();
+  const email = explicitEmail || user?.email;
+  if (!email) return null;
+
   try {
-    return localStorage.getItem('shopping_agent_compare_category');
+    return localStorage.getItem(getScopedKey('shopping_agent_compare_category', email));
   } catch {
     return null;
   }
 }
 
-export function toggleCompareId(id: number, categoryCode?: string): boolean {
-  const ids = getCompareIds();
+export function toggleCompareId(id: number, categoryCode?: string, explicitEmail?: string): boolean {
+  const user = getAuthUser();
+  const email = explicitEmail || user?.email;
+  if (!email) {
+    return false;
+  }
+
+  const key = getScopedKey(COMPARE_KEY, email);
+  const catKey = getScopedKey('shopping_agent_compare_category', email);
+  const ids = getCompareIds(email);
   const exists = ids.includes(id);
   let next = exists ? ids.filter((x) => x !== id) : [...ids, id];
   if (next.length > 3) {
     next = next.slice(next.length - 3); // Giới hạn tối đa 3 SP
   }
   try {
-    localStorage.setItem(COMPARE_KEY, JSON.stringify(next));
+    localStorage.setItem(key, JSON.stringify(next));
     if (next.length === 0) {
-      localStorage.removeItem('shopping_agent_compare_category');
+      localStorage.removeItem(catKey);
     } else if (categoryCode) {
-      localStorage.setItem('shopping_agent_compare_category', categoryCode.toLowerCase());
+      localStorage.setItem(catKey, categoryCode.toLowerCase());
     }
     window.dispatchEvent(new Event('compare-updated'));
   } catch (err) {
-    console.error(err);
+    console.error('[Compare Storage] Error:', err);
   }
   return !exists;
 }
 
-export function isInCompare(id: number): boolean {
-  return getCompareIds().includes(id);
+export function isInCompare(id: number, explicitEmail?: string): boolean {
+  const user = getAuthUser();
+  const email = explicitEmail || user?.email;
+  if (!email) return false;
+  return getCompareIds(email).includes(id);
 }
 
-export function clearCompare(): void {
+export function clearCompare(explicitEmail?: string): void {
   try {
-    localStorage.removeItem(COMPARE_KEY);
-    localStorage.removeItem('shopping_agent_compare_category');
+    localStorage.removeItem(getScopedKey(COMPARE_KEY, explicitEmail));
+    localStorage.removeItem(getScopedKey('shopping_agent_compare_category', explicitEmail));
     window.dispatchEvent(new Event('compare-updated'));
   } catch (err) {
-    console.error(err);
+    console.error('[Compare Storage] Error clearing compare:', err);
   }
 }
 
 // --- Search History ---
-export function getSearchHistory(): SearchHistoryItem[] {
+export function getSearchHistory(explicitEmail?: string): SearchHistoryItem[] {
   try {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    return raw
-      ? JSON.parse(raw)
-      : [
-          {
-            id: 'h1',
-            queryText: 'Laptop sinh viên 15 củ học IT',
-            categoryCode: 'laptop',
-            target: 'student',
-            budgetMax: 15000000,
-            totalMatched: 8,
-            timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-          },
-          {
-            id: 'h2',
-            queryText: 'Điện thoại chụp ảnh ban đêm pin trâu dưới 10 chai',
-            categoryCode: 'phone',
-            target: 'general',
-            budgetMax: 10000000,
-            totalMatched: 5,
-            timestamp: new Date(Date.now() - 86400000).toISOString(),
-          },
-          {
-            id: 'h3',
-            queryText: 'Macbook Air M2 16GB làm đồ họa mỏng nhẹ',
-            categoryCode: 'laptop',
-            target: 'designer',
-            budgetMax: 28000000,
-            totalMatched: 3,
-            timestamp: new Date(Date.now() - 86400000 * 2).toISOString(),
-          },
-        ];
+    const key = getScopedKey(HISTORY_KEY, explicitEmail);
+    const raw = localStorage.getItem(key);
+    if (!raw) {
+      // Tài khoản mới tinh luôn luôn có danh sách rỗng []
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -186,9 +210,11 @@ export function addSearchHistory(
   categoryCode?: string | null,
   target?: string | null,
   budgetMax?: number | null,
-  totalMatched?: number | null
+  totalMatched?: number | null,
+  explicitEmail?: string
 ): void {
-  const list = getSearchHistory().filter((x) => x.queryText.toLowerCase() !== queryText.toLowerCase());
+  const key = getScopedKey(HISTORY_KEY, explicitEmail);
+  const list = getSearchHistory(explicitEmail).filter((x) => x.queryText.toLowerCase() !== queryText.toLowerCase());
   const item: SearchHistoryItem = {
     id: Date.now().toString(),
     queryText,
@@ -200,17 +226,19 @@ export function addSearchHistory(
   };
   const next = [item, ...list].slice(0, 20); // Giữ 20 câu gần nhất
   try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+    localStorage.setItem(key, JSON.stringify(next));
+    window.dispatchEvent(new Event('history-updated'));
   } catch (err) {
-    console.error(err);
+    console.error('[History Storage] Error:', err);
   }
 }
 
-export function clearSearchHistory(): void {
+export function clearSearchHistory(explicitEmail?: string): void {
   try {
-    localStorage.removeItem(HISTORY_KEY);
+    localStorage.removeItem(getScopedKey(HISTORY_KEY, explicitEmail));
+    window.dispatchEvent(new Event('history-updated'));
   } catch (err) {
-    console.error(err);
+    console.error('[History Storage] Error clearing history:', err);
   }
 }
 
@@ -228,6 +256,14 @@ export function saveAuthUser(user: AuthUser): void {
   try {
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     window.dispatchEvent(new Event('auth-updated'));
+    window.dispatchEvent(new Event('favorites-updated'));
+    window.dispatchEvent(new Event('compare-updated'));
+    window.dispatchEvent(new Event('history-updated'));
+
+    // Đồng bộ danh sách yêu thích của tài khoản này từ Database Backend
+    if (user.email) {
+      syncFavoritesFromBackend(user.email);
+    }
   } catch (err) {
     console.error(err);
   }
@@ -237,53 +273,29 @@ export function logoutUser(): void {
   try {
     localStorage.removeItem(USER_KEY);
     window.dispatchEvent(new Event('auth-updated'));
+    window.dispatchEvent(new Event('favorites-updated'));
+    window.dispatchEvent(new Event('compare-updated'));
+    window.dispatchEvent(new Event('history-updated'));
   } catch (err) {
     console.error(err);
   }
 }
 
 // --- User Reviews ---
-export function getUserReviews(): UserReviewItem[] {
+export function getUserReviews(explicitEmail?: string): UserReviewItem[] {
   try {
-    const raw = localStorage.getItem(REVIEWS_KEY);
-    return raw
-      ? JSON.parse(raw)
-      : [
-          {
-            id: 101,
-            productId: 1,
-            productName: 'Asus Vivobook 15 OLED A1505ZA',
-            rating: 5,
-            content: 'Màn hình OLED màu sắc rất rực rỡ, bàn phím gõ nảy, chạy code Docker và VS Code rất mượt.',
-            createdAt: '2026-10-12T14:30:00Z',
-            status: 'Hợp lệ (Đã duyệt)',
-          },
-          {
-            id: 102,
-            productId: 2,
-            productName: 'Lenovo ThinkPad E16 Gen 2',
-            rating: 5,
-            content: 'Bàn phím ThinkPad bấm êm đỉnh cao, pin dùng thực tế khoảng 7 tiếng văn phòng.',
-            createdAt: '2026-10-10T09:15:00Z',
-            status: 'Hợp lệ (Đã duyệt)',
-          },
-          {
-            id: 103,
-            productId: 4,
-            productName: 'iPhone 15 128GB',
-            rating: 4,
-            content: 'Cổng Type-C rất tiện, Dynamic Island hiển thị thông báo hay, camera quay video xuất sắc.',
-            createdAt: '2026-10-05T18:45:00Z',
-            status: 'Hợp lệ (Đã duyệt)',
-          },
-        ];
+    const key = getScopedKey(REVIEWS_KEY, explicitEmail);
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    return JSON.parse(raw);
   } catch {
     return [];
   }
 }
 
-export function addUserReview(review: Omit<UserReviewItem, 'id' | 'createdAt' | 'status'>): void {
-  const list = getUserReviews();
+export function addUserReview(review: Omit<UserReviewItem, 'id' | 'createdAt' | 'status'>, explicitEmail?: string): void {
+  const key = getScopedKey(REVIEWS_KEY, explicitEmail);
+  const list = getUserReviews(explicitEmail);
   const item: UserReviewItem = {
     ...review,
     id: Date.now(),
@@ -291,7 +303,8 @@ export function addUserReview(review: Omit<UserReviewItem, 'id' | 'createdAt' | 
     status: 'Hợp lệ (Đã duyệt)',
   };
   try {
-    localStorage.setItem(REVIEWS_KEY, JSON.stringify([item, ...list]));
+    localStorage.setItem(key, JSON.stringify([item, ...list]));
+    window.dispatchEvent(new Event('reviews-updated'));
   } catch (err) {
     console.error(err);
   }

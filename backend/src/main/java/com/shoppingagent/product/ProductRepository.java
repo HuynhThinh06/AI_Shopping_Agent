@@ -34,6 +34,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p JOIN p.category c WHERE LOWER(c.code) = LOWER(:code) AND p.isActive = TRUE")
     List<Product> findByCategoryCode(@Param("code") String code);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category"})
+    List<Product> findByIdIn(List<Long> ids);
+
     /**
      * [MỚI - B7] Tìm kiếm sản phẩm với filter tùy chọn + phân trang.
      *
@@ -61,7 +64,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             SELECT COUNT(p) FROM Product p
             JOIN p.category c
             WHERE p.isActive = TRUE
-              AND (:categoryCode IS NULL OR LOWER(c.code) = LOWER(:categoryCode))
+              AND (:categoryCode IS NULL OR :categoryCode = '' OR LOWER(c.code) = LOWER(:categoryCode))
               AND (:minPrice     IS NULL OR p.price         >= :minPrice)
               AND (:maxPrice     IS NULL OR p.price         <= :maxPrice)
               AND (:keyword      IS NULL OR :keyword = ''

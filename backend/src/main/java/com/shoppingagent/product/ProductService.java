@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -30,6 +31,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductImageRepository productImageRepository;
     private final CloudinaryService cloudinaryService;
 
     public ProductDetailDTO getById(Long id) {
@@ -40,17 +42,37 @@ public class ProductService {
 
     public List<ProductDetailDTO> getFeaturedProducts(int limit) {
         Pageable pageable = PageRequest.of(0, Math.min(Math.max(limit, 1), 30), Sort.by("avgRating").descending());
-        return productRepository.findAll(pageable)
-                .map(this::toDetailDTO)
-                .getContent();
+        List<Product> products = productRepository.findAll(pageable).getContent();
+        if (products.isEmpty()) return Collections.emptyList();
+
+        List<Long> productIds = products.stream().map(Product::getId).collect(Collectors.toList());
+        Map<Long, List<String>> imageMap = productImageRepository.findByProductIds(productIds).stream()
+                .collect(Collectors.groupingBy(
+                        pi -> pi.getProduct().getId(),
+                        Collectors.mapping(ProductImage::getImageUrl, Collectors.toList())
+                ));
+
+        return products.stream()
+                .map(p -> toDetailDTO(p, imageMap.getOrDefault(p.getId(), Collections.emptyList())))
+                .collect(Collectors.toList());
     }
 
     public List<ProductDetailDTO> getProductsForComparison(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyList();
         }
-        return productRepository.findAllById(ids).stream()
-                .map(this::toDetailDTO)
+        List<Product> products = productRepository.findByIdIn(ids);
+        if (products.isEmpty()) return Collections.emptyList();
+
+        List<Long> productIds = products.stream().map(Product::getId).collect(Collectors.toList());
+        Map<Long, List<String>> imageMap = productImageRepository.findByProductIds(productIds).stream()
+                .collect(Collectors.groupingBy(
+                        pi -> pi.getProduct().getId(),
+                        Collectors.mapping(ProductImage::getImageUrl, Collectors.toList())
+                ));
+
+        return products.stream()
+                .map(p -> toDetailDTO(p, imageMap.getOrDefault(p.getId(), Collections.emptyList())))
                 .collect(Collectors.toList());
     }
 
@@ -80,9 +102,22 @@ public class ProductService {
         );
         String cleanCategory = (categoryCode != null && !categoryCode.isBlank()) ? categoryCode.trim() : "";
         String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : "";
-        return productRepository
-                .searchProducts(cleanCategory, minPrice, maxPrice, cleanKeyword, pageable)
-                .map(this::toDetailDTO);
+        Page<Product> productPage = productRepository
+                .searchProducts(cleanCategory, minPrice, maxPrice, cleanKeyword, pageable);
+
+        if (productPage.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        // Tối ưu Batch: Lấy toàn bộ ảnh của các sản phẩm trong trang bằng đúng 1 câu SQL IN duy nhất
+        List<Long> productIds = productPage.getContent().stream().map(Product::getId).collect(Collectors.toList());
+        Map<Long, List<String>> imageMap = productImageRepository.findByProductIds(productIds).stream()
+                .collect(Collectors.groupingBy(
+                        pi -> pi.getProduct().getId(),
+                        Collectors.mapping(ProductImage::getImageUrl, Collectors.toList())
+                ));
+
+        return productPage.map(p -> toDetailDTO(p, imageMap.getOrDefault(p.getId(), Collections.emptyList())));
     }
 
     @Transactional
@@ -216,11 +251,7 @@ public class ProductService {
         log.info("Product #{} marked as inactive (soft deleted)", id);
     }
 
-    private ProductDetailDTO toDetailDTO(Product p) {
-        List<String> imageUrls = p.getImages() != null ? 
-                p.getImages().stream().map(ProductImage::getImageUrl).collect(Collectors.toList()) : 
-                new ArrayList<>();
-
+    private ProductDetailDTO toDetailDTO(Product p, List<String> imageUrls) {
         return ProductDetailDTO.builder()
                 .id(p.getId())
                 .categoryCode(p.getCategory() != null ? p.getCategory().getCode() : null)
@@ -234,7 +265,14 @@ public class ProductService {
                 .avgRating(p.getAvgRating())
                 .reviewCount(p.getReviewCount())
                 .specs(p.getSpecs())
-                .imageUrls(imageUrls)
+                .imageUrls(imageUrls != null ? imageUrls : Collections.emptyList())
                 .build();
+    }
+
+    private ProductDetailDTO toDetailDTO(Product p) {
+        List<String> imageUrls = p.getImages() != null ? 
+                p.getImages().stream().map(ProductImage::getImageUrl).collect(Collectors.toList()) : 
+                new ArrayList<>();
+        return toDetailDTO(p, imageUrls);
     }
 }

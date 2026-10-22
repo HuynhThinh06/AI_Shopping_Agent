@@ -300,7 +300,13 @@ export const HomePage: React.FC = () => {
                   <div className="pt-4 mt-4 border-t border-warm-border/10 flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => toggleCompareId(p.id)}
+                      onClick={() => {
+                        if (!getAuthUser()) {
+                          navigate('/auth?mode=login&redirect=/compare');
+                          return;
+                        }
+                        toggleCompareId(p.id);
+                      }}
                       className={`py-2 px-3 rounded-xl border-2 border-warm-border text-xs font-bold shadow-brutal-xs flex items-center gap-1 cursor-pointer transition-all ${
                         isInCompare(p.id)
                           ? 'bg-emerald-500 text-white'

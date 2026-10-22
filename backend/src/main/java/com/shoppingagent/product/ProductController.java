@@ -73,6 +73,14 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductsForComparison(ids));
     }
 
+    // ── GET /products/by-ids ────────────────────────────────────────────────
+    @GetMapping("/by-ids")
+    @Operation(summary = "Lấy danh sách chi tiết sản phẩm theo mảng ID (Batch query tối ưu)")
+    public ResponseEntity<java.util.List<ProductDetailDTO>> getProductsByIds(
+            @RequestParam java.util.List<Long> ids) {
+        return ResponseEntity.ok(productService.getProductsForComparison(ids));
+    }
+
     // ── GET /products/{id} ───────────────────────────────────────────────────
 
     @GetMapping("/{id}")

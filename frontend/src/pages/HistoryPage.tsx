@@ -1,11 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getSearchHistory, clearSearchHistory, type SearchHistoryItem } from '../utils/storage';
+import { getSearchHistory, clearSearchHistory, getAuthUser, type SearchHistoryItem } from '../utils/storage';
+import { apiClient } from '../api/client';
 import { History, Trash2, Search, ArrowRight, Sparkles, Clock } from 'lucide-react';
 
 export const HistoryPage: React.FC = () => {
   const navigate = useNavigate();
-  const [history, setHistory] = useState<SearchHistoryItem[]>(getSearchHistory());
+  const [history, setHistory] = useState<SearchHistoryItem[]>(() => getSearchHistory());
+
+  useEffect(() => {
+    const handleUpdate = () => setHistory(getSearchHistory());
+    window.addEventListener('history-updated', handleUpdate);
+    window.addEventListener('auth-updated', handleUpdate);
+
+    const user = getAuthUser();
+    if (user?.email) {
+      apiClient.get<any[]>('/search/history', { params: { userEmail: user.email } })
+        .then((res) => {
+          if (Array.isArray(res.data) && res.data.length > 0) {
+            const backendItems: SearchHistoryItem[] = res.data.map((d) => ({
+              id: d.id,
+              queryText: d.queryText,
+              categoryCode: d.categoryCode,
+              target: d.target,
+              budgetMax: d.budgetMax,
+              timestamp: d.timestamp || new Date().toISOString(),
+            }));
+            setHistory(backendItems);
+          }
+        })
+        .catch((err) => console.warn('Could not sync history from backend:', err));
+    }
+
+    return () => {
+      window.removeEventListener('history-updated', handleUpdate);
+      window.removeEventListener('auth-updated', handleUpdate);
+    };
+  }, []);
 
   const handleClear = () => {
     clearSearchHistory();
