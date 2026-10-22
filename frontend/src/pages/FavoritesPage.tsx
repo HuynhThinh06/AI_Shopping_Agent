@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
+import { queryCache } from '../utils/queryCache';
 import type { ProductDetailDTO } from '../types/product';
 import {
   getFavoriteIds,
@@ -9,52 +10,70 @@ import {
   isInCompare,
   getCompareIds,
   getAuthUser,
+  syncFavoritesFromBackend,
   type AuthUser,
 } from '../utils/storage';
-import { Heart, Trash2, Scale, Star, Sparkles, ShoppingBag, LogIn, Loader2 } from 'lucide-react';
+import { Heart, Trash2, Scale, Star, Sparkles, ShoppingBag, LogIn } from 'lucide-react';
 
 export const FavoritesPage: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(() => getAuthUser());
-  const [products, setProducts] = useState<ProductDetailDTO[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [products, setProducts] = useState<ProductDetailDTO[]>(() => {
+    return queryCache.getPersistent<ProductDetailDTO[]>('user_favorites_products') || [];
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    const ids = getFavoriteIds();
+    if (!ids || ids.length === 0) return false;
+    return !queryCache.has('user_favorites_products');
+  });
   const [compares, setCompares] = useState<number[]>(() => getCompareIds());
 
-  useEffect(() => {
-    const handleAuth = () => setUser(getAuthUser());
-    const handleComp = () => setCompares(getCompareIds());
-    window.addEventListener('auth-updated', handleAuth);
-    window.addEventListener('compare-updated', handleComp);
-    return () => {
-      window.removeEventListener('auth-updated', handleAuth);
-      window.removeEventListener('compare-updated', handleComp);
-    };
-  }, []);
+  const loadFavorites = async (skipBackendSync = false) => {
+    const ids = getFavoriteIds();
+    if (!ids || ids.length === 0) {
+      setProducts([]);
+      queryCache.setPersistent('user_favorites_products', [], 30 * 60 * 1000);
+      setLoading(false);
+      if (!skipBackendSync) {
+        const currentUser = getAuthUser();
+        if (currentUser?.email) {
+          const remoteIds = await syncFavoritesFromBackend(currentUser.email);
+          if (remoteIds.length > 0) return;
+        }
+      }
+      return;
+    }
 
-  const loadFavorites = async () => {
-    setLoading(true);
+    const cached = queryCache.getPersistent<ProductDetailDTO[]>('user_favorites_products');
+    if (cached && cached.length > 0) {
+      setProducts(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
-      const ids = getFavoriteIds();
-      if (!ids || ids.length === 0) {
+      if (!skipBackendSync) {
+        const currentUser = getAuthUser();
+        if (currentUser?.email) {
+          await syncFavoritesFromBackend(currentUser.email);
+        }
+      }
+      const updatedIds = getFavoriteIds();
+      if (updatedIds.length === 0) {
         setProducts([]);
+        queryCache.setPersistent('user_favorites_products', [], 30 * 60 * 1000);
         setLoading(false);
         return;
       }
 
-      const resList = await Promise.all(
-        ids.map(async (id) => {
-          try {
-            const res = await apiClient.get<ProductDetailDTO>(`/products/${id}`);
-            return res.data;
-          } catch (e) {
-            console.warn(`[Favorites] Product #${id} not found or failed to load:`, e);
-            return null;
-          }
-        })
-      );
-
-      const validProducts = resList.filter((x): x is ProductDetailDTO => x !== null);
-      setProducts(validProducts);
+      // Batch query tối ưu: Gom tất cả ID vào 1 request duy nhất (1 câu SQL SELECT IN)
+      const res = await apiClient.get<ProductDetailDTO[]>('/products/by-ids', {
+        params: { ids: updatedIds.join(',') },
+      });
+      const list = res.data || [];
+      queryCache.setPersistent('user_favorites_products', list, 30 * 60 * 1000);
+      setProducts(list);
     } catch (err) {
       console.error('Failed to load favorites:', err);
     } finally {
@@ -67,13 +86,28 @@ export const FavoritesPage: React.FC = () => {
       navigate('/auth?redirect=/favorites', { replace: true });
       return;
     }
-    loadFavorites();
 
-    const handleFavUpdate = () => {
-      loadFavorites();
+    const handleAuth = () => {
+      setUser(getAuthUser());
+      loadFavorites(false);
     };
-    window.addEventListener('favorites-updated', handleFavUpdate);
-    return () => window.removeEventListener('favorites-updated', handleFavUpdate);
+    const handleFav = () => {
+      // Storage already updated locally, skip backend re-sync to prevent event loop
+      loadFavorites(true);
+    };
+    const handleComp = () => setCompares(getCompareIds());
+
+    window.addEventListener('auth-updated', handleAuth);
+    window.addEventListener('favorites-updated', handleFav);
+    window.addEventListener('compare-updated', handleComp);
+
+    loadFavorites(false);
+
+    return () => {
+      window.removeEventListener('auth-updated', handleAuth);
+      window.removeEventListener('favorites-updated', handleFav);
+      window.removeEventListener('compare-updated', handleComp);
+    };
   }, [user?.email]);
 
   if (!user) {
@@ -99,7 +133,11 @@ export const FavoritesPage: React.FC = () => {
 
   const handleRemove = (id: number) => {
     toggleFavoriteId(id);
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    setProducts((prev) => {
+      const next = prev.filter((p) => p.id !== id);
+      queryCache.setPersistent('user_favorites_products', next, 30 * 60 * 1000);
+      return next;
+    });
   };
 
   const handleCompareToggle = (id: number) => {
@@ -142,10 +180,34 @@ export const FavoritesPage: React.FC = () => {
         </Link>
       </div>
 
-      {loading ? (
-        <div className="p-12 text-center text-warm-muted bg-warm-surface border-2 border-warm-border rounded-2xl shadow-brutal font-bold flex flex-col items-center justify-center gap-3">
-          <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
-          <span>Đang tải danh sách yêu thích...</span>
+      {loading && products.length === 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="brutal-card p-5 bg-warm-surface flex flex-col justify-between animate-pulse"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="h-4 w-16 bg-warm-subtle rounded-md border border-warm-border/30"></div>
+                  <div className="h-7 w-7 bg-warm-subtle rounded-lg border border-warm-border/30"></div>
+                </div>
+                <div className="w-full h-44 bg-warm-subtle rounded-xl border border-warm-border/30 mb-3 flex items-center justify-center">
+                  <div className="w-10 h-10 bg-warm-border/20 rounded-full"></div>
+                </div>
+                <div className="space-y-2 mb-2">
+                  <div className="h-4 bg-warm-subtle rounded w-4/5"></div>
+                  <div className="h-4 bg-warm-subtle rounded w-3/5"></div>
+                </div>
+                <div className="h-3.5 bg-warm-subtle rounded w-24 my-2"></div>
+                <div className="h-5 bg-warm-subtle rounded w-32 my-2"></div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-warm-border/30 flex gap-2">
+                <div className="h-9 flex-1 bg-warm-subtle rounded-xl"></div>
+                <div className="h-9 w-9 bg-warm-subtle rounded-xl"></div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : products.length === 0 ? (
         <div className="bg-warm-surface border-2 border-warm-border rounded-2xl p-8 sm:p-12 shadow-brutal text-center space-y-4">

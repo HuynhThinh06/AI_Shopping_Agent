@@ -107,6 +107,10 @@ export const ProductDetailPage: React.FC = () => {
   };
 
   const handleCompareToggle = () => {
+    if (!user) {
+      navigate('/auth?mode=login&redirect=' + encodeURIComponent(location.pathname));
+      return;
+    }
     const nextState = toggleCompareId(productId);
     setIsComp(nextState);
   };

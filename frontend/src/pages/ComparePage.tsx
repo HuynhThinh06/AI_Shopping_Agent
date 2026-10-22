@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import type { ProductDetailDTO } from '../types/product';
 import type { SummaryDTO } from '../types/review';
-import { getCompareIds, toggleCompareId, clearCompare } from '../utils/storage';
+import { getCompareIds, toggleCompareId, clearCompare, getAuthUser, type AuthUser } from '../utils/storage';
 import {
   Scale,
   Trash2,
@@ -21,6 +21,7 @@ import {
   Laptop,
   Smartphone,
   Check,
+  LogIn,
 } from 'lucide-react';
 
 interface CompareItem {
@@ -121,6 +122,7 @@ const PHONE_INTENTS: IntentOption[] = [
 
 export const ComparePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [user, setUser] = useState<AuthUser | null>(() => getAuthUser());
   const [items, setItems] = useState<CompareItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [showOnlyDifferences, setShowOnlyDifferences] = useState<boolean>(false);
@@ -128,6 +130,13 @@ export const ComparePage: React.FC = () => {
   const [selectedIntent, setSelectedIntent] = useState<string>('all');
 
   const loadComparedProducts = async () => {
+    const currentUser = getAuthUser();
+    if (!currentUser) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const idsParam = searchParams.get('ids');
@@ -144,25 +153,26 @@ export const ComparePage: React.FC = () => {
         return;
       }
 
-      const results = await Promise.all(
-        ids.map(async (id) => {
+      // 1. Batch fetch products (1 SQL query duy nhất)
+      const pRes = await apiClient.get<ProductDetailDTO[]>('/products/by-ids', {
+        params: { ids: ids.join(',') },
+      });
+      const prodList = pRes.data || [];
+
+      // 2. Fetch AI summaries song song
+      const validItems: CompareItem[] = await Promise.all(
+        prodList.map(async (prod) => {
+          let sData: SummaryDTO | undefined;
           try {
-            const pRes = await apiClient.get<ProductDetailDTO>(`/products/${id}`);
-            let sData: SummaryDTO | undefined;
-            try {
-              const sRes = await apiClient.get<SummaryDTO>(`/products/${id}/summary`);
-              sData = sRes.data;
-            } catch {
-              // Ignore summary failure
-            }
-            return { product: pRes.data, summary: sData };
+            const sRes = await apiClient.get<SummaryDTO>(`/products/${prod.id}/summary`);
+            sData = sRes.data;
           } catch {
-            return null;
+            // Ignore summary failure
           }
+          return { product: prod, summary: sData };
         })
       );
 
-      const validItems = results.filter((x): x is CompareItem => x !== null);
       setItems(validItems);
 
       // Determine initial activeCategory based on the majority
@@ -184,6 +194,19 @@ export const ComparePage: React.FC = () => {
 
   useEffect(() => {
     loadComparedProducts();
+
+    const handleUpdate = () => {
+      setUser(getAuthUser());
+      if (!searchParams.get('ids')) {
+        loadComparedProducts();
+      }
+    };
+    window.addEventListener('auth-updated', handleUpdate);
+    window.addEventListener('compare-updated', handleUpdate);
+    return () => {
+      window.removeEventListener('auth-updated', handleUpdate);
+      window.removeEventListener('compare-updated', handleUpdate);
+    };
   }, [searchParams]);
 
   // Detect distinct categories in current items
@@ -469,6 +492,75 @@ export const ComparePage: React.FC = () => {
     };
   }, [activeItems, selectedIntent, minPrice, maxRating, currentIntentObj]);
 
+  if (!user) {
+    return (
+      <div className="max-w-2xl mx-auto my-8 sm:my-14 space-y-6">
+        <div className="bg-warm-surface border-2 border-warm-text rounded-3xl p-6 sm:p-10 shadow-brutal text-center space-y-6">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-amber-400 border-2 border-warm-text mx-auto flex items-center justify-center text-3xl sm:text-4xl shadow-brutal-xs">
+            ⚖️
+          </div>
+
+          <div className="space-y-2">
+            <span className="px-3 py-1 rounded-full bg-warm-secondary border border-warm-text text-[11px] font-black uppercase text-warm-secondary-text inline-block">
+              Tính năng Đặc quyền Thành viên
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-black text-warm-text tracking-tight">
+              Ma Trận So Sánh & Phán Quyết Tư Vấn AI
+            </h1>
+            <p className="text-xs sm:text-sm text-warm-muted font-medium max-w-lg mx-auto leading-relaxed">
+              Bạn cần đăng nhập tài khoản để mở khóa không gian đối chiếu thông số phần cứng đa chiều và nhận phán quyết mua sắm may đo từ mô hình AI.
+            </p>
+          </div>
+
+          {/* 3 Value Pillars */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left pt-2">
+            <div className="p-3.5 rounded-xl border-2 border-warm-text bg-warm-bg shadow-brutal-xs space-y-1.5">
+              <div className="text-lg">⚡</div>
+              <h3 className="font-black text-xs text-warm-text">Bóc Tách Khác Biệt</h3>
+              <p className="text-[11px] text-warm-muted leading-snug">
+                Tự động so kè từng thông số CPU, RAM, GPU, màn hình và tô sáng điểm chênh lệch.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl border-2 border-warm-text bg-warm-bg shadow-brutal-xs space-y-1.5">
+              <div className="text-lg">🧠</div>
+              <h3 className="font-black text-xs text-warm-text">Tổng Hợp Ưu/Nhược AI</h3>
+              <p className="text-[11px] text-warm-muted leading-snug">
+                Mô hình ngôn ngữ lớn đọc hàng trăm đánh giá thực tế để trích xuất điểm khen/chê chân thực.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl border-2 border-warm-text bg-warm-bg shadow-brutal-xs space-y-1.5">
+              <div className="text-lg">🏆</div>
+              <h3 className="font-black text-xs text-warm-text">Phán Quyết May Đo</h3>
+              <p className="text-[11px] text-warm-muted leading-snug">
+                Hệ thống DSS phân tích mục đích (Lập trình, Đồ họa, Pin, Giá rẻ) để chọn Top Pick chuẩn nhất.
+              </p>
+            </div>
+          </div>
+
+          {/* Action CTA Buttons */}
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              to="/auth?mode=login&redirect=/compare"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Đăng nhập để Mở khóa</span>
+            </Link>
+
+            <Link
+              to="/auth?mode=register&redirect=/compare"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-warm-bg hover:bg-warm-secondary text-warm-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <span>Đăng ký Tài khoản Mới</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -567,8 +659,22 @@ export const ComparePage: React.FC = () => {
       )}
 
       {loading ? (
-        <div className="p-12 text-center text-warm-muted bg-warm-surface border-2 border-warm-text rounded-2xl shadow-brutal font-bold">
-          Đang tải dữ liệu so sánh...
+        <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-6 shadow-brutal space-y-6 animate-pulse">
+          <div className="h-6 w-64 bg-warm-bg rounded-md"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="bg-warm-bg border-2 border-warm-text/20 rounded-xl p-4 space-y-4">
+                <div className="w-full h-40 bg-warm-surface rounded-lg"></div>
+                <div className="h-4 bg-warm-surface rounded w-3/4"></div>
+                <div className="h-5 bg-warm-surface rounded w-1/2"></div>
+                <div className="space-y-2 pt-2 border-t border-warm-text/10">
+                  <div className="h-3 bg-warm-surface rounded w-full"></div>
+                  <div className="h-3 bg-warm-surface rounded w-5/6"></div>
+                  <div className="h-3 bg-warm-surface rounded w-4/6"></div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : activeItems.length === 0 ? (
         <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-8 sm:p-12 shadow-brutal text-center space-y-4">

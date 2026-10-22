@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useSearchParams, useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { categoryApi } from '../api/categoryApi';
+import { queryCache } from '../utils/queryCache';
 import type { ProductDetailDTO } from '../types/product';
 import type { PageResponse } from '../types/review';
 import type { CategoryFacetDTO } from '../types/search';
@@ -22,13 +23,21 @@ import {
 export const CategoryPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { code: paramCode } = useParams<{ code?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const typeParam = searchParams.get('type') || 'laptop';
 
-  const [activeType, setActiveType] = useState<string>(typeParam);
-  const [allCategoryProducts, setAllCategoryProducts] = useState<ProductDetailDTO[]>([]);
+  // Nguồn chân lý duy nhất từ URL (Single Source of Truth), loại trừ triệt để Stale State
+  const rawType = (paramCode || searchParams.get('type') || 'laptop').toLowerCase().trim();
+  const activeType = rawType.includes('phone') ? 'phone' : 'laptop';
+
+  const [allCategoryProducts, setAllCategoryProducts] = useState<ProductDetailDTO[]>(() => {
+    return queryCache.getPersistent<ProductDetailDTO[]>(`category_products_${activeType}`) || [];
+  });
   const [facetGroups, setFacetGroups] = useState<CategoryFacetDTO[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(() => {
+    return !queryCache.has(`category_products_${activeType}`);
+  });
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('rating');
@@ -36,13 +45,6 @@ export const CategoryPage: React.FC = () => {
   const [pageSize, setPageSize] = useState<number>(24);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [compares, setCompares] = useState<number[]>([]);
-
-  useEffect(() => {
-    setActiveType(typeParam);
-    setCurrentPage(0);
-    setSelectedBrands([]);
-    setPriceRange('all');
-  }, [typeParam]);
 
   // Load facets for current category
   useEffect(() => {
@@ -62,28 +64,47 @@ export const CategoryPage: React.FC = () => {
     };
   }, [activeType]);
 
-  // Load all products in category (size: 100 ensures loading all 88 laptops or 84 phones)
-  const loadProducts = async () => {
-    setLoading(true);
+  // Tải danh mục sản phẩm có Persistent SWR Cache (0ms khi chuyển lại hoặc mở lại trình duyệt)
+  const loadProducts = async (cat: string) => {
+    const cacheKey = `category_products_${cat}`;
+    const cached = queryCache.getPersistent<ProductDetailDTO[]>(cacheKey);
+
+    if (cached && cached.length > 0) {
+      setAllCategoryProducts(cached);
+      setLoading(false);
+    } else {
+      setAllCategoryProducts([]);
+      setLoading(true);
+    }
+
+    setLoadError(false);
     try {
       const res = await apiClient.get<PageResponse<ProductDetailDTO>>('/products', {
         params: {
-          categoryCode: activeType,
+          categoryCode: cat,
           page: 0,
           size: 100,
         },
       });
 
-      setAllCategoryProducts(res.data.content || []);
+      const list = res.data.content || [];
+      queryCache.setPersistent(cacheKey, list, 30 * 60 * 1000); // Lưu cache bền vững 30 phút
+      setAllCategoryProducts(list);
     } catch (err) {
       console.error('Failed to load category products:', err);
+      if (!cached || cached.length === 0) {
+        setLoadError(true);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadProducts();
+    setCurrentPage(0);
+    setSelectedBrands([]);
+    setPriceRange('all');
+    loadProducts(activeType);
   }, [activeType]);
 
   // Dynamic Brand Extraction: Compute real counts from database products
@@ -210,6 +231,10 @@ export const CategoryPage: React.FC = () => {
   };
 
   const handleCompareToggle = (id: number) => {
+    if (!getAuthUser()) {
+      navigate('/auth?mode=login&redirect=' + encodeURIComponent(location.pathname + location.search));
+      return;
+    }
     toggleCompareId(id);
     setCompares((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
@@ -418,10 +443,63 @@ export const CategoryPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Product Grid */}
-          {loading ? (
-            <div className="p-12 text-center text-warm-muted bg-warm-surface border-2 border-warm-text rounded-2xl shadow-brutal font-bold">
-              Đang tải toàn bộ dữ liệu từ CSDL...
+          {/* Product Grid / Skeleton Loading */}
+          {loading && allCategoryProducts.length === 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 shadow-brutal flex flex-col justify-between animate-pulse"
+                >
+                  <div>
+                    {/* Top bar skeleton */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="h-4 w-16 bg-warm-bg rounded-md border border-warm-text/20"></div>
+                      <div className="flex gap-1">
+                        <div className="h-7 w-7 bg-warm-bg rounded-lg border border-warm-text/20"></div>
+                        <div className="h-7 w-7 bg-warm-bg rounded-lg border border-warm-text/20"></div>
+                      </div>
+                    </div>
+                    {/* Image box skeleton */}
+                    <div className="w-full h-40 bg-warm-bg border-2 border-warm-text/20 rounded-xl mb-3 flex items-center justify-center">
+                      <div className="w-10 h-10 bg-warm-text/10 rounded-full"></div>
+                    </div>
+                    {/* Name skeleton */}
+                    <div className="space-y-2 mb-2">
+                      <div className="h-4 bg-warm-bg rounded w-5/6"></div>
+                      <div className="h-4 bg-warm-bg rounded w-3/5"></div>
+                    </div>
+                    {/* Rating skeleton */}
+                    <div className="h-3.5 bg-warm-bg rounded w-24 my-2"></div>
+                    {/* Price skeleton */}
+                    <div className="h-5 bg-warm-bg rounded w-32 my-2"></div>
+                    {/* Specs skeleton */}
+                    <div className="flex gap-1.5 mt-2">
+                      <div className="h-4 w-14 bg-warm-bg rounded"></div>
+                      <div className="h-4 w-16 bg-warm-bg rounded"></div>
+                    </div>
+                  </div>
+                  {/* Footer button skeleton */}
+                  <div className="mt-4 pt-3 border-t border-warm-text/10">
+                    <div className="h-9 w-full bg-warm-bg rounded-xl border border-warm-text/20"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : loadError && allCategoryProducts.length === 0 ? (
+            <div className="p-12 text-center text-warm-muted bg-warm-surface border-2 border-warm-text rounded-2xl shadow-brutal space-y-3">
+              <div className="text-4xl">⚠️</div>
+              <div className="font-black text-base text-warm-text">Không thể kết nối đến máy chủ</div>
+              <p className="text-xs text-warm-muted max-w-sm mx-auto">
+                Không thể tải danh sách sản phẩm từ cơ sở dữ liệu. Vui lòng kiểm tra lại dịch vụ Backend.
+              </p>
+              <button
+                type="button"
+                onClick={() => loadProducts(activeType)}
+                className="px-4 py-2 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs border-2 border-warm-text shadow-brutal-xs hover:bg-warm-primary-hover cursor-pointer"
+              >
+                Thử lại ngay
+              </button>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="p-12 text-center text-warm-muted bg-warm-surface border-2 border-warm-text rounded-2xl shadow-brutal space-y-3">

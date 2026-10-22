@@ -1,6 +1,8 @@
 export interface SearchRequest {
   queryText: string;
   sessionId?: string;
+  userEmail?: string;
+  userId?: number;
   topK?: number;
 }
 

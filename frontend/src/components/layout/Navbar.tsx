@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { queryCache } from '../../utils/queryCache';
+import { apiClient } from '../../api/client';
 import {
   Sparkles,
   Search,
@@ -19,16 +21,24 @@ import { getAuthUser, logoutUser, getFavoriteIds, getCompareIds, type AuthUser }
 
 export const Navbar: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(getAuthUser());
-  const [favoriteCount, setFavoriteCount] = useState<number>(getFavoriteIds().length);
-  const [compareCount, setCompareCount] = useState<number>(getCompareIds().length);
+  const [favoriteCount, setFavoriteCount] = useState<number>(() => {
+    const u = getAuthUser();
+    return u ? getFavoriteIds().length : 0;
+  });
+  const [compareCount, setCompareCount] = useState<number>(() => {
+    const u = getAuthUser();
+    return u ? getCompareIds().length : 0;
+  });
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const handleStorageUpdate = () => {
-      setUser(getAuthUser());
-      setFavoriteCount(getFavoriteIds().length);
-      setCompareCount(getCompareIds().length);
+      const u = getAuthUser();
+      setUser(u);
+      setFavoriteCount(u ? getFavoriteIds().length : 0);
+      setCompareCount(u ? getCompareIds().length : 0);
     };
 
     window.addEventListener('auth-updated', handleStorageUpdate);
@@ -48,6 +58,20 @@ export const Navbar: React.FC = () => {
   }, [location.pathname]);
 
   const isActive = (path: string) => location.pathname === path;
+
+  const prefetchCategory = (code: string) => {
+    const key = `category_products_${code}`;
+    if (!queryCache.has(key)) {
+      apiClient
+        .get('/products', { params: { categoryCode: code, page: 0, size: 100 } })
+        .then((res) => {
+          if (res.data?.content) {
+            queryCache.setPersistent(key, res.data.content, 30 * 60 * 1000);
+          }
+        })
+        .catch(() => {});
+    }
+  };
 
   return (
     <div className="sticky top-3 z-40 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
@@ -90,6 +114,7 @@ export const Navbar: React.FC = () => {
 
           <Link
             to="/category?type=laptop"
+            onMouseEnter={() => prefetchCategory('laptop')}
             className={`px-3 py-1.5 rounded-xl border-2 transition-all flex items-center gap-1.5 ${
               location.pathname === '/category' && (location.search.includes('laptop') || !location.search.includes('phone'))
                 ? 'bg-warm-primary text-warm-primary-text border-warm-border shadow-brutal-xs font-black'
@@ -106,6 +131,7 @@ export const Navbar: React.FC = () => {
 
           <Link
             to="/category?type=phone"
+            onMouseEnter={() => prefetchCategory('phone')}
             className={`px-3 py-1.5 rounded-xl border-2 transition-all flex items-center gap-1.5 ${
               location.pathname === '/category' && location.search.includes('phone')
                 ? 'bg-warm-primary text-warm-primary-text border-warm-border shadow-brutal-xs font-black'
@@ -135,7 +161,7 @@ export const Navbar: React.FC = () => {
           >
             <Scale className="w-4 h-4" />
             <span className="hidden sm:inline">So sánh</span>
-            {compareCount > 0 && (
+            {user && compareCount > 0 && (
               <span className="w-4 h-4 rounded-full bg-warm-text text-white text-[10px] flex items-center justify-center font-mono">
                 {compareCount}
               </span>
@@ -263,6 +289,7 @@ export const Navbar: React.FC = () => {
                     onClick={() => {
                       logoutUser();
                       setDropdownOpen(false);
+                      navigate('/auth?mode=login');
                     }}
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left cursor-pointer"
                   >

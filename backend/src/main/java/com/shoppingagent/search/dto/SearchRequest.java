@@ -14,6 +14,12 @@ public class SearchRequest {
     /** Session ID cho khách vãng lai (tuỳ chọn) */
     private String sessionId;
 
+    /** Email của người dùng đã đăng nhập (tuỳ chọn) */
+    private String userEmail;
+
+    /** ID của người dùng đã đăng nhập (tuỳ chọn) */
+    private Long userId;
+
     /** Số lượng sản phẩm tối đa trả về (mặc định 10) */
     private Integer topK = 10;
 }

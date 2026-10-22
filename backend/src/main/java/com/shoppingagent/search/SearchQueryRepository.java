@@ -11,4 +11,11 @@ import java.util.List;
 public interface SearchQueryRepository extends JpaRepository<SearchQuery, Long> {
     @EntityGraph(attributePaths = {"categoryDetected"})
     List<SearchQuery> findTop10ByOrderByCreatedAtDesc();
+
+    List<SearchQuery> findTop20ByUserIdOrderByCreatedAtDesc(Integer userId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT sq FROM SearchQuery sq WHERE LOWER(sq.user.email) = LOWER(:email) ORDER BY sq.createdAt DESC")
+    List<SearchQuery> findTop20ByUserEmailOrderByCreatedAtDesc(@org.springframework.data.repository.query.Param("email") String email);
+
+    List<SearchQuery> findTop20BySessionIdOrderByCreatedAtDesc(String sessionId);
 }
