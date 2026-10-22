@@ -99,7 +99,7 @@ public class FavoriteService {
                 User newUser = User.builder()
                         .username(username)
                         .email(cleanEmail)
-                        .passwordHash("$2a$10$w8T0pC0sJpUjV/y6aJm6E.b9V7H9pI1jD8kF2lM4nO5pQ6rS7tU8v")
+                        .passwordHash("N/A")
                         .displayName(usernameBase)
                         .role(cleanEmail.contains("admin") ? "admin" : "user")
                         .isActive(true)
