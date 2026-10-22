@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { saveAuthUser } from '../utils/storage';
+import { saveAuthUser, saveAuthToken } from '../utils/storage';
+import { authApi } from '../api/authApi';
 import {
   Sparkles,
   Lock,
@@ -12,6 +13,7 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  Loader2,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
@@ -87,6 +89,8 @@ export const AuthPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState('');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Password visibility toggles
   const [showPassword, setShowPassword] = useState(false);
@@ -111,29 +115,55 @@ export const AuthPage: React.FC = () => {
   const handleSwitchMode = (newMode: 'login' | 'register') => {
     setMode(newMode);
     setErrors({});
+    setErrorMsg(null);
     setShowDemoBox(newMode === 'login');
   };
 
-  const handleSelectAccount = (acc: TestAccount, autoLogin = false) => {
+  const executeLogin = async (loginEmail: string, loginPass: string, fallbackName?: string, fallbackRole?: string) => {
+    setIsLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await authApi.login({
+        usernameOrEmail: loginEmail,
+        password: loginPass,
+      });
+
+      saveAuthToken(res.token);
+      const displayName = res.user.displayName || fallbackName || loginEmail.split('@')[0];
+      const initials = displayName
+        ? displayName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+        : 'U';
+
+      saveAuthUser({
+        name: displayName,
+        email: res.user.email,
+        avatarText: initials,
+        role: res.user.role || fallbackRole || 'user',
+      });
+
+      const isAdminAccount = (res.user.role && res.user.role.toLowerCase().includes('admin')) || loginEmail.toLowerCase().includes('admin');
+      const target = explicitRedirect || (isAdminAccount ? '/admin/dashboard' : '/');
+      navigate(target, { replace: true });
+    } catch (err: any) {
+      console.warn('[Auth] Server login failed, fallback to offline demo:', err);
+      const message = err?.response?.data?.message || err.message || 'Đăng nhập không thành công';
+      setErrorMsg(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSelectAccount = async (acc: TestAccount, autoLogin = false) => {
     setName(acc.name);
     setEmail(acc.email);
     setPhone(acc.phone);
     setPassword('password123');
     setConfirmPassword('password123');
     setErrors({});
+    setErrorMsg(null);
 
     if (autoLogin) {
-      saveAuthUser({
-        name: acc.name,
-        email: acc.email,
-        phone: acc.phone,
-        avatarText: acc.avatarText,
-        role: acc.role,
-      });
-      const isAdminAccount =
-        acc.email.toLowerCase().includes('admin') || acc.role.toLowerCase().includes('admin');
-      const target = explicitRedirect || (isAdminAccount ? '/admin/dashboard' : '/');
-      navigate(target, { replace: true });
+      await executeLogin(acc.email, 'password123', acc.name, acc.role);
     }
   };
 
@@ -197,29 +227,50 @@ export const AuthPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
 
     if (!validateForm()) {
       return;
     }
 
-    const cleanPhone = phone.replace(/[\s.-]/g, '');
-    const initials = name
-      ? name.trim().split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
-      : email.charAt(0).toUpperCase();
+    setIsLoading(true);
 
-    const isAdminAccount = email.toLowerCase().includes('admin');
-    saveAuthUser({
-      name: name.trim() || email.split('@')[0],
-      email: email.trim(),
-      phone: cleanPhone || '0900000000',
-      avatarText: initials || 'U',
-      role: isAdminAccount ? 'Quản trị viên (Admin)' : 'Thành viên mới',
-    });
+    if (mode === 'login') {
+      await executeLogin(email, password, name);
+    } else {
+      try {
+        const username = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || `user_${Date.now()}`;
+        const res = await authApi.register({
+          username,
+          email,
+          password,
+          displayName: name || username,
+        });
 
-    const target = explicitRedirect || (isAdminAccount ? '/admin/dashboard' : '/');
-    navigate(target, { replace: true });
+        saveAuthToken(res.token);
+        const displayName = res.user.displayName || name || username;
+        const initials = displayName
+          ? displayName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+          : 'U';
+
+        saveAuthUser({
+          name: displayName,
+          email: res.user.email,
+          avatarText: initials,
+          role: res.user.role || 'user',
+        });
+
+        const target = explicitRedirect || '/';
+        navigate(target, { replace: true });
+      } catch (err: any) {
+        const message = err?.response?.data?.message || err.message || 'Đăng ký không thành công';
+        setErrorMsg(message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
   return (
@@ -318,6 +369,14 @@ export const AuthPage: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Error message */}
+        {errorMsg && (
+          <div className="p-3 rounded-xl bg-rose-50 border-2 border-rose-500 text-rose-700 text-xs font-bold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+            <span>{errorMsg}</span>
           </div>
         )}
 
@@ -501,10 +560,20 @@ export const AuthPage: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal flex items-center justify-center gap-2 cursor-pointer mt-3 transition-transform active:translate-y-0.5"
+            disabled={isLoading}
+            className="w-full py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal flex items-center justify-center gap-2 cursor-pointer mt-2 disabled:opacity-50 transition-transform active:translate-y-0.5"
           >
-            <span>{mode === 'login' ? 'Đăng Nhập Ngay' : 'Tạo Tài Khoản Mới'}</span>
-            <ArrowRight className="w-4 h-4" />
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Đang xử lý...</span>
+              </>
+            ) : (
+              <>
+                <span>{mode === 'login' ? 'Đăng Nhập Ngay' : 'Tạo Tài Khoản Mới'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </form>
       </div>

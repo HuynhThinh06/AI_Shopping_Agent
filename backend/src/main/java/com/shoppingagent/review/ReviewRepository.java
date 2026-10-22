@@ -60,9 +60,12 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     long countByIsSpamFalseAndIsActiveTrue();
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"product"})
     Page<Review> findByIsSpamTrue(Pageable pageable);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"product"})
     Page<Review> findByIsActiveFalse(Pageable pageable);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"product"})
     Page<Review> findAllByOrderByCreatedAtDesc(Pageable pageable);
 }

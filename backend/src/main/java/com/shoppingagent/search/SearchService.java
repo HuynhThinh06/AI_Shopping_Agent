@@ -13,6 +13,8 @@ import com.shoppingagent.shared.entity.SearchQuery;
 import com.shoppingagent.shared.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,8 +47,11 @@ public class SearchService {
     private final SearchResultRepository searchResultRepository;
     private final UserRepository userRepository;
 
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    @Autowired(required = false)
     private com.shoppingagent.shared.llm.GeminiClient geminiClient;
+
+    @Value("${search.llm-reranking.enabled:false}")
+    private boolean llmRerankingEnabled;
 
     public SearchResponse search(SearchRequest request, Long userId) {
         log.info("[Search] New query: '{}' userId={}", request.getQueryText(), userId);
@@ -104,16 +109,29 @@ public class SearchService {
         Map<String, Double> weights = categoryRepository.findWeightsByCategoryCode(categoryCode.toLowerCase());
 
         // ── Bước 5: Xếp hạng DSS MCDM ─────────────────────────────────────────
-        List<RankedProduct> ranked = rankingService.rank(
-                candidates, criteria, weights, request.getTopK());
+        List<RankedProduct> baseRanked = rankingService.rank(
+                candidates, criteria, weights, request.getTopK() + 5);
 
-        // LLM Reranking (Phase 2): Chỉ kích hoạt khi câu truy vấn có điều kiện loại trừ hoặc so sánh phức tạp
-        if (shouldRerankWithLLM(request.getQueryText()) && ranked.size() > 1) {
+        List<RankedProduct> ranked;
+        boolean hasComplexNegation = request.getQueryText() != null && (
+                request.getQueryText().toLowerCase().contains("không phải")
+                || request.getQueryText().toLowerCase().contains("ngoại trừ")
+                || request.getQueryText().toLowerCase().contains("trừ ")
+                || request.getQueryText().toLowerCase().contains("loại trừ")
+                || request.getQueryText().toLowerCase().contains("so với")
+        );
+
+        if ((llmRerankingEnabled || hasComplexNegation) && baseRanked.size() > 1) {
+            log.info("[Search] Running LLM reranking (enabled={}, hasComplexNegation={})",
+                    llmRerankingEnabled, hasComplexNegation);
             try {
-                ranked = llmRerankingService.rerank(request.getQueryText(), ranked, request.getTopK());
+                ranked = llmRerankingService.rerank(request.getQueryText(), baseRanked, request.getTopK());
             } catch (Exception e) {
                 log.warn("[Search] LLM Reranking failed, using DSS ranking: {}", e.getMessage());
+                ranked = baseRanked.stream().limit(request.getTopK()).collect(Collectors.toList());
             }
+        } else {
+            ranked = baseRanked.stream().limit(request.getTopK()).collect(Collectors.toList());
         }
 
         // ── Bước 6: Lưu SearchQuery + SearchResult vào DB ─────────────────────

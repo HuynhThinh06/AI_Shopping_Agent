@@ -32,6 +32,7 @@ const FAVORITES_KEY = 'shopping_agent_favorites';
 const COMPARE_KEY = 'shopping_agent_compare';
 const HISTORY_KEY = 'shopping_agent_search_history';
 const USER_KEY = 'shopping_agent_auth_user';
+const TOKEN_KEY = 'shopping_agent_jwt_token';
 const REVIEWS_KEY = 'shopping_agent_user_reviews';
 
 /**
@@ -242,7 +243,31 @@ export function clearSearchHistory(explicitEmail?: string): void {
   }
 }
 
-// --- Auth User ---
+// --- Auth User & Token ---
+export function getAuthToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveAuthToken(token: string): void {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+export function removeAuthToken(): void {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 export function getAuthUser(): AuthUser | null {
   try {
     const raw = localStorage.getItem(USER_KEY);
@@ -272,6 +297,7 @@ export function saveAuthUser(user: AuthUser): void {
 export function logoutUser(): void {
   try {
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TOKEN_KEY);
     window.dispatchEvent(new Event('auth-updated'));
     window.dispatchEvent(new Event('favorites-updated'));
     window.dispatchEvent(new Event('compare-updated'));

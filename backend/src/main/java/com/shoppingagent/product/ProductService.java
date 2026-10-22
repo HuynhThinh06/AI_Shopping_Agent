@@ -34,15 +34,18 @@ public class ProductService {
     private final ProductImageRepository productImageRepository;
     private final CloudinaryService cloudinaryService;
 
+    @org.springframework.cache.annotation.Cacheable(value = "productDetails", key = "#id")
     public ProductDetailDTO getById(Long id) {
-        Product p = productRepository.findById(id)
-                .orElseThrow(() -> new ProductNotFoundException(id));
+        Product p = productRepository.findDetailById(id)
+                .orElseGet(() -> productRepository.findById(id)
+                        .orElseThrow(() -> new ProductNotFoundException(id)));
         return toDetailDTO(p);
     }
 
+    @org.springframework.cache.annotation.Cacheable(value = "featuredProducts", key = "#limit")
     public List<ProductDetailDTO> getFeaturedProducts(int limit) {
         Pageable pageable = PageRequest.of(0, Math.min(Math.max(limit, 1), 30), Sort.by("avgRating").descending());
-        List<Product> products = productRepository.findAll(pageable).getContent();
+        List<Product> products = productRepository.findFeaturedProducts(pageable).getContent();
         if (products.isEmpty()) return Collections.emptyList();
 
         List<Long> productIds = products.stream().map(Product::getId).collect(Collectors.toList());
@@ -121,6 +124,7 @@ public class ProductService {
     }
 
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"featuredProducts", "categoryFacets", "productDetails"}, allEntries = true)
     public ProductDetailDTO createProduct(ProductCreateRequest request, List<MultipartFile> images) {
         Category category = categoryRepository.findByCode(request.getCategoryCode())
                 .orElseThrow(() -> new IllegalArgumentException("Category not found: " + request.getCategoryCode()));
@@ -179,6 +183,7 @@ public class ProductService {
     }
 
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"featuredProducts", "categoryFacets", "productDetails"}, allEntries = true)
     public ProductDetailDTO updateProduct(Long id, com.shoppingagent.product.dto.ProductUpdateRequest request, List<MultipartFile> images) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
@@ -243,6 +248,7 @@ public class ProductService {
     }
 
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"featuredProducts", "categoryFacets", "productDetails"}, allEntries = true)
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
