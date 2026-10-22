@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { saveAuthUser } from '../utils/storage';
-import { Sparkles, Lock, Mail, User, Phone, ArrowRight, ShieldCheck } from 'lucide-react';
+import { saveAuthUser, saveAuthToken } from '../utils/storage';
+import { authApi } from '../api/authApi';
+import { Sparkles, Lock, Mail, User, Phone, ArrowRight, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 
 interface TestAccount {
   name: string;
@@ -67,46 +68,96 @@ export const AuthPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('password123');
   const [phone, setPhone] = useState('');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const explicitRedirect = searchParams.get('redirect');
 
-  const handleSelectAccount = (acc: TestAccount, autoLogin = false) => {
+  const executeLogin = async (loginEmail: string, loginPass: string, fallbackName?: string, fallbackRole?: string) => {
+    setIsLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await authApi.login({
+        usernameOrEmail: loginEmail,
+        password: loginPass,
+      });
+
+      saveAuthToken(res.token);
+      const displayName = res.user.displayName || fallbackName || loginEmail.split('@')[0];
+      const initials = displayName
+        ? displayName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+        : 'U';
+
+      saveAuthUser({
+        name: displayName,
+        email: res.user.email,
+        avatarText: initials,
+        role: res.user.role || fallbackRole || 'user',
+      });
+
+      const isAdminAccount = (res.user.role && res.user.role.toLowerCase().includes('admin')) || loginEmail.toLowerCase().includes('admin');
+      const target = explicitRedirect || (isAdminAccount ? '/admin/dashboard' : '/');
+      navigate(target, { replace: true });
+    } catch (err: any) {
+      console.warn('[Auth] Server login failed, fallback to offline demo:', err);
+      const message = err?.response?.data?.message || err.message || 'Đăng nhập không thành công';
+      setErrorMsg(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSelectAccount = async (acc: TestAccount, autoLogin = false) => {
     setName(acc.name);
     setEmail(acc.email);
     setPhone(acc.phone);
     setPassword('password123');
+    setErrorMsg(null);
 
     if (autoLogin) {
-      saveAuthUser({
-        name: acc.name,
-        email: acc.email,
-        phone: acc.phone,
-        avatarText: acc.avatarText,
-        role: acc.role,
-      });
-      const isAdminAccount = acc.email.toLowerCase().includes('admin') || acc.role.toLowerCase().includes('admin');
-      const target = explicitRedirect || (isAdminAccount ? '/admin/dashboard' : '/');
-      navigate(target, { replace: true });
+      await executeLogin(acc.email, 'password123', acc.name, acc.role);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const initials = name
-      ? name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
-      : 'U';
+    setErrorMsg(null);
+    setIsLoading(true);
 
-    const isAdminAccount = email.toLowerCase().includes('admin');
-    saveAuthUser({
-      name: name || (email.split('@')[0] || 'Người dùng'),
-      email: email || 'user@example.com',
-      phone: phone || '0900 000 000',
-      avatarText: initials,
-      role: isAdminAccount ? 'Quản trị viên (Admin)' : 'Thành viên mới',
-    });
+    if (mode === 'login') {
+      await executeLogin(email, password, name);
+    } else {
+      try {
+        const username = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || `user_${Date.now()}`;
+        const res = await authApi.register({
+          username,
+          email,
+          password,
+          displayName: name || username,
+        });
 
-    const target = explicitRedirect || (isAdminAccount ? '/admin/dashboard' : '/');
-    navigate(target, { replace: true });
+        saveAuthToken(res.token);
+        const displayName = res.user.displayName || name || username;
+        const initials = displayName
+          ? displayName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+          : 'U';
+
+        saveAuthUser({
+          name: displayName,
+          email: res.user.email,
+          avatarText: initials,
+          role: res.user.role || 'user',
+        });
+
+        const target = explicitRedirect || '/';
+        navigate(target, { replace: true });
+      } catch (err: any) {
+        const message = err?.response?.data?.message || err.message || 'Đăng ký không thành công';
+        setErrorMsg(message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
   return (
@@ -188,6 +239,14 @@ export const AuthPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Error message */}
+        {errorMsg && (
+          <div className="p-3 rounded-xl bg-rose-50 border-2 border-rose-500 text-rose-700 text-xs font-bold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'register' && (
@@ -255,10 +314,20 @@ export const AuthPage: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal flex items-center justify-center gap-2 cursor-pointer mt-2"
+            disabled={isLoading}
+            className="w-full py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal flex items-center justify-center gap-2 cursor-pointer mt-2 disabled:opacity-50"
           >
-            <span>{mode === 'login' ? 'Đăng Nhập Ngay' : 'Tạo Tài Khoản Mới'}</span>
-            <ArrowRight className="w-4 h-4" />
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Đang xử lý...</span>
+              </>
+            ) : (
+              <>
+                <span>{mode === 'login' ? 'Đăng Nhập Ngay' : 'Tạo Tài Khoản Mới'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </form>
       </div>

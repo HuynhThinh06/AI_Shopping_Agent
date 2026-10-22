@@ -259,6 +259,7 @@ public class AdminService {
     // ── 3. Quản lý cấu hình trọng số Ranking (Ranking Weights) ────────────
 
     @Transactional(readOnly = true)
+    @org.springframework.cache.annotation.Cacheable(value = "categoryWeights", key = "#categoryCode.toLowerCase()")
     public Map<String, Double> getCategoryWeights(String categoryCode) {
         return categoryRepository.findWeightsByCategoryCode(categoryCode.toLowerCase());
     }
@@ -285,6 +286,7 @@ public class AdminService {
     }
 
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = "categoryWeights", allEntries = true)
     public Map<String, Double> updateCategoryWeights(String categoryCode, Map<String, Double> newWeights) {
         Category category = categoryRepository.findByCode(categoryCode.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("Category not found: " + categoryCode));
@@ -312,6 +314,7 @@ public class AdminService {
     }
 
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = "categoryWeights", allEntries = true)
     public Map<String, Double> updateRankingWeights(RankingWeightDTO dto) {
         String catCode = dto.getCategoryCode().toLowerCase();
         Category category = categoryRepository.findByCode(catCode)

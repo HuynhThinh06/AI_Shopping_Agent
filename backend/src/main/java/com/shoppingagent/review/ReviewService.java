@@ -59,6 +59,7 @@ public class ReviewService {
      * @throws ProductNotFoundException nếu productId không tồn tại trong DB
      */
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"productDetails", "featuredProducts"}, allEntries = true)
     public ReviewResponseDTO createReview(Long productId, ReviewCreateRequest req) {
         // Kiểm tra sản phẩm tồn tại
         Product product = productRepository.findById(productId)
