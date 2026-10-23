@@ -4,6 +4,7 @@ import com.shoppingagent.product.dto.ProductDetailDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -51,9 +52,10 @@ public class ProductController {
             @Parameter(description = "Số sản phẩm mỗi trang, tối đa 50")
             @RequestParam(defaultValue = "20") int size) {
 
-        int safeSize = Math.min(size, 100);  // cho phép tải tối đa 100 sản phẩm mỗi trang
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
         return ResponseEntity.ok(
-                productService.searchProducts(categoryCode, minPrice, maxPrice, keyword, page, safeSize));
+                productService.searchProducts(categoryCode, minPrice, maxPrice, keyword, safePage, safeSize));
     }
 
     // ── GET /products/featured ──────────────────────────────────────────────
@@ -94,7 +96,7 @@ public class ProductController {
     @PostMapping(consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Tạo sản phẩm mới (dạng JSON)")
     public ResponseEntity<ProductDetailDTO> createProductJson(
-            @RequestBody com.shoppingagent.product.dto.ProductCreateRequest request) {
+            @Valid @RequestBody com.shoppingagent.product.dto.ProductCreateRequest request) {
         return ResponseEntity.ok(productService.createProduct(request, null));
     }
 
@@ -105,7 +107,7 @@ public class ProductController {
                       "Ảnh đầu tiên được đánh dấu is_primary = true."
     )
     public ResponseEntity<ProductDetailDTO> createProduct(
-            @RequestPart("product") com.shoppingagent.product.dto.ProductCreateRequest request,
+            @Valid @RequestPart("product") com.shoppingagent.product.dto.ProductCreateRequest request,
             @RequestPart(value = "images", required = false)
             java.util.List<org.springframework.web.multipart.MultipartFile> images) {
         return ResponseEntity.ok(productService.createProduct(request, images));
@@ -117,7 +119,7 @@ public class ProductController {
     @Operation(summary = "Cập nhật sản phẩm (dạng JSON)")
     public ResponseEntity<ProductDetailDTO> updateProductJson(
             @PathVariable Long id,
-            @RequestBody com.shoppingagent.product.dto.ProductUpdateRequest request) {
+            @Valid @RequestBody com.shoppingagent.product.dto.ProductUpdateRequest request) {
         return ResponseEntity.ok(productService.updateProduct(id, request, null));
     }
 
@@ -125,7 +127,7 @@ public class ProductController {
     @Operation(summary = "Cập nhật sản phẩm (kèm upload ảnh mới)")
     public ResponseEntity<ProductDetailDTO> updateProductMultipart(
             @PathVariable Long id,
-            @RequestPart("product") com.shoppingagent.product.dto.ProductUpdateRequest request,
+            @Valid @RequestPart("product") com.shoppingagent.product.dto.ProductUpdateRequest request,
             @RequestPart(value = "images", required = false)
             java.util.List<org.springframework.web.multipart.MultipartFile> images) {
         return ResponseEntity.ok(productService.updateProduct(id, request, images));

@@ -108,4 +108,19 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         ORDER BY COUNT(p.id) DESC, p.brand ASC
     """)
     List<Object[]> findBrandCountsByCategoryCode(@Param("code") String code);
+
+    java.util.Optional<Product> findBySku(String sku);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "images"})
+    @Query("""
+        SELECT p FROM Product p
+        JOIN p.category c
+        WHERE (:categoryCode IS NULL OR :categoryCode = '' OR LOWER(c.code) = LOWER(:categoryCode))
+          AND (:keyword IS NULL OR :keyword = ''
+               OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(p.brand) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :keyword, '%')))
+        ORDER BY p.id ASC
+    """)
+    List<Product> findForExport(@Param("categoryCode") String categoryCode, @Param("keyword") String keyword);
 }

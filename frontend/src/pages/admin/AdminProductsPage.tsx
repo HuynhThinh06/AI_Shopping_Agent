@@ -2,11 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminNav } from '../../components/admin/AdminNav';
 import { apiClient } from '../../api/client';
-import { getCategoriesList } from '../../api/adminApi';
+import {
+  getCategoriesList,
+  exportProductsExcel,
+  downloadExcelTemplate,
+  importProductsExcel,
+} from '../../api/adminApi';
+import type { ProductExcelImportResultDTO } from '../../api/adminApi';
 import type { CategoryOption } from '../../types/admin';
 import type { ProductDetailDTO } from '../../types/product';
 import type { PageResponse } from '../../types/review';
-import { Package, Search, ExternalLink, Star, Plus, Edit, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  Package,
+  Search,
+  ExternalLink,
+  Star,
+  Plus,
+  Edit,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  FileSpreadsheet,
+  Download,
+  Upload,
+  Loader2,
+  X,
+  FileCheck,
+  AlertTriangle,
+} from 'lucide-react';
 
 const DEFAULT_CATEGORIES: CategoryOption[] = [
   { id: 1, code: 'laptop', name: 'Laptop' },
@@ -25,6 +48,88 @@ export const AdminProductsPage: React.FC = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Excel Import / Export States
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [showImportModal, setShowImportModal] = useState<boolean>(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState<boolean>(false);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState<boolean>(false);
+  const [importResult, setImportResult] = useState<ProductExcelImportResultDTO | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await exportProductsExcel(categoryCode, keyword);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      a.download = `products_export_${timestamp}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      setFeedback('Xuất danh sách sản phẩm ra Excel thành công!');
+      setTimeout(() => setFeedback(null), 3000);
+    } catch (err: any) {
+      console.error('Export failed:', err);
+      alert('Không thể xuất file Excel: ' + (err.message || 'Lỗi không xác định'));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    setIsDownloadingTemplate(true);
+    try {
+      const blob = await downloadExcelTemplate();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'product_import_template.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Template download failed:', err);
+      alert('Không thể tải file mẫu: ' + (err.message || 'Lỗi không xác định'));
+    } finally {
+      setIsDownloadingTemplate(false);
+    }
+  };
+
+  const handleExecuteImport = async () => {
+    if (!selectedFile) return;
+    setIsImporting(true);
+    setImportError(null);
+    setImportResult(null);
+
+    try {
+      const result = await importProductsExcel(selectedFile);
+      setImportResult(result);
+      if (result.successCount > 0) {
+        setFeedback(`Nhập Excel hoàn tất: ${result.createdCount} tạo mới, ${result.updatedCount} cập nhật!`);
+        setTimeout(() => setFeedback(null), 4000);
+        loadProducts(0);
+      }
+    } catch (err: any) {
+      console.error('Import failed:', err);
+      const msg = err?.response?.data?.message || err.message || 'Lỗi khi nhập file Excel';
+      setImportError(msg);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleCloseImportModal = () => {
+    setShowImportModal(false);
+    setSelectedFile(null);
+    setImportResult(null);
+    setImportError(null);
+  };
 
   useEffect(() => {
     getCategoriesList()
@@ -124,13 +229,43 @@ export const AdminProductsPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/admin/products/new"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal transition-all hover:-translate-y-0.5 whitespace-nowrap"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Thêm Sản Phẩm Mới</span>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Xuất Excel */}
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={isExporting}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal transition-all hover:-translate-y-0.5 cursor-pointer disabled:opacity-50"
+            title="Xuất danh sách sản phẩm hiện tại ra file Excel (.xlsx)"
+          >
+            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <span>{isExporting ? 'Đang xuất...' : 'Xuất Excel'}</span>
+          </button>
+
+          {/* Nhập Excel */}
+          <button
+            type="button"
+            onClick={() => {
+              setImportResult(null);
+              setImportError(null);
+              setSelectedFile(null);
+              setShowImportModal(true);
+            }}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal transition-all hover:-translate-y-0.5 cursor-pointer"
+            title="Nhập sản phẩm hàng loạt từ file Excel"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Nhập Excel</span>
+          </button>
+
+          <Link
+            to="/admin/products/new"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal transition-all hover:-translate-y-0.5 whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Thêm Sản Phẩm Mới</span>
+          </Link>
+        </div>
       </div>
 
       {/* Alert notification */}
@@ -368,6 +503,179 @@ export const AdminProductsPage: React.FC = () => {
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>{deleting ? 'Đang xóa...' : 'Xóa sản phẩm'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Excel Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-warm-surface border-2 border-warm-text rounded-2xl max-w-xl w-full shadow-brutal my-8 overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="p-5 border-b-2 border-warm-text bg-warm-bg flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-100 border border-warm-text rounded-xl text-indigo-700">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-warm-text">Nhập Sản Phẩm Bằng Excel</h3>
+                  <p className="text-xs text-warm-muted font-medium">Đồng bộ hoặc thêm mới danh sách sản phẩm từ file .xlsx</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseImportModal}
+                disabled={isImporting}
+                className="p-1.5 rounded-lg border border-warm-text hover:bg-white text-warm-text cursor-pointer transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+              {/* Step 1: Download Template */}
+              <div className="p-4 rounded-xl bg-indigo-50/60 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="text-xs font-black text-indigo-900 flex items-center gap-1.5">
+                    <FileCheck className="w-4 h-4 text-indigo-600" />
+                    <span>File mẫu chuẩn của hệ thống</span>
+                  </div>
+                  <p className="text-xs text-indigo-800/80 font-medium">
+                    Tải mẫu Excel đã cấu hình sẵn các cột, sheet hướng dẫn & dữ liệu mẫu.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  disabled={isDownloadingTemplate}
+                  className="px-3.5 py-2 rounded-xl bg-white border border-warm-text text-warm-text font-black text-xs hover:bg-warm-bg shadow-brutal-xs flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50"
+                >
+                  {isDownloadingTemplate ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  <span>Tải File Mẫu (.xlsx)</span>
+                </button>
+              </div>
+
+              {/* Step 2: Upload File */}
+              <div>
+                <label className="block text-xs font-black text-warm-text mb-2">
+                  Chọn file dữ liệu Excel (.xlsx, .xls)
+                </label>
+                <label className="border-2 border-dashed border-warm-text/40 hover:border-warm-text rounded-2xl p-6 bg-warm-bg/50 hover:bg-warm-bg flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-center">
+                  <input
+                    type="file"
+                    accept=".xlsx, .xls"
+                    className="hidden"
+                    disabled={isImporting}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setSelectedFile(e.target.files[0]);
+                        setImportResult(null);
+                        setImportError(null);
+                      }
+                    }}
+                  />
+                  <Upload className="w-8 h-8 text-warm-muted" />
+                  {selectedFile ? (
+                    <div>
+                      <span className="text-xs font-black text-emerald-700 block">{selectedFile.name}</span>
+                      <span className="text-[11px] text-warm-muted font-medium">
+                        {(selectedFile.size / 1024).toFixed(1)} KB — Nhấp để đổi file khác
+                      </span>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="text-xs font-bold text-warm-text block">
+                        Nhấp vào đây để duyệt file từ máy tính
+                      </span>
+                      <span className="text-[11px] text-warm-muted font-medium">
+                        Hỗ trợ định dạng Microsoft Excel (.xlsx, .xls)
+                      </span>
+                    </div>
+                  )}
+                </label>
+              </div>
+
+              {/* Import Error Message */}
+              {importError && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border-2 border-rose-300 text-rose-800 text-xs font-bold flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                  <span>{importError}</span>
+                </div>
+              )}
+
+              {/* Import Result Summary */}
+              {importResult && (
+                <div className="space-y-3 pt-2 border-t border-warm-text/20">
+                  <h4 className="text-xs font-black text-warm-text">Kết Quả Nhập Dữ Liệu:</h4>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="p-2.5 rounded-xl bg-warm-bg border border-warm-text text-center">
+                      <div className="text-[10px] font-bold text-warm-muted">Tổng số</div>
+                      <div className="text-sm font-black text-warm-text">{importResult.totalRows}</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-500 text-center">
+                      <div className="text-[10px] font-bold text-emerald-700">Tạo mới</div>
+                      <div className="text-sm font-black text-emerald-700">{importResult.createdCount}</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-500 text-center">
+                      <div className="text-[10px] font-bold text-blue-700">Cập nhật</div>
+                      <div className="text-sm font-black text-blue-700">{importResult.updatedCount}</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-500 text-center">
+                      <div className="text-[10px] font-bold text-rose-700">Lỗi</div>
+                      <div className="text-sm font-black text-rose-700">{importResult.errorCount}</div>
+                    </div>
+                  </div>
+
+                  {/* Errors List */}
+                  {importResult.errors && importResult.errors.length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-xs font-bold text-rose-700 mb-1.5">
+                        Chi tiết các dòng bị lỗi ({importResult.errors.length}):
+                      </div>
+                      <div className="max-h-36 overflow-y-auto space-y-1.5 p-2 bg-rose-50/70 border border-rose-200 rounded-xl text-xs">
+                        {importResult.errors.map((err, idx) => (
+                          <div key={idx} className="text-rose-800 flex items-start gap-1.5">
+                            <span className="font-bold flex-shrink-0">•</span>
+                            <span className="font-medium">{err}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t-2 border-warm-text bg-warm-bg flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={handleCloseImportModal}
+                disabled={isImporting}
+                className="px-4 py-2 rounded-xl bg-white border border-warm-text font-bold text-xs hover:bg-warm-bg cursor-pointer"
+              >
+                {importResult ? 'Đóng' : 'Hủy bỏ'}
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteImport}
+                disabled={!selectedFile || isImporting}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs border border-warm-text shadow-brutal-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Đang xử lý file...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Bắt đầu nhập dữ liệu</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

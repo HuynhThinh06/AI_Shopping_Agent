@@ -20,6 +20,7 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
+    private final ProductExcelService productExcelService;
 
     // ── 1. Thống kê hệ thống & Dashboard ────────────────────────────────────
 
@@ -44,8 +45,9 @@ public class AdminController {
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(defaultValue = "all", required = false) String filter
     ) {
-        int safeSize = Math.min(size, 100);
-        Pageable pageable = PageRequest.of(page, safeSize, Sort.by("createdAt").descending());
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("createdAt").descending());
         return ResponseEntity.ok(adminService.getReviews(pageable, filter));
     }
 
@@ -112,8 +114,9 @@ public class AdminController {
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(required = false) String requestType,
             @RequestParam(required = false) String status) {
-        int safeSize = Math.min(size, 100);
-        return ResponseEntity.ok(adminService.getLlmLogs(PageRequest.of(page, safeSize), requestType, status));
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 50);
+        return ResponseEntity.ok(adminService.getLlmLogs(PageRequest.of(safePage, safeSize), requestType, status));
     }
 
     // ── 5. Benchmark thực nghiệm & GIN Index ─────────────────────────────────
@@ -142,8 +145,9 @@ public class AdminController {
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String role) {
-        int safeSize = Math.min(size, 100);
-        return ResponseEntity.ok(adminService.getUsers(PageRequest.of(page, safeSize, Sort.by("id").ascending()), keyword, role));
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        return ResponseEntity.ok(adminService.getUsers(PageRequest.of(safePage, safeSize, Sort.by("id").ascending()), keyword, role));
     }
 
     @PutMapping("/users/{id}/role")
@@ -165,5 +169,39 @@ public class AdminController {
     public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
         adminService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── 7. Nhập / Xuất Excel Sản phẩm ───────────────────────────────────────
+
+    @GetMapping("/products/export")
+    @Operation(summary = "Xuất danh sách sản phẩm ra file Excel (.xlsx)")
+    public ResponseEntity<byte[]> exportProducts(
+            @RequestParam(required = false) String categoryCode,
+            @RequestParam(required = false) String keyword) throws java.io.IOException {
+        byte[] excelBytes = productExcelService.exportProductsToExcel(categoryCode, keyword);
+        String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String filename = "products_export_" + timestamp + ".xlsx";
+
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(excelBytes);
+    }
+
+    @GetMapping("/products/template")
+    @Operation(summary = "Tải file mẫu Excel (.xlsx) để nhập sản phẩm")
+    public ResponseEntity<byte[]> downloadTemplate() throws java.io.IOException {
+        byte[] templateBytes = productExcelService.generateExcelTemplate();
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"product_import_template.xlsx\"")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(templateBytes);
+    }
+
+    @PostMapping(value = "/products/import", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Nhập danh sách sản phẩm hàng loạt từ file Excel (.xlsx / .xls)")
+    public ResponseEntity<com.shoppingagent.admin.dto.ProductExcelImportResultDTO> importProducts(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) throws java.io.IOException {
+        return ResponseEntity.ok(productExcelService.importProductsFromExcel(file));
     }
 }

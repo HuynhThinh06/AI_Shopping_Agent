@@ -6,6 +6,7 @@ import com.shoppingagent.admin.dto.SystemStatsDTO;
 import com.shoppingagent.product.CategoryRepository;
 import com.shoppingagent.product.ProductRepository;
 import com.shoppingagent.review.ReviewRepository;
+import com.shoppingagent.review.ReviewSummaryRepository;
 import com.shoppingagent.search.SearchQueryRepository;
 import com.shoppingagent.shared.entity.Category;
 import com.shoppingagent.shared.entity.RankingWeight;
@@ -38,6 +39,9 @@ class AdminServiceTest {
 
     @Mock
     private ReviewRepository reviewRepository;
+
+    @Mock
+    private ReviewSummaryRepository reviewSummaryRepository;
 
     @Mock
     private SearchQueryRepository searchQueryRepository;
