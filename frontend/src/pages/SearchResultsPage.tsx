@@ -1366,7 +1366,8 @@ export const SearchResultsPage: React.FC = () => {
                                 navigate('/auth?mode=login&redirect=' + encodeURIComponent(location.pathname + location.search));
                                 return;
                               }
-                              toggleCompareId(product.productId);
+                              const pCat = (product as any).categoryCode || result?.extractedCriteria?.categoryCode || 'laptop';
+                              toggleCompareId(product.productId, pCat);
                               setCompareIds(getCompareIds());
                             }}
                             className={`flex-1 py-2 rounded-xl border-2 border-warm-border text-xs font-extrabold shadow-brutal-xs flex items-center justify-center gap-1 cursor-pointer transition-all ${

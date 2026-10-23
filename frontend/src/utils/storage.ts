@@ -30,10 +30,29 @@ export interface UserReviewItem {
 
 const FAVORITES_KEY = 'shopping_agent_favorites';
 const COMPARE_KEY = 'shopping_agent_compare';
+const COMPARE_BUCKETS_KEY = 'shopping_agent_compare_buckets';
 const HISTORY_KEY = 'shopping_agent_search_history';
 const USER_KEY = 'shopping_agent_auth_user';
 const TOKEN_KEY = 'shopping_agent_jwt_token';
 const REVIEWS_KEY = 'shopping_agent_user_reviews';
+
+export type CompareCategory = 'laptop' | 'phone';
+
+export interface CompareBuckets {
+  laptop: number[];
+  phone: number[];
+}
+
+export interface CompareNotification {
+  type: 'success' | 'warning' | 'info';
+  message: string;
+}
+
+export function dispatchCompareNotify(notification: CompareNotification): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('compare-notify', { detail: notification }));
+  }
+}
 
 /**
  * Phân giải khóa lưu trữ động theo định danh người dùng (User-Scoped Key Resolver).
@@ -114,22 +133,80 @@ export async function syncFavoritesFromBackend(explicitEmail?: string): Promise<
   }
 }
 
-// --- Compare ---
-export function getCompareIds(explicitEmail?: string): number[] {
+// --- Compare Categories & Buckets ---
+export function getCompareBuckets(explicitEmail?: string): CompareBuckets {
   const user = getAuthUser();
   const email = explicitEmail || user?.email;
-  // Bắt buộc đăng nhập: Khách chưa đăng nhập không có danh sách so sánh
-  if (!email) return [];
+  if (!email) return { laptop: [], phone: [] };
 
   try {
-    const key = getScopedKey(COMPARE_KEY, email);
+    const key = getScopedKey(COMPARE_BUCKETS_KEY, email);
     const raw = localStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        laptop: Array.isArray(parsed?.laptop) ? parsed.laptop : [],
+        phone: Array.isArray(parsed?.phone) ? parsed.phone : [],
+      };
+    }
+
+    // Tự động di chuyển dữ liệu cũ từ key phẳng (Migration)
+    const oldKey = getScopedKey(COMPARE_KEY, email);
+    const oldRaw = localStorage.getItem(oldKey);
+    if (oldRaw) {
+      const oldParsed = JSON.parse(oldRaw);
+      if (Array.isArray(oldParsed) && oldParsed.length > 0) {
+        const catKey = getScopedKey('shopping_agent_compare_category', email);
+        const savedCat = (localStorage.getItem(catKey) || 'laptop').toLowerCase();
+        const targetCat: CompareCategory = savedCat.includes('phone') ? 'phone' : 'laptop';
+        const migrated: CompareBuckets = {
+          laptop: targetCat === 'laptop' ? oldParsed.slice(-3) : [],
+          phone: targetCat === 'phone' ? oldParsed.slice(-3) : [],
+        };
+        localStorage.setItem(key, JSON.stringify(migrated));
+        return migrated;
+      }
+    }
+
+    return { laptop: [], phone: [] };
   } catch {
-    return [];
+    return { laptop: [], phone: [] };
   }
+}
+
+export function saveCompareBuckets(buckets: CompareBuckets, explicitEmail?: string): void {
+  const user = getAuthUser();
+  const email = explicitEmail || user?.email;
+  if (!email) return;
+
+  try {
+    const key = getScopedKey(COMPARE_BUCKETS_KEY, email);
+    localStorage.setItem(key, JSON.stringify(buckets));
+    // Đồng bộ key phẳng để tương thích ngược
+    const oldKey = getScopedKey(COMPARE_KEY, email);
+    localStorage.setItem(oldKey, JSON.stringify([...buckets.laptop, ...buckets.phone]));
+  } catch (err) {
+    console.error('[Compare Storage] Error saving buckets:', err);
+  }
+}
+
+export function getCompareIdsByCategory(category: string, explicitEmail?: string): number[] {
+  const normCat: CompareCategory = category.toLowerCase().includes('phone') ? 'phone' : 'laptop';
+  const buckets = getCompareBuckets(explicitEmail);
+  return buckets[normCat] || [];
+}
+
+export function getCompareIds(explicitEmail?: string): number[] {
+  const buckets = getCompareBuckets(explicitEmail);
+  return [...buckets.laptop, ...buckets.phone];
+}
+
+export function setCompareCategoryIds(category: string, ids: number[], explicitEmail?: string): void {
+  const normCat: CompareCategory = category.toLowerCase().includes('phone') ? 'phone' : 'laptop';
+  const buckets = getCompareBuckets(explicitEmail);
+  buckets[normCat] = ids.slice(0, 3);
+  saveCompareBuckets(buckets, explicitEmail);
+  window.dispatchEvent(new Event('compare-updated'));
 }
 
 export function getCompareCategory(explicitEmail?: string): string | null {
@@ -148,42 +225,99 @@ export function toggleCompareId(id: number, categoryCode?: string, explicitEmail
   const user = getAuthUser();
   const email = explicitEmail || user?.email;
   if (!email) {
+    dispatchCompareNotify({
+      type: 'warning',
+      message: 'Vui lòng đăng nhập tài khoản để so sánh sản phẩm.',
+    });
     return false;
   }
 
-  const key = getScopedKey(COMPARE_KEY, email);
-  const catKey = getScopedKey('shopping_agent_compare_category', email);
-  const ids = getCompareIds(email);
-  const exists = ids.includes(id);
-  let next = exists ? ids.filter((x) => x !== id) : [...ids, id];
-  if (next.length > 3) {
-    next = next.slice(next.length - 3); // Giới hạn tối đa 3 SP
+  const buckets = getCompareBuckets(email);
+
+  // Phân loại ngành hàng mục tiêu
+  let normCat: CompareCategory;
+  if (categoryCode) {
+    normCat = categoryCode.toLowerCase().includes('phone') ? 'phone' : 'laptop';
+  } else if (buckets.phone.includes(id)) {
+    normCat = 'phone';
+  } else if (buckets.laptop.includes(id)) {
+    normCat = 'laptop';
+  } else {
+    const savedCat = getCompareCategory(email);
+    normCat = savedCat && savedCat.includes('phone') ? 'phone' : 'laptop';
   }
-  try {
-    localStorage.setItem(key, JSON.stringify(next));
-    if (next.length === 0) {
-      localStorage.removeItem(catKey);
-    } else if (categoryCode) {
-      localStorage.setItem(catKey, categoryCode.toLowerCase());
-    }
+
+  const catLabel = normCat === 'phone' ? 'Điện thoại' : 'Laptop';
+  const currentList = buckets[normCat];
+  const exists = currentList.includes(id);
+
+  if (exists) {
+    // 1. Xóa khỏi danh mục so sánh
+    buckets[normCat] = currentList.filter((x) => x !== id);
+    saveCompareBuckets(buckets, email);
     window.dispatchEvent(new Event('compare-updated'));
-  } catch (err) {
-    console.error('[Compare Storage] Error:', err);
+    dispatchCompareNotify({
+      type: 'info',
+      message: `Đã bỏ sản phẩm khỏi danh sách so sánh ${catLabel}.`,
+    });
+    return false;
+  } else {
+    // 2. HARD-CAP GUARD: Giới hạn tối đa 3 sản phẩm mỗi loại
+    if (currentList.length >= 3) {
+      dispatchCompareNotify({
+        type: 'warning',
+        message: `Bạn chỉ có thể so sánh tối đa 3 sản phẩm ${catLabel}. Vui lòng bỏ bớt 1 sản phẩm trước khi thêm mới!`,
+      });
+      return false; // Chặn không thêm mới
+    }
+
+    // 3. Thêm mới hợp lệ
+    buckets[normCat] = [...currentList, id];
+    saveCompareBuckets(buckets, email);
+    window.dispatchEvent(new Event('compare-updated'));
+    dispatchCompareNotify({
+      type: 'success',
+      message: `Đã thêm vào so sánh ${catLabel} (${buckets[normCat].length}/3 sản phẩm).`,
+    });
+    return true;
   }
-  return !exists;
 }
 
 export function isInCompare(id: number, explicitEmail?: string): boolean {
   const user = getAuthUser();
   const email = explicitEmail || user?.email;
   if (!email) return false;
-  return getCompareIds(email).includes(id);
+  const buckets = getCompareBuckets(email);
+  return buckets.laptop.includes(id) || buckets.phone.includes(id);
 }
 
-export function clearCompare(explicitEmail?: string): void {
+export function clearCompare(category?: 'laptop' | 'phone' | 'all', explicitEmail?: string): void {
+  const user = getAuthUser();
+  const email = explicitEmail || user?.email;
+  if (!email) return;
+
   try {
-    localStorage.removeItem(getScopedKey(COMPARE_KEY, explicitEmail));
-    localStorage.removeItem(getScopedKey('shopping_agent_compare_category', explicitEmail));
+    if (!category || category === 'all') {
+      const bucketsKey = getScopedKey(COMPARE_BUCKETS_KEY, email);
+      const oldKey = getScopedKey(COMPARE_KEY, email);
+      const catKey = getScopedKey('shopping_agent_compare_category', email);
+      localStorage.removeItem(bucketsKey);
+      localStorage.removeItem(oldKey);
+      localStorage.removeItem(catKey);
+      dispatchCompareNotify({
+        type: 'info',
+        message: 'Đã xóa toàn bộ sản phẩm khỏi danh sách so sánh.',
+      });
+    } else {
+      const buckets = getCompareBuckets(email);
+      buckets[category] = [];
+      saveCompareBuckets(buckets, email);
+      const catLabel = category === 'phone' ? 'Điện thoại' : 'Laptop';
+      dispatchCompareNotify({
+        type: 'info',
+        message: `Đã xóa danh sách so sánh ${catLabel}.`,
+      });
+    }
     window.dispatchEvent(new Event('compare-updated'));
   } catch (err) {
     console.error('[Compare Storage] Error clearing compare:', err);

@@ -305,7 +305,7 @@ export const HomePage: React.FC = () => {
                           navigate('/auth?mode=login&redirect=/compare');
                           return;
                         }
-                        toggleCompareId(p.id);
+                        toggleCompareId(p.id, p.categoryCode);
                       }}
                       className={`py-2 px-3 rounded-xl border-2 border-warm-border text-xs font-bold shadow-brutal-xs flex items-center gap-1 cursor-pointer transition-all ${
                         isInCompare(p.id)

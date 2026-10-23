@@ -6,7 +6,7 @@ import { queryCache } from '../utils/queryCache';
 import type { ProductDetailDTO } from '../types/product';
 import type { PageResponse } from '../types/review';
 import type { CategoryFacetDTO } from '../types/search';
-import { toggleFavoriteId, isFavoriteId, toggleCompareId, isInCompare, getAuthUser } from '../utils/storage';
+import { toggleFavoriteId, isFavoriteId, toggleCompareId, isInCompare, getAuthUser, getCompareIds } from '../utils/storage';
 import {
   Laptop,
   Smartphone,
@@ -230,13 +230,13 @@ export const CategoryPage: React.FC = () => {
     setFavorites((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
-  const handleCompareToggle = (id: number) => {
+  const handleCompareToggle = (id: number, catCode?: string) => {
     if (!getAuthUser()) {
       navigate('/auth?mode=login&redirect=' + encodeURIComponent(location.pathname + location.search));
       return;
     }
-    toggleCompareId(id);
-    setCompares((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    toggleCompareId(id, catCode || activeType);
+    setCompares(getCompareIds());
   };
 
   const formatPrice = (price: number) => {
@@ -549,7 +549,7 @@ export const CategoryPage: React.FC = () => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleCompareToggle(p.id)}
+                              onClick={() => handleCompareToggle(p.id, p.categoryCode)}
                               title={comp ? 'Đã thêm so sánh' : 'Thêm vào so sánh'}
                               className={`p-1.5 rounded-lg border border-warm-text cursor-pointer transition-colors ${
                                 comp ? 'bg-amber-400 text-warm-text' : 'hover:bg-warm-bg text-warm-muted'

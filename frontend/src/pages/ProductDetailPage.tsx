@@ -111,8 +111,8 @@ export const ProductDetailPage: React.FC = () => {
       navigate('/auth?mode=login&redirect=' + encodeURIComponent(location.pathname));
       return;
     }
-    const nextState = toggleCompareId(productId);
-    setIsComp(nextState);
+    toggleCompareId(productId, product?.categoryCode);
+    setIsComp(isInCompare(productId));
   };
 
   const loadData = async () => {

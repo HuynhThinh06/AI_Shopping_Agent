@@ -140,8 +140,8 @@ export const FavoritesPage: React.FC = () => {
     });
   };
 
-  const handleCompareToggle = (id: number) => {
-    toggleCompareId(id);
+  const handleCompareToggle = (id: number, catCode?: string) => {
+    toggleCompareId(id, catCode);
     setCompares(getCompareIds());
   };
 
@@ -314,7 +314,7 @@ export const FavoritesPage: React.FC = () => {
                 <div className="mt-5 pt-3 border-t border-warm-border/10 flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => handleCompareToggle(p.id)}
+                    onClick={() => handleCompareToggle(p.id, p.categoryCode)}
                     className={`py-2 px-3 rounded-xl border-2 border-warm-border text-xs font-extrabold flex items-center gap-1 cursor-pointer transition-all shadow-brutal-xs ${
                       comp
                         ? 'bg-emerald-500 text-white'
