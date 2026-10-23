@@ -89,6 +89,14 @@ export function toggleFavoriteId(id: number, explicitEmail?: string): boolean {
     localStorage.setItem(key, JSON.stringify(next));
     window.dispatchEvent(new Event('favorites-updated'));
 
+    // Bắn thông báo Toast trực quan cho người dùng
+    dispatchCompareNotify({
+      type: exists ? 'info' : 'success',
+      message: exists
+        ? 'Đã xóa sản phẩm khỏi danh sách yêu thích.'
+        : 'Đã lưu sản phẩm vào danh sách yêu thích!',
+    });
+
     // Đồng bộ lên PostgreSQL Backend ngầm nếu người dùng đã đăng nhập (Optimistic Background Sync)
     if (email) {
       toggleUserFavorite(id, email).catch((err) => {
@@ -107,29 +115,46 @@ export function isFavoriteId(id: number, explicitEmail?: string): boolean {
 
 /**
  * Đồng bộ danh sách yêu thích từ Database Backend xuống client state của User
+ * Áp dụng nguyên lý Hợp nhất (Merge Union) và bảo toàn dữ liệu: Tuyệt đối không xóa local khi API lỗi hoặc remote rỗng.
  */
 export async function syncFavoritesFromBackend(explicitEmail?: string): Promise<number[]> {
   const user = getAuthUser();
   const email = explicitEmail || user?.email;
   if (!email) return [];
 
+  const key = getScopedKey(FAVORITES_KEY, email);
+  const currentLocal = getFavoriteIds(email);
+
   try {
     const remoteIds = await fetchUserFavoriteIds(email);
-    const key = getScopedKey(FAVORITES_KEY, email);
-    const currentLocal = getFavoriteIds(email);
 
+    // 1. Nếu API lỗi (null) -> Giữ nguyên dữ liệu local
+    if (remoteIds === null) {
+      return currentLocal;
+    }
+
+    // 2. Nếu remote rỗng nhưng local có dữ liệu -> Đồng bộ ngược từ local lên backend
+    if (remoteIds.length === 0 && currentLocal.length > 0) {
+      currentLocal.forEach((id) => {
+        toggleUserFavorite(id, email).catch(() => {});
+      });
+      return currentLocal;
+    }
+
+    // 3. Hợp nhất hai chiều (Merge Union)
+    const merged = Array.from(new Set([...currentLocal, ...remoteIds]));
     const isDifferent =
-      remoteIds.length !== currentLocal.length ||
-      remoteIds.some((id, idx) => id !== currentLocal[idx]);
+      merged.length !== currentLocal.length ||
+      merged.some((id, idx) => id !== currentLocal[idx]);
 
     if (isDifferent) {
-      localStorage.setItem(key, JSON.stringify(remoteIds));
+      localStorage.setItem(key, JSON.stringify(merged));
       window.dispatchEvent(new Event('favorites-updated'));
     }
-    return remoteIds;
+    return merged;
   } catch (err) {
     console.warn('[Favorites Sync] Failed to sync from backend:', err);
-    return getFavoriteIds(email);
+    return currentLocal;
   }
 }
 

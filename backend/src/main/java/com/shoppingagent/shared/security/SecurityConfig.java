@@ -90,6 +90,9 @@ public class SecurityConfig {
                         // Allow users to submit reviews
                         .requestMatchers(HttpMethod.POST, "/products/*/reviews", "/api/products/*/reviews").permitAll()
 
+                        // Allow users to manage favorites
+                        .requestMatchers("/favorites/**", "/api/favorites/**").permitAll()
+
                         // Documentation & Monitoring
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/v3/api-docs/**", "/api/swagger-ui/**", "/api/swagger-ui.html").permitAll()
