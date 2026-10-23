@@ -318,7 +318,7 @@ export const HomePage: React.FC = () => {
                           navigate('/auth?mode=login&redirect=/compare');
                           return;
                         }
-                        toggleCompareId(p.id, p.categoryCode);
+                        toggleCompareId(p.id, p.categoryCode, undefined, p.name, p.specs);
                       }}
                       className={`py-2 px-3 rounded-xl border-2 border-warm-border text-xs font-bold shadow-brutal-xs flex items-center gap-1 cursor-pointer transition-all ${
                         compares.includes(p.id)

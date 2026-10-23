@@ -9,6 +9,7 @@ import {
   toggleCompareId,
   getCompareIds,
   clearCompare,
+  detectProductCategory,
 } from '../utils/storage';
 import {
   Sparkles,
@@ -1366,8 +1367,12 @@ export const SearchResultsPage: React.FC = () => {
                                 navigate('/auth?mode=login&redirect=' + encodeURIComponent(location.pathname + location.search));
                                 return;
                               }
-                              const pCat = (product as any).categoryCode || result?.extractedCriteria?.categoryCode || 'laptop';
-                              toggleCompareId(product.productId, pCat);
+                              const pCat = detectProductCategory(
+                                (product as any).categoryCode || result?.extractedCriteria?.categoryCode,
+                                product.name || product.productName,
+                                product.specs
+                              );
+                              toggleCompareId(product.productId, pCat, undefined, product.name || product.productName, product.specs);
                               setCompareIds(getCompareIds());
                             }}
                             className={`flex-1 py-2 rounded-xl border-2 border-warm-border text-xs font-extrabold shadow-brutal-xs flex items-center justify-center gap-1 cursor-pointer transition-all ${

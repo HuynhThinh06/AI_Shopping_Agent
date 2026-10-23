@@ -111,7 +111,7 @@ export const ProductDetailPage: React.FC = () => {
       navigate('/auth?mode=login&redirect=' + encodeURIComponent(location.pathname));
       return;
     }
-    toggleCompareId(productId, product?.categoryCode);
+    toggleCompareId(productId, product?.categoryCode, undefined, product?.name, product?.specs);
     setIsComp(isInCompare(productId));
   };
 

@@ -234,6 +234,70 @@ export function setCompareCategoryIds(category: string, ids: number[], explicitE
   window.dispatchEvent(new Event('compare-updated'));
 }
 
+export function detectProductCategory(
+  categoryCode?: string,
+  productName?: string,
+  specs?: Record<string, any>
+): CompareCategory {
+  if (categoryCode) {
+    const code = categoryCode.toLowerCase().trim();
+    if (code.includes('phone') || code.includes('smartphone') || code.includes('dien thoai') || code.includes('diện thoại')) {
+      return 'phone';
+    }
+    if (code.includes('laptop') || code.includes('macbook') || code.includes('may tinh')) {
+      return 'laptop';
+    }
+  }
+
+  const name = (productName || '').toLowerCase();
+  if (
+    name.includes('điện thoại') ||
+    name.includes('dien thoai') ||
+    name.includes('phone') ||
+    name.includes('iphone') ||
+    name.includes('galaxy s') ||
+    name.includes('galaxy a') ||
+    name.includes('galaxy z') ||
+    name.includes('redmi') ||
+    name.includes('xiaomi 1') ||
+    name.includes('pixel') ||
+    name.includes('oppo') ||
+    name.includes('realme')
+  ) {
+    return 'phone';
+  }
+
+  if (
+    name.includes('laptop') ||
+    name.includes('macbook') ||
+    name.includes('thinkpad') ||
+    name.includes('vivobook') ||
+    name.includes('zenbook') ||
+    name.includes('legion') ||
+    name.includes('tuf') ||
+    name.includes('rog') ||
+    name.includes('ideapad') ||
+    name.includes('pavilion') ||
+    name.includes('victus') ||
+    name.includes('loq') ||
+    name.includes('nitro')
+  ) {
+    return 'laptop';
+  }
+
+  if (specs) {
+    const specsStr = JSON.stringify(specs).toLowerCase();
+    if (specsStr.includes('mah') || specsStr.includes('camera sau') || specsStr.includes('sim')) {
+      return 'phone';
+    }
+    if (specsStr.includes('card đồ họa') || specsStr.includes('vga') || specsStr.includes('bàn phím') || specsStr.includes('ssd')) {
+      return 'laptop';
+    }
+  }
+
+  return 'laptop';
+}
+
 export function getCompareCategory(explicitEmail?: string): string | null {
   const user = getAuthUser();
   const email = explicitEmail || user?.email;
@@ -246,7 +310,13 @@ export function getCompareCategory(explicitEmail?: string): string | null {
   }
 }
 
-export function toggleCompareId(id: number, categoryCode?: string, explicitEmail?: string): boolean {
+export function toggleCompareId(
+  id: number,
+  categoryCode?: string,
+  explicitEmail?: string,
+  productName?: string,
+  specs?: Record<string, any>
+): boolean {
   const user = getAuthUser();
   const email = explicitEmail || user?.email;
   if (!email) {
@@ -259,10 +329,10 @@ export function toggleCompareId(id: number, categoryCode?: string, explicitEmail
 
   const buckets = getCompareBuckets(email);
 
-  // Phân loại ngành hàng mục tiêu
+  // Phân loại ngành hàng mục tiêu dựa trên tên/specs/categoryCode
   let normCat: CompareCategory;
-  if (categoryCode) {
-    normCat = categoryCode.toLowerCase().includes('phone') ? 'phone' : 'laptop';
+  if (categoryCode || productName || specs) {
+    normCat = detectProductCategory(categoryCode, productName, specs);
   } else if (buckets.phone.includes(id)) {
     normCat = 'phone';
   } else if (buckets.laptop.includes(id)) {

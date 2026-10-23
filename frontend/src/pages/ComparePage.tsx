@@ -5,12 +5,15 @@ import type { ProductDetailDTO } from '../types/product';
 import type { SummaryDTO } from '../types/review';
 import {
   getCompareBuckets,
+  saveCompareBuckets,
+  detectProductCategory,
   setCompareCategoryIds,
   toggleCompareId,
   clearCompare,
   getAuthUser,
   type AuthUser,
   type CompareCategory,
+  type CompareBuckets,
 } from '../utils/storage';
 import {
   Scale,
@@ -148,7 +151,7 @@ export const ComparePage: React.FC = () => {
   const [showOnlyDifferences, setShowOnlyDifferences] = useState<boolean>(false);
   const [selectedIntent, setSelectedIntent] = useState<string>('all');
 
-  const loadComparedProducts = async (categoryOverride?: string) => {
+  const loadComparedProducts = async () => {
     const currentUser = getAuthUser();
     if (!currentUser) {
       setItems([]);
@@ -159,14 +162,14 @@ export const ComparePage: React.FC = () => {
     const currentBuckets = getCompareBuckets();
     setBuckets(currentBuckets);
 
-    const targetCat = (categoryOverride || activeCategory || 'laptop').toLowerCase();
     const idsParam = searchParams.get('ids');
     let ids: number[] = [];
 
     if (idsParam) {
       ids = idsParam.split(',').map((x) => parseInt(x.trim(), 10)).filter(Boolean);
     } else {
-      ids = targetCat === 'phone' ? currentBuckets.phone : currentBuckets.laptop;
+      // Tải tất cả các ID từ cả 2 khoang để tự động phân loại đúng danh mục (Self-Healing)
+      ids = Array.from(new Set([...currentBuckets.laptop, ...currentBuckets.phone]));
     }
 
     if (ids.length === 0) {
@@ -183,7 +186,29 @@ export const ComparePage: React.FC = () => {
       });
       const prodList = pRes.data || [];
 
-      // 2. Fetch AI summaries song song
+      // 2. Tự động kiểm tra và sắp xếp lại sản phẩm vào đúng bucket thực tế (Self-Healing)
+      if (!idsParam) {
+        const correctBuckets: CompareBuckets = { laptop: [], phone: [] };
+        prodList.forEach((p) => {
+          const trueCat = detectProductCategory(p.categoryCode, p.name, p.specs);
+          if (correctBuckets[trueCat].length < 3 && !correctBuckets[trueCat].includes(p.id)) {
+            correctBuckets[trueCat].push(p.id);
+          }
+        });
+
+        const isMismatched =
+          currentBuckets.laptop.length !== correctBuckets.laptop.length ||
+          currentBuckets.phone.length !== correctBuckets.phone.length ||
+          currentBuckets.laptop.some((id) => !correctBuckets.laptop.includes(id)) ||
+          currentBuckets.phone.some((id) => !correctBuckets.phone.includes(id));
+
+        if (isMismatched) {
+          saveCompareBuckets(correctBuckets);
+          setBuckets(correctBuckets);
+        }
+      }
+
+      // 3. Fetch AI summaries song song
       const validItems: CompareItem[] = await Promise.all(
         prodList.map(async (prod) => {
           let sData: SummaryDTO | undefined;
@@ -201,10 +226,12 @@ export const ComparePage: React.FC = () => {
 
       // Nếu truyền idsParam qua URL, cập nhật activeCategory đồng bộ
       if (idsParam && validItems.length > 0) {
-        const firstCat = (validItems[0].product.categoryCode || 'laptop').toLowerCase();
-        if (firstCat === 'phone' || firstCat === 'laptop') {
-          setActiveCategory(firstCat);
-        }
+        const firstCat = detectProductCategory(
+          validItems[0].product.categoryCode,
+          validItems[0].product.name,
+          validItems[0].product.specs
+        );
+        setActiveCategory(firstCat);
       }
     } catch (err) {
       console.error('Failed to load compare items:', err);
@@ -234,19 +261,24 @@ export const ComparePage: React.FC = () => {
 
   // Phát hiện danh mục chéo nếu có URL params can thiệp
   const distinctCategories = useMemo(() => {
-    const cats = new Set(items.map((x) => (x.product.categoryCode || 'laptop').toLowerCase()));
+    const cats = new Set(
+      items.map((x) =>
+        detectProductCategory(x.product.categoryCode, x.product.name, x.product.specs)
+      )
+    );
     return Array.from(cats);
   }, [items]);
 
-  const hasCategoryConflict = distinctCategories.length > 1;
+  const hasCategoryConflict = searchParams.get('ids') ? distinctCategories.length > 1 : false;
 
-  // Lọc sản phẩm theo danh mục đang chọn để bảo vệ tính nhất quán dữ liệu
+  // Lọc sản phẩm TUYỆT ĐỐI theo danh mục đang chọn để không bao giờ bị lẫn lộn giữa Laptop và Điện thoại
   const activeItems = useMemo(() => {
-    if (!hasCategoryConflict) return items;
     return items.filter(
-      (x) => (x.product.categoryCode || 'laptop').toLowerCase() === activeCategory
+      (x) =>
+        detectProductCategory(x.product.categoryCode, x.product.name, x.product.specs) ===
+        activeCategory
     );
-  }, [items, hasCategoryConflict, activeCategory]);
+  }, [items, activeCategory]);
 
   const handleRemove = (id: number) => {
     toggleCompareId(id, activeCategory);

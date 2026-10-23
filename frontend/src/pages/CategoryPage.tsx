@@ -252,12 +252,12 @@ export const CategoryPage: React.FC = () => {
     setFavorites(getFavoriteIds());
   };
 
-  const handleCompareToggle = (id: number, catCode?: string) => {
+  const handleCompareToggle = (id: number, catCode?: string, name?: string, specs?: Record<string, any>) => {
     if (!getAuthUser()) {
       navigate('/auth?mode=login&redirect=' + encodeURIComponent(location.pathname + location.search));
       return;
     }
-    toggleCompareId(id, catCode || activeType);
+    toggleCompareId(id, catCode || activeType, undefined, name, specs);
     setCompares(getCompareIds());
   };
 
@@ -571,7 +571,7 @@ export const CategoryPage: React.FC = () => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleCompareToggle(p.id, p.categoryCode)}
+                              onClick={() => handleCompareToggle(p.id, p.categoryCode || activeType, p.name, p.specs)}
                               title={comp ? 'Đã thêm so sánh' : 'Thêm vào so sánh'}
                               className={`p-1.5 rounded-lg border border-warm-text cursor-pointer transition-colors ${
                                 comp ? 'bg-amber-400 text-warm-text' : 'hover:bg-warm-bg text-warm-muted'
