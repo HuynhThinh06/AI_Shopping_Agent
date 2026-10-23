@@ -1,5 +1,6 @@
 package com.shoppingagent.search;
 
+import com.shoppingagent.admin.UserRepository;
 import com.shoppingagent.product.CategoryRepository;
 import com.shoppingagent.product.ProductRepository;
 import com.shoppingagent.product.ProductSpecRepository;
@@ -9,6 +10,7 @@ import com.shoppingagent.search.dto.SearchRequest;
 import com.shoppingagent.search.dto.SearchResponse;
 import com.shoppingagent.shared.entity.Product;
 import com.shoppingagent.shared.entity.SearchQuery;
+import com.shoppingagent.shared.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Orchestrator cho luồng tìm kiếm end-to-end:
@@ -32,7 +35,6 @@ import java.util.Map;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class SearchService {
 
     private final QueryParserService queryParserService;
@@ -43,6 +45,7 @@ public class SearchService {
     private final CategoryRepository categoryRepository;
     private final SearchQueryRepository searchQueryRepository;
     private final SearchResultRepository searchResultRepository;
+    private final UserRepository userRepository;
 
     @Autowired(required = false)
     private com.shoppingagent.shared.llm.GeminiClient geminiClient;
@@ -105,8 +108,7 @@ public class SearchService {
         // ── Bước 4: Lấy trọng số xếp hạng từ DB ──────────────────────────────
         Map<String, Double> weights = categoryRepository.findWeightsByCategoryCode(categoryCode.toLowerCase());
 
-        // ── Bước 5: Xếp hạng ──────────────────────────────────────────────────
-        // Lấy ứng viên và tính điểm xếp hạng toán học đa tiêu chí (SAW: weights + specs + price + rating)
+        // ── Bước 5: Xếp hạng DSS MCDM ─────────────────────────────────────────
         List<RankedProduct> baseRanked = rankingService.rank(
                 candidates, criteria, weights, request.getTopK() + 5);
 
@@ -115,22 +117,25 @@ public class SearchService {
                 request.getQueryText().toLowerCase().contains("không phải")
                 || request.getQueryText().toLowerCase().contains("ngoại trừ")
                 || request.getQueryText().toLowerCase().contains("trừ ")
+                || request.getQueryText().toLowerCase().contains("loại trừ")
+                || request.getQueryText().toLowerCase().contains("so với")
         );
 
-        if (llmRerankingEnabled || hasComplexNegation) {
+        if ((llmRerankingEnabled || hasComplexNegation) && baseRanked.size() > 1) {
             log.info("[Search] Running LLM reranking (enabled={}, hasComplexNegation={})",
                     llmRerankingEnabled, hasComplexNegation);
-            ranked = llmRerankingService.rerank(request.getQueryText(), baseRanked, request.getTopK());
+            try {
+                ranked = llmRerankingService.rerank(request.getQueryText(), baseRanked, request.getTopK());
+            } catch (Exception e) {
+                log.warn("[Search] LLM Reranking failed, using DSS ranking: {}", e.getMessage());
+                ranked = baseRanked.stream().limit(request.getTopK()).collect(Collectors.toList());
+            }
         } else {
-            ranked = baseRanked.stream().limit(request.getTopK()).toList();
+            ranked = baseRanked.stream().limit(request.getTopK()).collect(Collectors.toList());
         }
 
         // ── Bước 6: Lưu SearchQuery + SearchResult vào DB ─────────────────────
-        SearchQuery savedQuery = saveSearchQuery(request, userId, criteria, categoryCode);
-        if (geminiClient != null) {
-            geminiClient.bindLogsToSearchQuery(savedQuery);
-        }
-        searchResultRepository.saveAll(ranked, savedQuery.getId());
+        SearchQuery savedQuery = persistSearchQueryAndResults(request, userId, criteria, categoryCode, ranked);
 
         return SearchResponse.builder()
                 .queryId(savedQuery.getId())
@@ -140,7 +145,26 @@ public class SearchService {
                 .build();
     }
 
+    public SearchQuery persistSearchQueryAndResults(SearchRequest request, Long userId,
+                                                    ExtractedCriteria criteria, String categoryCode,
+                                                    List<RankedProduct> ranked) {
+        SearchQuery savedQuery = saveSearchQuery(request, userId, criteria, categoryCode);
+        if (geminiClient != null) {
+            geminiClient.bindLogsToSearchQuery(savedQuery);
+        }
+        searchResultRepository.saveAll(ranked, savedQuery.getId());
+        return savedQuery;
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private boolean shouldRerankWithLLM(String queryText) {
+        if (queryText == null) return false;
+        String lower = queryText.toLowerCase();
+        return lower.contains("không phải") || lower.contains("không lấy")
+                || lower.contains("trừ hãng") || lower.contains("loại trừ")
+                || lower.contains("tốt hơn") || lower.contains("so với");
+    }
 
     private String detectCategory(String queryText) {
         String lower = queryText.toLowerCase();
@@ -155,7 +179,10 @@ public class SearchService {
     private SearchQuery saveSearchQuery(SearchRequest request, Long userId,
                                          ExtractedCriteria criteria, String categoryCode) {
         var category = categoryRepository.findByCode(categoryCode.toLowerCase()).orElse(null);
-        com.shoppingagent.shared.entity.User userRef = userId != null ? com.shoppingagent.shared.entity.User.builder().id(userId.intValue()).build() : null;
+        User userRef = null;
+        if (userId != null) {
+            userRef = userRepository.findById(userId.intValue()).orElse(null);
+        }
 
         Map<String, Object> criteriaMap = new HashMap<>();
         if (criteria != null) {

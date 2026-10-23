@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { searchApi } from '../api/searchApi';
 import { categoryApi } from '../api/categoryApi';
 import type { SearchResponse, RankedProduct, CategoryFacetDTO, FacetOptionDTO } from '../types/search';
@@ -8,6 +8,8 @@ import {
   getAuthUser,
   toggleCompareId,
   getCompareIds,
+  clearCompare,
+  detectProductCategory,
 } from '../utils/storage';
 import {
   Sparkles,
@@ -204,6 +206,8 @@ export const getDefaultFacets = (categoryCode: string): CategoryFacetDTO[] => {
 
 export const SearchResultsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const queryParam = searchParams.get('q') || '';
   const user = getAuthUser();
 
@@ -248,7 +252,11 @@ export const SearchResultsPage: React.FC = () => {
       setCompareIds(getCompareIds());
     };
     window.addEventListener('compare-updated', handleCompareUpdate);
-    return () => window.removeEventListener('compare-updated', handleCompareUpdate);
+    window.addEventListener('auth-updated', handleCompareUpdate);
+    return () => {
+      window.removeEventListener('compare-updated', handleCompareUpdate);
+      window.removeEventListener('auth-updated', handleCompareUpdate);
+    };
   }, []);
 
   const showToast = (msg: string) => {
@@ -1355,7 +1363,16 @@ export const SearchResultsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => {
-                              toggleCompareId(product.productId);
+                              if (!getAuthUser()) {
+                                navigate('/auth?mode=login&redirect=' + encodeURIComponent(location.pathname + location.search));
+                                return;
+                              }
+                              const pCat = detectProductCategory(
+                                (product as any).categoryCode || result?.extractedCriteria?.categoryCode,
+                                product.name || product.productName,
+                                product.specs
+                              );
+                              toggleCompareId(product.productId, pCat, undefined, product.name || product.productName, product.specs);
                               setCompareIds(getCompareIds());
                             }}
                             className={`flex-1 py-2 rounded-xl border-2 border-warm-border text-xs font-extrabold shadow-brutal-xs flex items-center justify-center gap-1 cursor-pointer transition-all ${
@@ -1428,7 +1445,7 @@ export const SearchResultsPage: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                localStorage.setItem('shopping_agent_compare', JSON.stringify([]));
+                clearCompare();
                 setCompareIds([]);
               }}
               className="text-xs font-bold text-warm-muted hover:text-rose-600 px-2.5 py-1.5 cursor-pointer"

@@ -5,7 +5,7 @@ import { getAuthToken } from '../utils/storage';
 // ── Axios Client for React app ─────────────────────────────────────────────
 export const apiClient = axios.create({
   baseURL: '/api',
-  timeout: 45000, // 45s cho các cuộc gọi AI LLM
+  timeout: 25000, // 25s cho các truy vấn dữ liệu thông thường, đảm bảo an toàn với Cloud DB (Neon)
   headers: {
     'Content-Type': 'application/json',
   },

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getAuthUser, toggleCompareId, isInCompare } from '../utils/storage';
+import { getAuthUser, toggleCompareId, getCompareIds } from '../utils/storage';
 import { productApi } from '../api/productApi';
 import { apiClient } from '../api/client';
 import type { ProductDetailDTO } from '../types/product';
@@ -40,8 +40,21 @@ export const HomePage: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<ProductDetailDTO[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState<boolean>(true);
+  const [compares, setCompares] = useState<number[]>(() => getCompareIds());
   const navigate = useNavigate();
   const user = getAuthUser();
+
+  useEffect(() => {
+    const handleCompareUpdate = () => {
+      setCompares(getCompareIds());
+    };
+    window.addEventListener('compare-updated', handleCompareUpdate);
+    window.addEventListener('auth-updated', handleCompareUpdate);
+    return () => {
+      window.removeEventListener('compare-updated', handleCompareUpdate);
+      window.removeEventListener('auth-updated', handleCompareUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     // 1. Tải danh sách sản phẩm nổi bật qua GET /api/products/featured
@@ -300,15 +313,21 @@ export const HomePage: React.FC = () => {
                   <div className="pt-4 mt-4 border-t border-warm-border/10 flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => toggleCompareId(p.id)}
+                      onClick={() => {
+                        if (!getAuthUser()) {
+                          navigate('/auth?mode=login&redirect=/compare');
+                          return;
+                        }
+                        toggleCompareId(p.id, p.categoryCode, undefined, p.name, p.specs);
+                      }}
                       className={`py-2 px-3 rounded-xl border-2 border-warm-border text-xs font-bold shadow-brutal-xs flex items-center gap-1 cursor-pointer transition-all ${
-                        isInCompare(p.id)
+                        compares.includes(p.id)
                           ? 'bg-emerald-500 text-white'
                           : 'bg-warm-secondary text-warm-secondary-text hover:bg-amber-300'
                       }`}
                     >
                       <Scale className="w-3.5 h-3.5" />
-                      <span>{isInCompare(p.id) ? 'Đang so sánh' : '+ So sánh'}</span>
+                      <span>{compares.includes(p.id) ? 'Đang so sánh' : '+ So sánh'}</span>
                     </button>
 
                     <Link

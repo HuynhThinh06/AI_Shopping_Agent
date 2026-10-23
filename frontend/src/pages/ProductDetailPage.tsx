@@ -107,8 +107,12 @@ export const ProductDetailPage: React.FC = () => {
   };
 
   const handleCompareToggle = () => {
-    const nextState = toggleCompareId(productId);
-    setIsComp(nextState);
+    if (!user) {
+      navigate('/auth?mode=login&redirect=' + encodeURIComponent(location.pathname));
+      return;
+    }
+    toggleCompareId(productId, product?.categoryCode, undefined, product?.name, product?.specs);
+    setIsComp(isInCompare(productId));
   };
 
   const loadData = async () => {
