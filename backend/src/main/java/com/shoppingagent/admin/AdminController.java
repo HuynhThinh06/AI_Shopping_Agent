@@ -20,6 +20,7 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
+    private final ProductExcelService productExcelService;
 
     // ── 1. Thống kê hệ thống & Dashboard ────────────────────────────────────
 
@@ -165,5 +166,39 @@ public class AdminController {
     public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
         adminService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── 7. Nhập / Xuất Excel Sản phẩm ───────────────────────────────────────
+
+    @GetMapping("/products/export")
+    @Operation(summary = "Xuất danh sách sản phẩm ra file Excel (.xlsx)")
+    public ResponseEntity<byte[]> exportProducts(
+            @RequestParam(required = false) String categoryCode,
+            @RequestParam(required = false) String keyword) throws java.io.IOException {
+        byte[] excelBytes = productExcelService.exportProductsToExcel(categoryCode, keyword);
+        String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String filename = "products_export_" + timestamp + ".xlsx";
+
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(excelBytes);
+    }
+
+    @GetMapping("/products/template")
+    @Operation(summary = "Tải file mẫu Excel (.xlsx) để nhập sản phẩm")
+    public ResponseEntity<byte[]> downloadTemplate() throws java.io.IOException {
+        byte[] templateBytes = productExcelService.generateExcelTemplate();
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"product_import_template.xlsx\"")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(templateBytes);
+    }
+
+    @PostMapping(value = "/products/import", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Nhập danh sách sản phẩm hàng loạt từ file Excel (.xlsx / .xls)")
+    public ResponseEntity<com.shoppingagent.admin.dto.ProductExcelImportResultDTO> importProducts(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) throws java.io.IOException {
+        return ResponseEntity.ok(productExcelService.importProductsFromExcel(file));
     }
 }

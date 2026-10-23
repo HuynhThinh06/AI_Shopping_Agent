@@ -89,3 +89,44 @@ export async function getCategoriesList(includeInactive = false): Promise<Catego
   });
   return res.data;
 }
+
+export interface ProductExcelImportResultDTO {
+  totalRows: number;
+  successCount: number;
+  createdCount: number;
+  updatedCount: number;
+  errorCount: number;
+  errors: string[];
+  warnings: string[];
+}
+
+export async function exportProductsExcel(categoryCode?: string, keyword?: string): Promise<Blob> {
+  const params: Record<string, string> = {};
+  if (categoryCode) params.categoryCode = categoryCode;
+  if (keyword) params.keyword = keyword;
+
+  const res = await apiClient.get('/admin/products/export', {
+    params,
+    responseType: 'blob',
+  });
+  return res.data;
+}
+
+export async function downloadExcelTemplate(): Promise<Blob> {
+  const res = await apiClient.get('/admin/products/template', {
+    responseType: 'blob',
+  });
+  return res.data;
+}
+
+export async function importProductsExcel(file: File): Promise<ProductExcelImportResultDTO> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await apiClient.post<ProductExcelImportResultDTO>('/admin/products/import', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return res.data;
+}
