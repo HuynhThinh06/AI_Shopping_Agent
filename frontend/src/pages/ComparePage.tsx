@@ -3,7 +3,18 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import type { ProductDetailDTO } from '../types/product';
 import type { SummaryDTO } from '../types/review';
-import { getCompareIds, toggleCompareId, clearCompare, getAuthUser, type AuthUser } from '../utils/storage';
+import {
+  getCompareBuckets,
+  saveCompareBuckets,
+  detectProductCategory,
+  setCompareCategoryIds,
+  toggleCompareId,
+  clearCompare,
+  getAuthUser,
+  type AuthUser,
+  type CompareCategory,
+  type CompareBuckets,
+} from '../utils/storage';
 import {
   Scale,
   Trash2,
@@ -123,10 +134,21 @@ const PHONE_INTENTS: IntentOption[] = [
 export const ComparePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [user, setUser] = useState<AuthUser | null>(() => getAuthUser());
+  const [buckets, setBuckets] = useState(() => getCompareBuckets());
+
+  // Tự động phát hiện tab ban đầu từ URL hoặc dựa trên khoang có sản phẩm
+  const initialCategory = useMemo(() => {
+    const paramCat = searchParams.get('category')?.toLowerCase();
+    if (paramCat === 'phone' || paramCat === 'laptop') return paramCat;
+    const b = getCompareBuckets();
+    if (b.laptop.length === 0 && b.phone.length > 0) return 'phone';
+    return 'laptop';
+  }, []);
+
+  const [activeCategory, setActiveCategory] = useState<string>(initialCategory);
   const [items, setItems] = useState<CompareItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [showOnlyDifferences, setShowOnlyDifferences] = useState<boolean>(false);
-  const [activeCategory, setActiveCategory] = useState<string>('laptop');
   const [selectedIntent, setSelectedIntent] = useState<string>('all');
 
   const loadComparedProducts = async () => {
@@ -137,29 +159,56 @@ export const ComparePage: React.FC = () => {
       return;
     }
 
+    const currentBuckets = getCompareBuckets();
+    setBuckets(currentBuckets);
+
+    const idsParam = searchParams.get('ids');
+    let ids: number[] = [];
+
+    if (idsParam) {
+      ids = idsParam.split(',').map((x) => parseInt(x.trim(), 10)).filter(Boolean);
+    } else {
+      // Tải tất cả các ID từ cả 2 khoang để tự động phân loại đúng danh mục (Self-Healing)
+      ids = Array.from(new Set([...currentBuckets.laptop, ...currentBuckets.phone]));
+    }
+
+    if (ids.length === 0) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const idsParam = searchParams.get('ids');
-      let ids: number[] = [];
-      if (idsParam) {
-        ids = idsParam.split(',').map((x) => parseInt(x.trim(), 10)).filter(Boolean);
-      } else {
-        ids = getCompareIds();
-      }
-
-      if (ids.length === 0) {
-        setItems([]);
-        setLoading(false);
-        return;
-      }
-
       // 1. Batch fetch products (1 SQL query duy nhất)
       const pRes = await apiClient.get<ProductDetailDTO[]>('/products/by-ids', {
         params: { ids: ids.join(',') },
       });
       const prodList = pRes.data || [];
 
-      // 2. Fetch AI summaries song song
+      // 2. Tự động kiểm tra và sắp xếp lại sản phẩm vào đúng bucket thực tế (Self-Healing)
+      if (!idsParam) {
+        const correctBuckets: CompareBuckets = { laptop: [], phone: [] };
+        prodList.forEach((p) => {
+          const trueCat = detectProductCategory(p.categoryCode, p.name, p.specs);
+          if (correctBuckets[trueCat].length < 3 && !correctBuckets[trueCat].includes(p.id)) {
+            correctBuckets[trueCat].push(p.id);
+          }
+        });
+
+        const isMismatched =
+          currentBuckets.laptop.length !== correctBuckets.laptop.length ||
+          currentBuckets.phone.length !== correctBuckets.phone.length ||
+          currentBuckets.laptop.some((id) => !correctBuckets.laptop.includes(id)) ||
+          currentBuckets.phone.some((id) => !correctBuckets.phone.includes(id));
+
+        if (isMismatched) {
+          saveCompareBuckets(correctBuckets);
+          setBuckets(correctBuckets);
+        }
+      }
+
+      // 3. Fetch AI summaries song song
       const validItems: CompareItem[] = await Promise.all(
         prodList.map(async (prod) => {
           let sData: SummaryDTO | undefined;
@@ -175,15 +224,14 @@ export const ComparePage: React.FC = () => {
 
       setItems(validItems);
 
-      // Determine initial activeCategory based on the majority
-      if (validItems.length > 0) {
-        const catCounts: Record<string, number> = {};
-        validItems.forEach((it) => {
-          const cat = (it.product.categoryCode || 'laptop').toLowerCase();
-          catCounts[cat] = (catCounts[cat] || 0) + 1;
-        });
-        const majority = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'laptop';
-        setActiveCategory(majority);
+      // Nếu truyền idsParam qua URL, cập nhật activeCategory đồng bộ
+      if (idsParam && validItems.length > 0) {
+        const firstCat = detectProductCategory(
+          validItems[0].product.categoryCode,
+          validItems[0].product.name,
+          validItems[0].product.specs
+        );
+        setActiveCategory(firstCat);
       }
     } catch (err) {
       console.error('Failed to load compare items:', err);
@@ -194,12 +242,14 @@ export const ComparePage: React.FC = () => {
 
   useEffect(() => {
     loadComparedProducts();
+  }, [searchParams, activeCategory]);
 
+  useEffect(() => {
     const handleUpdate = () => {
       setUser(getAuthUser());
-      if (!searchParams.get('ids')) {
-        loadComparedProducts();
-      }
+      const b = getCompareBuckets();
+      setBuckets(b);
+      loadComparedProducts();
     };
     window.addEventListener('auth-updated', handleUpdate);
     window.addEventListener('compare-updated', handleUpdate);
@@ -207,34 +257,50 @@ export const ComparePage: React.FC = () => {
       window.removeEventListener('auth-updated', handleUpdate);
       window.removeEventListener('compare-updated', handleUpdate);
     };
-  }, [searchParams]);
+  }, [activeCategory]);
 
-  // Detect distinct categories in current items
+  // Phát hiện danh mục chéo nếu có URL params can thiệp
   const distinctCategories = useMemo(() => {
-    const cats = new Set(items.map((x) => (x.product.categoryCode || 'laptop').toLowerCase()));
+    const cats = new Set(
+      items.map((x) =>
+        detectProductCategory(x.product.categoryCode, x.product.name, x.product.specs)
+      )
+    );
     return Array.from(cats);
   }, [items]);
 
-  const hasCategoryConflict = distinctCategories.length > 1;
+  const hasCategoryConflict = searchParams.get('ids') ? distinctCategories.length > 1 : false;
 
-  // Filter items to strictly belong to active category
+  // Lọc sản phẩm TUYỆT ĐỐI theo danh mục đang chọn để không bao giờ bị lẫn lộn giữa Laptop và Điện thoại
   const activeItems = useMemo(() => {
-    if (!hasCategoryConflict) return items;
     return items.filter(
-      (x) => (x.product.categoryCode || 'laptop').toLowerCase() === activeCategory
+      (x) =>
+        detectProductCategory(x.product.categoryCode, x.product.name, x.product.specs) ===
+        activeCategory
     );
-  }, [items, hasCategoryConflict, activeCategory]);
+  }, [items, activeCategory]);
 
   const handleRemove = (id: number) => {
-    toggleCompareId(id);
+    toggleCompareId(id, activeCategory);
     const remaining = items.filter((x) => x.product.id !== id);
     setItems(remaining);
-    setSearchParams({ ids: remaining.map((x) => x.product.id).join(',') });
+    setBuckets(getCompareBuckets());
+    if (searchParams.get('ids')) {
+      setSearchParams({ ids: remaining.map((x) => x.product.id).join(','), category: activeCategory });
+    }
   };
 
-  const handleClear = () => {
-    clearCompare();
+  const handleClearCategory = () => {
+    clearCompare(activeCategory as CompareCategory);
     setItems([]);
+    setBuckets(getCompareBuckets());
+    setSearchParams({ category: activeCategory });
+  };
+
+  const handleClearAll = () => {
+    clearCompare('all');
+    setItems([]);
+    setBuckets({ laptop: [], phone: [] });
     setSearchParams({});
   };
 
@@ -244,16 +310,14 @@ export const ComparePage: React.FC = () => {
     );
     setItems(keepList);
     setActiveCategory(catToKeep);
-    setSearchParams({ ids: keepList.map((x) => x.product.id).join(',') });
-    // Update storage
-    clearCompare();
-    keepList.forEach((x) => toggleCompareId(x.product.id, catToKeep));
+    setSearchParams({ ids: keepList.map((x) => x.product.id).join(','), category: catToKeep });
+    setCompareCategoryIds(catToKeep, keepList.map((x) => x.product.id));
   };
 
-  const handleAddSample = (ids: number[]) => {
-    clearCompare();
-    ids.forEach((id) => toggleCompareId(id, 'laptop'));
-    setSearchParams({ ids: ids.join(',') });
+  const handleAddSample = (ids: number[], cat: string) => {
+    setCompareCategoryIds(cat, ids);
+    setActiveCategory(cat);
+    setSearchParams({ category: cat });
   };
 
   const formatPrice = (price: number) => {
@@ -568,7 +632,7 @@ export const ComparePage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full bg-warm-secondary border border-warm-text text-warm-secondary-text text-xs font-black uppercase">
-              So sánh đa chiều
+              So sánh đa chiều theo ngành hàng
             </span>
             <span className="text-xs text-warm-muted font-bold font-mono">
               {activeItems.length} / 3 sản phẩm ({activeCategory === 'phone' ? 'Điện thoại' : 'Laptop'})
@@ -583,8 +647,8 @@ export const ComparePage: React.FC = () => {
           </p>
         </div>
 
-        {items.length > 0 && (
-          <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {activeItems.length > 0 && (
             <button
               type="button"
               onClick={() => setShowOnlyDifferences(!showOnlyDifferences)}
@@ -598,17 +662,90 @@ export const ComparePage: React.FC = () => {
               <SlidersHorizontal className="w-3.5 h-3.5" />
               <span>{showOnlyDifferences ? 'Hiển thị tất cả' : 'Chỉ xem khác biệt'}</span>
             </button>
+          )}
 
+          {activeItems.length > 0 && (
             <button
               type="button"
-              onClick={handleClear}
+              onClick={handleClearCategory}
               className="px-3.5 py-2 rounded-xl bg-warm-bg hover:bg-rose-100 text-rose-700 font-black text-xs border border-warm-text shadow-brutal-xs flex items-center gap-1.5 cursor-pointer"
+              title={`Xóa danh sách so sánh ${activeCategory === 'phone' ? 'Điện thoại' : 'Laptop'}`}
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Xóa tất cả</span>
+              <span>Xóa {activeCategory === 'phone' ? 'Điện thoại' : 'Laptop'}</span>
             </button>
-          </div>
-        )}
+          )}
+
+          {(buckets.laptop.length > 0 || buckets.phone.length > 0) && (
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="px-3 py-2 rounded-xl bg-warm-bg hover:bg-stone-200 text-stone-600 font-bold text-xs border border-warm-text/30 flex items-center gap-1 cursor-pointer"
+              title="Xóa toàn bộ cả 2 ngành hàng"
+            >
+              <span>Xóa tất cả (cả 2)</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Category Buckets Tab Switcher */}
+      <div className="flex border-b-2 border-warm-text gap-3 pt-1">
+        <button
+          type="button"
+          onClick={() => {
+            setActiveCategory('laptop');
+            setSearchParams((prev) => {
+              const p = new URLSearchParams(prev);
+              p.set('category', 'laptop');
+              p.delete('ids');
+              return p;
+            });
+          }}
+          className={`px-5 py-3 font-black text-xs sm:text-sm border-2 border-b-0 border-warm-text rounded-t-xl flex items-center gap-2 cursor-pointer transition-all ${
+            activeCategory === 'laptop'
+              ? 'bg-amber-400 text-stone-950 shadow-brutal-xs -translate-y-1'
+              : 'bg-warm-surface text-warm-muted hover:text-warm-text hover:bg-warm-secondary'
+          }`}
+        >
+          <Laptop className="w-4 h-4" />
+          <span>So sánh Laptop</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+              activeCategory === 'laptop' ? 'bg-stone-950 text-amber-300' : 'bg-warm-bg text-warm-muted'
+            }`}
+          >
+            {buckets.laptop.length}/3
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveCategory('phone');
+            setSearchParams((prev) => {
+              const p = new URLSearchParams(prev);
+              p.set('category', 'phone');
+              p.delete('ids');
+              return p;
+            });
+          }}
+          className={`px-5 py-3 font-black text-xs sm:text-sm border-2 border-b-0 border-warm-text rounded-t-xl flex items-center gap-2 cursor-pointer transition-all ${
+            activeCategory === 'phone'
+              ? 'bg-amber-400 text-stone-950 shadow-brutal-xs -translate-y-1'
+              : 'bg-warm-surface text-warm-muted hover:text-warm-text hover:bg-warm-secondary'
+          }`}
+        >
+          <Smartphone className="w-4 h-4" />
+          <span>So sánh Điện thoại</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
+              activeCategory === 'phone' ? 'bg-stone-950 text-amber-300' : 'bg-warm-bg text-warm-muted'
+            }`}
+          >
+            {buckets.phone.length}/3
+          </span>
+        </button>
       </div>
 
       {/* Category Mismatch Warning Banner */}
@@ -679,28 +816,40 @@ export const ComparePage: React.FC = () => {
       ) : activeItems.length === 0 ? (
         <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-8 sm:p-12 shadow-brutal text-center space-y-4">
           <div className="w-16 h-16 rounded-2xl bg-warm-secondary border-2 border-warm-text mx-auto flex items-center justify-center text-3xl shadow-brutal-xs">
-            ⚖️
+            {activeCategory === 'phone' ? '📱' : '💻'}
           </div>
           <div className="max-w-md mx-auto">
-            <h2 className="text-lg font-black text-warm-text">Chưa có sản phẩm nào trong bảng so sánh</h2>
+            <h2 className="text-lg font-black text-warm-text">
+              Chưa có {activeCategory === 'phone' ? 'điện thoại' : 'laptop'} nào trong bảng so sánh (Tối đa 3 máy)
+            </h2>
             <p className="text-xs text-warm-muted mt-1 leading-relaxed">
-              Bạn có thể bấm vào biểu tượng cán cân (⚖️) trên bất kỳ thẻ sản phẩm nào ở trang Tìm kiếm hoặc Danh mục để đưa vào đây đối chiếu.
+              Bạn có thể bấm vào biểu tượng cán cân (⚖️) trên bất kỳ thẻ sản phẩm nào ở trang Tìm kiếm hoặc Danh mục để đưa vào khoang {activeCategory === 'phone' ? 'Điện thoại' : 'Laptop'}.
             </p>
           </div>
 
           <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => handleAddSample([1, 2])}
-              className="px-4 py-2 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs border-2 border-warm-text shadow-brutal-xs hover:bg-warm-primary-hover cursor-pointer"
-            >
-              Thử so sánh mẫu Laptop: Asus Vivobook vs ThinkPad E16
-            </button>
+            {activeCategory === 'laptop' ? (
+              <button
+                type="button"
+                onClick={() => handleAddSample([169, 171], 'laptop')}
+                className="px-4 py-2 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs border-2 border-warm-text shadow-brutal-xs hover:bg-warm-primary-hover cursor-pointer"
+              >
+                Thử so sánh mẫu Laptop: MacBook Air M5 vs Vivobook 16
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleAddSample([192, 193], 'phone')}
+                className="px-4 py-2 rounded-xl bg-warm-primary text-warm-primary-text font-black text-xs border-2 border-warm-text shadow-brutal-xs hover:bg-warm-primary-hover cursor-pointer"
+              >
+                Thử so sánh mẫu Điện thoại: Nothing Phone (4a) vs Galaxy A37
+              </button>
+            )}
             <Link
-              to="/category?type=laptop"
+              to={`/category?type=${activeCategory}`}
               className="px-4 py-2 rounded-xl bg-warm-bg text-warm-text font-bold text-xs border border-warm-text shadow-brutal-xs hover:bg-warm-secondary"
             >
-              Duyệt danh mục sản phẩm
+              Duyệt danh mục {activeCategory === 'phone' ? 'Điện thoại' : 'Laptop'}
             </Link>
           </div>
         </div>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
-import { queryCache } from '../utils/queryCache';
 import type { ProductDetailDTO } from '../types/product';
 import {
   getFavoriteIds,
@@ -18,61 +17,33 @@ import { Heart, Trash2, Scale, Star, Sparkles, ShoppingBag, LogIn } from 'lucide
 export const FavoritesPage: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(() => getAuthUser());
-  const [products, setProducts] = useState<ProductDetailDTO[]>(() => {
-    return queryCache.getPersistent<ProductDetailDTO[]>('user_favorites_products') || [];
-  });
-  const [loading, setLoading] = useState<boolean>(() => {
-    const ids = getFavoriteIds();
-    if (!ids || ids.length === 0) return false;
-    return !queryCache.has('user_favorites_products');
-  });
+  const [products, setProducts] = useState<ProductDetailDTO[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [compares, setCompares] = useState<number[]>(() => getCompareIds());
 
   const loadFavorites = async (skipBackendSync = false) => {
-    const ids = getFavoriteIds();
+    let ids = getFavoriteIds();
+
+    if (!skipBackendSync) {
+      const currentUser = getAuthUser();
+      if (currentUser?.email) {
+        ids = await syncFavoritesFromBackend(currentUser.email);
+      }
+    }
+
     if (!ids || ids.length === 0) {
       setProducts([]);
-      queryCache.setPersistent('user_favorites_products', [], 30 * 60 * 1000);
       setLoading(false);
-      if (!skipBackendSync) {
-        const currentUser = getAuthUser();
-        if (currentUser?.email) {
-          const remoteIds = await syncFavoritesFromBackend(currentUser.email);
-          if (remoteIds.length > 0) return;
-        }
-      }
       return;
     }
 
-    const cached = queryCache.getPersistent<ProductDetailDTO[]>('user_favorites_products');
-    if (cached && cached.length > 0) {
-      setProducts(cached);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-
+    setLoading(true);
     try {
-      if (!skipBackendSync) {
-        const currentUser = getAuthUser();
-        if (currentUser?.email) {
-          await syncFavoritesFromBackend(currentUser.email);
-        }
-      }
-      const updatedIds = getFavoriteIds();
-      if (updatedIds.length === 0) {
-        setProducts([]);
-        queryCache.setPersistent('user_favorites_products', [], 30 * 60 * 1000);
-        setLoading(false);
-        return;
-      }
-
-      // Batch query tối ưu: Gom tất cả ID vào 1 request duy nhất (1 câu SQL SELECT IN)
+      // Gom tất cả ID vào 1 request duy nhất (1 câu SQL SELECT IN)
       const res = await apiClient.get<ProductDetailDTO[]>('/products/by-ids', {
-        params: { ids: updatedIds.join(',') },
+        params: { ids: ids.join(',') },
       });
       const list = res.data || [];
-      queryCache.setPersistent('user_favorites_products', list, 30 * 60 * 1000);
       setProducts(list);
     } catch (err) {
       console.error('Failed to load favorites:', err);
@@ -133,15 +104,11 @@ export const FavoritesPage: React.FC = () => {
 
   const handleRemove = (id: number) => {
     toggleFavoriteId(id);
-    setProducts((prev) => {
-      const next = prev.filter((p) => p.id !== id);
-      queryCache.setPersistent('user_favorites_products', next, 30 * 60 * 1000);
-      return next;
-    });
+    setProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
-  const handleCompareToggle = (id: number) => {
-    toggleCompareId(id);
+  const handleCompareToggle = (id: number, catCode?: string, name?: string, specs?: Record<string, any>) => {
+    toggleCompareId(id, catCode, undefined, name, specs);
     setCompares(getCompareIds());
   };
 
@@ -314,7 +281,7 @@ export const FavoritesPage: React.FC = () => {
                 <div className="mt-5 pt-3 border-t border-warm-border/10 flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => handleCompareToggle(p.id)}
+                    onClick={() => handleCompareToggle(p.id, p.categoryCode, p.name, p.specs)}
                     className={`py-2 px-3 rounded-xl border-2 border-warm-border text-xs font-extrabold flex items-center gap-1 cursor-pointer transition-all shadow-brutal-xs ${
                       comp
                         ? 'bg-emerald-500 text-white'

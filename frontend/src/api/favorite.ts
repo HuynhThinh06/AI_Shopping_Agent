@@ -6,17 +6,17 @@ export interface ToggleFavoriteResponse {
   message: string;
 }
 
-export async function fetchUserFavoriteIds(userEmail?: string, userId?: number): Promise<number[]> {
+export async function fetchUserFavoriteIds(userEmail?: string, userId?: number): Promise<number[] | null> {
   try {
     const params: Record<string, string | number> = {};
     if (userEmail) params.userEmail = userEmail;
     if (userId) params.userId = userId;
 
     const res = await apiClient.get<number[]>('/favorites', { params });
-    return res.data || [];
+    return Array.isArray(res.data) ? res.data : [];
   } catch (err) {
     console.warn('[Favorites API] Failed to fetch favorites from backend:', err);
-    return [];
+    return null;
   }
 }
 

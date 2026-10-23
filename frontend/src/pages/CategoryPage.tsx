@@ -6,7 +6,13 @@ import { queryCache } from '../utils/queryCache';
 import type { ProductDetailDTO } from '../types/product';
 import type { PageResponse } from '../types/review';
 import type { CategoryFacetDTO } from '../types/search';
-import { toggleFavoriteId, isFavoriteId, toggleCompareId, isInCompare, getAuthUser } from '../utils/storage';
+import {
+  toggleFavoriteId,
+  toggleCompareId,
+  getAuthUser,
+  getCompareIds,
+  getFavoriteIds,
+} from '../utils/storage';
 import {
   Laptop,
   Smartphone,
@@ -43,8 +49,24 @@ export const CategoryPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>('rating');
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [pageSize, setPageSize] = useState<number>(24);
-  const [favorites, setFavorites] = useState<number[]>([]);
-  const [compares, setCompares] = useState<number[]>([]);
+  const [favorites, setFavorites] = useState<number[]>(() => getFavoriteIds());
+  const [compares, setCompares] = useState<number[]>(() => getCompareIds());
+
+  // Lắng nghe cập nhật tức thời từ Storage (Compare & Favorites)
+  useEffect(() => {
+    const handleStorageUpdate = () => {
+      setFavorites(getFavoriteIds());
+      setCompares(getCompareIds());
+    };
+    window.addEventListener('compare-updated', handleStorageUpdate);
+    window.addEventListener('favorites-updated', handleStorageUpdate);
+    window.addEventListener('auth-updated', handleStorageUpdate);
+    return () => {
+      window.removeEventListener('compare-updated', handleStorageUpdate);
+      window.removeEventListener('favorites-updated', handleStorageUpdate);
+      window.removeEventListener('auth-updated', handleStorageUpdate);
+    };
+  }, []);
 
   // Load facets for current category
   useEffect(() => {
@@ -227,16 +249,16 @@ export const CategoryPage: React.FC = () => {
       return;
     }
     toggleFavoriteId(id);
-    setFavorites((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setFavorites(getFavoriteIds());
   };
 
-  const handleCompareToggle = (id: number) => {
+  const handleCompareToggle = (id: number, catCode?: string, name?: string, specs?: Record<string, any>) => {
     if (!getAuthUser()) {
       navigate('/auth?mode=login&redirect=' + encodeURIComponent(location.pathname + location.search));
       return;
     }
-    toggleCompareId(id);
-    setCompares((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    toggleCompareId(id, catCode || activeType, undefined, name, specs);
+    setCompares(getCompareIds());
   };
 
   const formatPrice = (price: number) => {
@@ -520,8 +542,8 @@ export const CategoryPage: React.FC = () => {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {paginatedProducts.map((p) => {
-                  const fav = isFavoriteId(p.id) || favorites.includes(p.id);
-                  const comp = isInCompare(p.id) || compares.includes(p.id);
+                  const fav = favorites.includes(p.id);
+                  const comp = compares.includes(p.id);
 
                   return (
                     <div
@@ -549,7 +571,7 @@ export const CategoryPage: React.FC = () => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleCompareToggle(p.id)}
+                              onClick={() => handleCompareToggle(p.id, p.categoryCode || activeType, p.name, p.specs)}
                               title={comp ? 'Đã thêm so sánh' : 'Thêm vào so sánh'}
                               className={`p-1.5 rounded-lg border border-warm-text cursor-pointer transition-colors ${
                                 comp ? 'bg-amber-400 text-warm-text' : 'hover:bg-warm-bg text-warm-muted'
