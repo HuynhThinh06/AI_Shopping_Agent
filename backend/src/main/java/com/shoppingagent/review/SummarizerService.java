@@ -50,7 +50,7 @@ public class SummarizerService {
         String currentHash = generateHash(validReviews);
 
         // 3. Kiểm tra cache
-        ReviewSummary cached = product.getReviewSummary();
+        ReviewSummary cached = reviewSummaryRepository.findById(productId).orElse(null);
         if (isCacheValid(cached, currentHash)) {
             log.info("[Summarizer] Cache hit for product {}", productId);
             return toDTO(cached, true);
