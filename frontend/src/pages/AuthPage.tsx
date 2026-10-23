@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { saveAuthUser, saveAuthToken } from '../utils/storage';
+import { saveAuthUser, saveAuthToken, saveRefreshToken } from '../utils/storage';
 import { authApi } from '../api/authApi';
 import {
   Sparkles,
@@ -128,7 +128,10 @@ export const AuthPage: React.FC = () => {
         password: loginPass,
       });
 
-      saveAuthToken(res.token);
+      saveAuthToken(res.accessToken || res.token);
+      if (res.refreshToken) {
+        saveRefreshToken(res.refreshToken);
+      }
       const displayName = res.user.displayName || fallbackName || loginEmail.split('@')[0];
       const initials = displayName
         ? displayName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
@@ -249,7 +252,10 @@ export const AuthPage: React.FC = () => {
           displayName: name || username,
         });
 
-        saveAuthToken(res.token);
+        saveAuthToken(res.accessToken || res.token);
+      if (res.refreshToken) {
+        saveRefreshToken(res.refreshToken);
+      }
         const displayName = res.user.displayName || name || username;
         const initials = displayName
           ? displayName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
