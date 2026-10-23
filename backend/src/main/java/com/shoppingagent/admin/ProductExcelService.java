@@ -497,6 +497,10 @@ public class ProductExcelService {
                 if (c3 != null) c3.clear();
                 var c4 = cacheManager.getCache("queryCriteria");
                 if (c4 != null) c4.clear();
+                var c5 = cacheManager.getCache("adminSystemStats");
+                if (c5 != null) c5.clear();
+                var c6 = cacheManager.getCache("adminDashboardStats");
+                if (c6 != null) c6.clear();
             }
         } catch (Exception ex) {
             log.warn("[ProductExcel] Failed to clear caches after import: {}", ex.getMessage());

@@ -72,8 +72,9 @@ public class SecurityConfig {
                         })
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // Cho phép preflight CORS OPTIONS requests
+                        // Cho phép preflight CORS OPTIONS requests & error dispatch
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/error", "/api/error").permitAll()
 
                         // Auth endpoints
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()

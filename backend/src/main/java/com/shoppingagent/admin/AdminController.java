@@ -45,8 +45,9 @@ public class AdminController {
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(defaultValue = "all", required = false) String filter
     ) {
-        int safeSize = Math.min(size, 100);
-        Pageable pageable = PageRequest.of(page, safeSize, Sort.by("createdAt").descending());
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("createdAt").descending());
         return ResponseEntity.ok(adminService.getReviews(pageable, filter));
     }
 
@@ -113,8 +114,9 @@ public class AdminController {
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(required = false) String requestType,
             @RequestParam(required = false) String status) {
-        int safeSize = Math.min(size, 100);
-        return ResponseEntity.ok(adminService.getLlmLogs(PageRequest.of(page, safeSize), requestType, status));
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 50);
+        return ResponseEntity.ok(adminService.getLlmLogs(PageRequest.of(safePage, safeSize), requestType, status));
     }
 
     // ── 5. Benchmark thực nghiệm & GIN Index ─────────────────────────────────
@@ -143,8 +145,9 @@ public class AdminController {
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String role) {
-        int safeSize = Math.min(size, 100);
-        return ResponseEntity.ok(adminService.getUsers(PageRequest.of(page, safeSize, Sort.by("id").ascending()), keyword, role));
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        return ResponseEntity.ok(adminService.getUsers(PageRequest.of(safePage, safeSize, Sort.by("id").ascending()), keyword, role));
     }
 
     @PutMapping("/users/{id}/role")

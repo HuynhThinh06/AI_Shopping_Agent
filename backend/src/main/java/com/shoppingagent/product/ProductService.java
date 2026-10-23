@@ -124,7 +124,7 @@ public class ProductService {
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"featuredProducts", "categoryFacets", "productDetails"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"featuredProducts", "categoryFacets", "productDetails", "adminSystemStats", "adminDashboardStats"}, allEntries = true)
     public ProductDetailDTO createProduct(ProductCreateRequest request, List<MultipartFile> images) {
         Category category = categoryRepository.findByCode(request.getCategoryCode())
                 .orElseThrow(() -> new IllegalArgumentException("Category not found: " + request.getCategoryCode()));
@@ -183,7 +183,7 @@ public class ProductService {
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"featuredProducts", "categoryFacets", "productDetails"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"featuredProducts", "categoryFacets", "productDetails", "adminSystemStats", "adminDashboardStats"}, allEntries = true)
     public ProductDetailDTO updateProduct(Long id, com.shoppingagent.product.dto.ProductUpdateRequest request, List<MultipartFile> images) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
@@ -248,7 +248,7 @@ public class ProductService {
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = {"featuredProducts", "categoryFacets", "productDetails"}, allEntries = true)
+    @org.springframework.cache.annotation.CacheEvict(value = {"featuredProducts", "categoryFacets", "productDetails", "adminSystemStats", "adminDashboardStats"}, allEntries = true)
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));

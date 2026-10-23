@@ -4,6 +4,7 @@ import com.shoppingagent.admin.dto.*;
 import com.shoppingagent.product.CategoryRepository;
 import com.shoppingagent.product.ProductRepository;
 import com.shoppingagent.review.ReviewRepository;
+import com.shoppingagent.review.ReviewSummaryRepository;
 import com.shoppingagent.review.SummarizerService;
 import com.shoppingagent.review.dto.ReviewResponseDTO;
 import com.shoppingagent.search.SearchQueryRepository;
@@ -13,13 +14,18 @@ import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -35,6 +41,7 @@ public class AdminService {
     private final CategoryRepository categoryRepository;
     private final LlmLogRepository llmLogRepository;
     private final UserRepository userRepository;
+    private final ReviewSummaryRepository reviewSummaryRepository;
     private final EntityManager entityManager;
 
     @Autowired(required = false)
@@ -43,6 +50,7 @@ public class AdminService {
     // ── 1. Thống kê tổng quan (Dashboard / KPIs) ────────────────────────────
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "adminSystemStats")
     public SystemStatsDTO getSystemStats() {
         long activeProducts = productRepository.countByIsActiveTrue();
         long totalProducts = activeProducts > 0 ? activeProducts : productRepository.count();
@@ -93,6 +101,7 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "adminDashboardStats")
     public AdminStatsDTO getDashboardStats() {
         long activeProducts = productRepository.countByIsActiveTrue();
         long totalProducts = activeProducts > 0 ? activeProducts : productRepository.count();
@@ -153,7 +162,7 @@ public class AdminService {
                 .topRecommendation("Đã xếp hạng AI")
                 .latencyMs(0)
                 .status("200 OK")
-                .createdAt(sq.getCreatedAt())
+                .createdAt(sq.getCreatedAt() != null ? sq.getCreatedAt() : LocalDateTime.now())
                 .build();
     }
 
@@ -202,6 +211,7 @@ public class AdminService {
     }
 
     @Transactional
+    @CacheEvict(value = {"adminSystemStats", "adminDashboardStats"}, allEntries = true)
     public AdminReviewDTO toggleReviewSpam(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy review ID: " + reviewId));
@@ -214,6 +224,7 @@ public class AdminService {
     }
 
     @Transactional
+    @CacheEvict(value = {"adminSystemStats", "adminDashboardStats"}, allEntries = true)
     public AdminReviewDTO approveReview(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy review ID: " + reviewId));
@@ -225,6 +236,7 @@ public class AdminService {
     }
 
     @Transactional
+    @CacheEvict(value = {"adminSystemStats", "adminDashboardStats"}, allEntries = true)
     public void deleteReview(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy review ID: " + reviewId));
@@ -247,10 +259,9 @@ public class AdminService {
     @Transactional
     public void triggerReSummarize(Long productId) {
         if (productId != null && summarizerService != null) {
-            productRepository.findById(productId).ifPresent(p -> {
-                if (p.getReviewSummary() != null) {
-                    p.getReviewSummary().setReviewHash("FORCE_REFRESH");
-                }
+            reviewSummaryRepository.findById(productId).ifPresent(rs -> {
+                rs.setReviewHash("FORCE_REFRESH");
+                reviewSummaryRepository.save(rs);
             });
             summarizerService.getSummary(productId);
         }
@@ -285,17 +296,48 @@ public class AdminService {
         return result;
     }
 
+    private static final Set<String> ALLOWED_CRITERIA = Set.of("price", "rating", "spec_match");
+
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = "categoryWeights", allEntries = true)
+    @CacheEvict(value = "categoryWeights", allEntries = true)
     public Map<String, Double> updateCategoryWeights(String categoryCode, Map<String, Double> newWeights) {
+        if (categoryCode == null || categoryCode.isBlank()) {
+            throw new IllegalArgumentException("Mã ngành hàng không được để trống");
+        }
+        if (newWeights == null || newWeights.isEmpty()) {
+            throw new IllegalArgumentException("Dữ liệu trọng số không được để trống");
+        }
+
         Category category = categoryRepository.findByCode(categoryCode.toLowerCase())
-                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + categoryCode));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ngành hàng: " + categoryCode));
 
         for (Map.Entry<String, Double> entry : newWeights.entrySet()) {
             String criteria = entry.getKey().toLowerCase();
-            BigDecimal weightVal = BigDecimal.valueOf(entry.getValue()).setScale(2, RoundingMode.HALF_UP);
+            if (!ALLOWED_CRITERIA.contains(criteria)) {
+                throw new IllegalArgumentException("Tiêu chí không hợp lệ: '" + criteria + "'. Chỉ hỗ trợ: " + ALLOWED_CRITERIA);
+            }
+            if (entry.getValue() == null || entry.getValue() < 0) {
+                throw new IllegalArgumentException("Trọng số cho tiêu chí '" + criteria + "' không được âm");
+            }
+        }
 
-            Optional<RankingWeight> opt = rankingWeightRepository.findByCategoryCodeAndCriteria(categoryCode, criteria);
+        if (newWeights.size() >= 3) {
+            double sum = newWeights.values().stream().mapToDouble(Double::doubleValue).sum();
+            boolean validSum = (Math.abs(sum - 1.0) < 0.05) || (Math.abs(sum - 100.0) < 0.5);
+            if (!validSum) {
+                throw new IllegalArgumentException("Tổng các trọng số phải xấp xỉ bằng 100% (hoặc 1.0). Tổng hiện tại: " + sum);
+            }
+        }
+
+        for (Map.Entry<String, Double> entry : newWeights.entrySet()) {
+            String criteria = entry.getKey().toLowerCase();
+            double val = entry.getValue();
+            if (val > 1.0) {
+                val = val * 0.01;
+            }
+            BigDecimal weightVal = BigDecimal.valueOf(val).setScale(2, RoundingMode.HALF_UP);
+
+            Optional<RankingWeight> opt = rankingWeightRepository.findByCategoryCodeAndCriteria(categoryCode.toLowerCase(), criteria);
             if (opt.isPresent()) {
                 RankingWeight rw = opt.get();
                 rw.setWeight(weightVal);
@@ -314,46 +356,12 @@ public class AdminService {
     }
 
     @Transactional
-    @org.springframework.cache.annotation.CacheEvict(value = "categoryWeights", allEntries = true)
+    @CacheEvict(value = "categoryWeights", allEntries = true)
     public Map<String, Double> updateRankingWeights(RankingWeightDTO dto) {
-        String catCode = dto.getCategoryCode().toLowerCase();
-        Category category = categoryRepository.findByCode(catCode)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ngành hàng: " + catCode));
-
-        Map<String, Double> weights = dto.getWeights();
-        if (weights == null || weights.isEmpty()) {
-            throw new IllegalArgumentException("Dữ liệu trọng số không được để trống");
+        if (dto == null || dto.getCategoryCode() == null || dto.getCategoryCode().isBlank()) {
+            throw new IllegalArgumentException("Thông tin ngành hàng không hợp lệ");
         }
-
-        double sum = weights.values().stream().mapToDouble(Double::doubleValue).sum();
-        boolean validSum = (Math.abs(sum - 1.0) < 0.02) || (Math.abs(sum - 100.0) < 0.2);
-        if (!validSum) {
-            throw new IllegalArgumentException("Tổng các trọng số phải chính xác bằng 100% (hoặc 1.0)");
-        }
-
-        double multiplier = sum > 10.0 ? 0.01 : 1.0;
-
-        for (Map.Entry<String, Double> entry : weights.entrySet()) {
-            String criteria = entry.getKey();
-            double val = entry.getValue() * multiplier;
-            BigDecimal bdVal = BigDecimal.valueOf(val).setScale(2, RoundingMode.HALF_UP);
-
-            Optional<RankingWeight> opt = rankingWeightRepository.findByCategoryCodeAndCriteria(catCode, criteria);
-            RankingWeight rw;
-            if (opt.isPresent()) {
-                rw = opt.get();
-                rw.setWeight(bdVal);
-            } else {
-                rw = RankingWeight.builder()
-                        .category(category)
-                        .criteria(criteria)
-                        .weight(bdVal)
-                        .build();
-            }
-            rankingWeightRepository.save(rw);
-        }
-
-        return categoryRepository.findWeightsByCategoryCode(catCode);
+        return updateCategoryWeights(dto.getCategoryCode(), dto.getWeights());
     }
 
     // ── 4. Nhật ký gọi LLM (LLM Logs) ──────────────────────────────────────
@@ -384,8 +392,8 @@ public class AdminService {
                 .tokensUsed(log.getTokensUsed())
                 .promptExcerpt(truncate(log.getPromptText(), 140))
                 .responseExcerpt(truncate(log.getResponseText(), 140))
-                .promptText(log.getPromptText())
-                .responseText(log.getResponseText())
+                .promptText(truncate(log.getPromptText(), 1500))
+                .responseText(truncate(log.getResponseText(), 1500))
                 .createdAt(log.getCreatedAt())
                 .build());
     }
@@ -608,13 +616,34 @@ public class AdminService {
     }
 
     @Transactional
+    @CacheEvict(value = {"adminSystemStats", "adminDashboardStats"}, allEntries = true)
     public AdminUserDTO updateUserRole(Integer id, String newRole) {
+        if (newRole == null || (!newRole.equalsIgnoreCase("admin") && !newRole.equalsIgnoreCase("user"))) {
+            throw new IllegalArgumentException("Vai trò không hợp lệ. Chỉ chấp nhận 'admin' hoặc 'user'");
+        }
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng với ID: " + id));
-        if (newRole != null && (newRole.equalsIgnoreCase("admin") || newRole.equalsIgnoreCase("user"))) {
-            user.setRole(newRole.toLowerCase());
-            userRepository.save(user);
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = (auth != null) ? auth.getName() : null;
+
+        if (currentUsername != null && currentUsername.equalsIgnoreCase(user.getUsername())) {
+            if (!newRole.equalsIgnoreCase("admin")) {
+                throw new IllegalArgumentException("Bạn không thể tự hạ quyền Quản trị viên của chính mình!");
+            }
         }
+
+        if (user.getRole().equalsIgnoreCase("admin") && !newRole.equalsIgnoreCase("admin")) {
+            long activeAdminCount = userRepository.countByRoleAndIsActiveTrue("admin");
+            if (activeAdminCount <= 1) {
+                throw new IllegalArgumentException("Không thể hạ quyền Quản trị viên duy nhất còn hoạt động trong hệ thống!");
+            }
+        }
+
+        user.setRole(newRole.toLowerCase());
+        userRepository.save(user);
+
         return AdminUserDTO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
@@ -628,10 +657,27 @@ public class AdminService {
     }
 
     @Transactional
+    @CacheEvict(value = {"adminSystemStats", "adminDashboardStats"}, allEntries = true)
     public AdminUserDTO toggleUserStatus(Integer id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng với ID: " + id));
-        user.setIsActive(!Boolean.TRUE.equals(user.getIsActive()));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = (auth != null) ? auth.getName() : null;
+
+        if (currentUsername != null && currentUsername.equalsIgnoreCase(user.getUsername())) {
+            throw new IllegalArgumentException("Bạn không thể tự khóa tài khoản của chính mình!");
+        }
+
+        boolean willLock = Boolean.TRUE.equals(user.getIsActive());
+        if (willLock && user.getRole().equalsIgnoreCase("admin")) {
+            long activeAdminCount = userRepository.countByRoleAndIsActiveTrue("admin");
+            if (activeAdminCount <= 1) {
+                throw new IllegalArgumentException("Không thể khóa Quản trị viên duy nhất còn hoạt động trong hệ thống!");
+            }
+        }
+
+        user.setIsActive(!willLock);
         userRepository.save(user);
         return AdminUserDTO.builder()
                 .id(user.getId())
@@ -646,9 +692,25 @@ public class AdminService {
     }
 
     @Transactional
+    @CacheEvict(value = {"adminSystemStats", "adminDashboardStats"}, allEntries = true)
     public void deleteUser(Integer id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng với ID: " + id));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = (auth != null) ? auth.getName() : null;
+
+        if (currentUsername != null && currentUsername.equalsIgnoreCase(user.getUsername())) {
+            throw new IllegalArgumentException("Bạn không thể tự xóa tài khoản của chính mình!");
+        }
+
+        if (user.getRole().equalsIgnoreCase("admin")) {
+            long activeAdminCount = userRepository.countByRoleAndIsActiveTrue("admin");
+            if (activeAdminCount <= 1) {
+                throw new IllegalArgumentException("Không thể xóa Quản trị viên duy nhất còn hoạt động trong hệ thống!");
+            }
+        }
+
         user.setIsActive(false);
         userRepository.save(user);
     }
