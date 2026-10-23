@@ -1,10 +1,9 @@
 package com.shoppingagent.auth;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shoppingagent.admin.UserRepository;
-import com.shoppingagent.auth.dto.AuthResponse;
-import com.shoppingagent.auth.dto.LoginRequest;
-import com.shoppingagent.auth.dto.RegisterRequest;
-import com.shoppingagent.auth.dto.UserSessionDTO;
+import com.shoppingagent.auth.dto.*;
+import com.shoppingagent.shared.entity.EmailVerification;
 import com.shoppingagent.shared.entity.User;
 import com.shoppingagent.shared.entity.UserSession;
 import com.shoppingagent.shared.security.JwtTokenProvider;
@@ -15,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -27,8 +27,14 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final UserSessionRepository userSessionRepository;
+    private final EmailVerificationRepository emailVerificationRepository;
+    private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final ObjectMapper objectMapper;
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    public record PendingUserPayload(String username, String email, String passwordHash, String displayName) {}
 
     @Transactional
     public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
@@ -97,6 +103,178 @@ public class AuthService {
         log.info("[Auth] User registered successfully: id={}, username={}", user.getId(), user.getUsername());
 
         return createSessionAndGenerateTokens(user, httpRequest);
+    }
+
+    /**
+     * Bước 1 Xác thực Đăng ký qua Gmail:
+     * Kiểm tra tính hợp lệ, sinh OTP 6 số, băm và lưu vào EmailVerification, gửi mail HTML.
+     */
+    @Transactional
+    public RegisterInitiateResponse initiateRegistration(RegisterRequest request) {
+        String username = request.getUsername().trim().toLowerCase();
+        String email = request.getEmail().trim().toLowerCase();
+
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new IllegalArgumentException("Tên đăng nhập đã tồn tại trong hệ thống");
+        }
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("Email đã được đăng ký trong hệ thống");
+        }
+
+        String displayName = request.getDisplayName();
+        if (displayName == null || displayName.isBlank()) {
+            displayName = username;
+        }
+
+        // Sinh mã OTP 6 chữ số ngẫu nhiên có độ bảo mật cao
+        String otp = String.format("%06d", secureRandom.nextInt(1_000_000));
+        String otpHash = jwtTokenProvider.hashToken(otp);
+
+        PendingUserPayload payload = new PendingUserPayload(
+                username,
+                email,
+                passwordEncoder.encode(request.getPassword()),
+                displayName.trim()
+        );
+
+        String payloadJson;
+        try {
+            payloadJson = objectMapper.writeValueAsString(payload);
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi đóng gói thông tin đăng ký", e);
+        }
+
+        // Vô hiệu hóa các mã OTP cũ chưa dùng của email này nếu có
+        emailVerificationRepository.findTopByEmailAndTypeAndIsUsedFalseOrderByCreatedAtDesc(email, "REGISTRATION")
+                .ifPresent(old -> {
+                    old.setIsUsed(true);
+                    emailVerificationRepository.save(old);
+                });
+
+        EmailVerification verification = EmailVerification.builder()
+                .email(email)
+                .otpHash(otpHash)
+                .type("REGISTRATION")
+                .registrationPayload(payloadJson)
+                .expiresAt(LocalDateTime.now().plusMinutes(5))
+                .attempts(0)
+                .isUsed(false)
+                .build();
+
+        emailVerificationRepository.save(verification);
+
+        // Gửi email chứa OTP
+        emailService.sendOtpEmail(email, otp, "Xác thực đăng ký tài khoản");
+
+        return RegisterInitiateResponse.builder()
+                .message("Mã xác thực gồm 6 chữ số đã được gửi tới email " + email)
+                .email(email)
+                .expiresInSeconds(300)
+                .cooldownSeconds(60)
+                .build();
+    }
+
+    /**
+     * Bước 2 Xác thực Đăng ký qua Gmail:
+     * Kiểm tra OTP, nếu đúng thì tạo User chính thức, cấp cặp JWT Token và tạo UserSession.
+     */
+    @Transactional
+    public AuthResponse verifyRegistrationOtp(VerifyOtpRequest request, HttpServletRequest httpRequest) {
+        String email = request.getEmail().trim().toLowerCase();
+        String inputOtp = request.getOtp().trim();
+
+        EmailVerification verification = emailVerificationRepository
+                .findTopByEmailAndTypeAndIsUsedFalseOrderByCreatedAtDesc(email, "REGISTRATION")
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy yêu cầu xác thực hoặc mã đã được sử dụng. Vui lòng thử lại."));
+
+        // Kiểm tra thời hạn 5 phút
+        if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
+            verification.setIsUsed(true);
+            emailVerificationRepository.save(verification);
+            throw new IllegalArgumentException("Mã xác thực đã hết hạn (quá 5 phút). Vui lòng yêu cầu gửi lại mã mới.");
+        }
+
+        // Chống dò mã Brute-force (tối đa 5 lần thử)
+        if (verification.getAttempts() >= 5) {
+            verification.setIsUsed(true);
+            emailVerificationRepository.save(verification);
+            throw new SecurityException("Bạn đã nhập sai mã quá 5 lần. Yêu cầu xác thực này đã bị hủy bỏ vì lý do an toàn.");
+        }
+
+        String inputOtpHash = jwtTokenProvider.hashToken(inputOtp);
+        if (!verification.getOtpHash().equals(inputOtpHash)) {
+            verification.setAttempts(verification.getAttempts() + 1);
+            emailVerificationRepository.save(verification);
+            int remaining = 5 - verification.getAttempts();
+            throw new IllegalArgumentException("Mã xác thực không chính xác. Bạn còn " + remaining + " lần thử.");
+        }
+
+        // Đánh dấu mã đã sử dụng
+        verification.setIsUsed(true);
+        emailVerificationRepository.save(verification);
+
+        // Giải mã thông tin đăng ký và tạo tài khoản chính thức
+        PendingUserPayload payload;
+        try {
+            payload = objectMapper.readValue(verification.getRegistrationPayload(), PendingUserPayload.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi trích xuất thông tin người dùng", e);
+        }
+
+        if (userRepository.findByUsername(payload.username()).isPresent()) {
+            throw new IllegalArgumentException("Tên đăng nhập đã tồn tại trong hệ thống");
+        }
+        if (userRepository.findByEmail(payload.email()).isPresent()) {
+            throw new IllegalArgumentException("Email đã được đăng ký trong hệ thống");
+        }
+
+        User user = User.builder()
+                .username(payload.username())
+                .email(payload.email())
+                .displayName(payload.displayName())
+                .passwordHash(payload.passwordHash())
+                .role("user")
+                .isActive(true)
+                .build();
+
+        user = userRepository.save(user);
+        log.info("[Auth] User registered and email verified successfully: id={}, username={}, email={}",
+                user.getId(), user.getUsername(), user.getEmail());
+
+        return createSessionAndGenerateTokens(user, httpRequest);
+    }
+
+    /**
+     * Gửi lại mã OTP (Resend OTP) kèm bảo vệ chống spam (Rate limit / Cooldown 60s)
+     */
+    @Transactional
+    public RegisterInitiateResponse resendRegistrationOtp(ResendOtpRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
+
+        EmailVerification verification = emailVerificationRepository
+                .findTopByEmailAndTypeAndIsUsedFalseOrderByCreatedAtDesc(email, "REGISTRATION")
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin đăng ký chờ xác thực cho email này. Vui lòng điền lại form đăng ký."));
+
+        // Kiểm tra cooldown 60 giây
+        if (verification.getCreatedAt() != null && verification.getCreatedAt().plusSeconds(60).isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Vui lòng đợi 60 giây trước khi yêu cầu gửi lại mã mới.");
+        }
+
+        // Sinh OTP mới
+        String newOtp = String.format("%06d", secureRandom.nextInt(1_000_000));
+        verification.setOtpHash(jwtTokenProvider.hashToken(newOtp));
+        verification.setAttempts(0);
+        verification.setExpiresAt(LocalDateTime.now().plusMinutes(5));
+        emailVerificationRepository.save(verification);
+
+        emailService.sendOtpEmail(email, newOtp, "Gửi lại mã xác thực đăng ký");
+
+        return RegisterInitiateResponse.builder()
+                .message("Đã gửi mã xác thực mới tới email " + email)
+                .email(email)
+                .expiresInSeconds(300)
+                .cooldownSeconds(60)
+                .build();
     }
 
     /**

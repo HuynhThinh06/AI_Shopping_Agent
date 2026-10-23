@@ -40,6 +40,22 @@ export interface UserSessionDTO {
   isCurrent: boolean;
 }
 
+export interface RegisterInitiateResponse {
+  message: string;
+  email: string;
+  expiresInSeconds: number;
+  cooldownSeconds: number;
+}
+
+export interface VerifyOtpRequest {
+  email: string;
+  otp: string;
+}
+
+export interface ResendOtpRequest {
+  email: string;
+}
+
 export const authApi = {
   login: async (data: LoginRequest): Promise<AuthResponse> => {
     const res = await apiClient.post<AuthResponse>('/auth/login', data);
@@ -48,6 +64,21 @@ export const authApi = {
 
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
     const res = await apiClient.post<AuthResponse>('/auth/register', data);
+    return res.data;
+  },
+
+  registerInitiate: async (data: RegisterRequest): Promise<RegisterInitiateResponse> => {
+    const res = await apiClient.post<RegisterInitiateResponse>('/auth/register-initiate', data);
+    return res.data;
+  },
+
+  verifyRegistrationOtp: async (data: VerifyOtpRequest): Promise<AuthResponse> => {
+    const res = await apiClient.post<AuthResponse>('/auth/register-verify', data);
+    return res.data;
+  },
+
+  resendOtp: async (data: ResendOtpRequest): Promise<RegisterInitiateResponse> => {
+    const res = await apiClient.post<RegisterInitiateResponse>('/auth/resend-otp', data);
     return res.data;
   },
 

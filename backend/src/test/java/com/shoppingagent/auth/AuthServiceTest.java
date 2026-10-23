@@ -36,6 +36,15 @@ class AuthServiceTest {
     private UserSessionRepository userSessionRepository;
 
     @Mock
+    private EmailVerificationRepository emailVerificationRepository;
+
+    @Mock
+    private EmailService emailService;
+
+    @Mock
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock

@@ -40,7 +40,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    @Operation(summary = "Đăng ký tài khoản người dùng mới")
+    @Operation(summary = "Đăng ký tài khoản người dùng mới (trực tiếp)")
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequest request,
             HttpServletRequest httpRequest,
@@ -48,6 +48,36 @@ public class AuthController {
     ) {
         AuthResponse res = authService.register(request, httpRequest);
         setRefreshTokenCookie(httpResponse, res.getRefreshToken());
+        return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/register-initiate")
+    @Operation(summary = "Bước 1: Tiếp nhận thông tin đăng ký, sinh OTP và gửi qua Gmail")
+    public ResponseEntity<RegisterInitiateResponse> initiateRegistration(
+            @Valid @RequestBody RegisterRequest request
+    ) {
+        RegisterInitiateResponse res = authService.initiateRegistration(request);
+        return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/register-verify")
+    @Operation(summary = "Bước 2: Xác nhận OTP từ Gmail, tạo tài khoản chính thức và cấp JWT token")
+    public ResponseEntity<AuthResponse> verifyRegistrationOtp(
+            @Valid @RequestBody VerifyOtpRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse
+    ) {
+        AuthResponse res = authService.verifyRegistrationOtp(request, httpRequest);
+        setRefreshTokenCookie(httpResponse, res.getRefreshToken());
+        return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/resend-otp")
+    @Operation(summary = "Gửi lại mã OTP qua Gmail khi mã cũ hết hạn hoặc thất lạc")
+    public ResponseEntity<RegisterInitiateResponse> resendOtp(
+            @Valid @RequestBody ResendOtpRequest request
+    ) {
+        RegisterInitiateResponse res = authService.resendRegistrationOtp(request);
         return ResponseEntity.ok(res);
     }
 
