@@ -43,13 +43,6 @@ public class AuthService {
             }
         }
 
-        // Tự động kích hoạt mật khẩu mặc định "password123" cho tài khoản mẫu seeded
-        if (!passwordMatches && "password123".equals(request.getPassword())) {
-            user.setPasswordHash(passwordEncoder.encode("password123"));
-            userRepository.save(user);
-            passwordMatches = true;
-        }
-
         if (!passwordMatches) {
             throw new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác");
         }
