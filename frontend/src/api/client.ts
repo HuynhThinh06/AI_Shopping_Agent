@@ -1,11 +1,12 @@
 import axios from 'axios';
 import type { Category, Product, SearchResponse, SummaryDTO, Review } from '../types';
-import { getAuthToken } from '../utils/storage';
+import { getAuthToken, saveAuthToken, getRefreshToken, saveRefreshToken, logoutUser } from '../utils/storage';
 
 // ── Axios Client for React app ─────────────────────────────────────────────
 export const apiClient = axios.create({
   baseURL: '/api',
   timeout: 25000, // 25s cho các truy vấn dữ liệu thông thường, đảm bảo an toàn với Cloud DB (Neon)
+  withCredentials: true, // Cho phép trình duyệt tự động gửi và nhận HttpOnly cookies
   headers: {
     'Content-Type': 'application/json',
   },
@@ -19,9 +20,86 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Cơ chế Silent Refresh Token Queue khi Access Token hết hạn (401 Unauthorized)
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: unknown) => void;
+}> = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else if (token) {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    if (!originalRequest) return Promise.reject(error);
+
+    const isAuthEndpoint =
+      originalRequest.url?.includes('/auth/login') ||
+      originalRequest.url?.includes('/auth/register') ||
+      originalRequest.url?.includes('/auth/refresh');
+
+    // Nếu gặp 401 trên các API nghiệp vụ và chưa từng retry
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const fallbackRefreshToken = getRefreshToken();
+        // Dùng axios instance riêng biệt để tránh interceptor loop
+        const refreshResponse = await axios.post<{
+          token?: string;
+          accessToken?: string;
+          refreshToken?: string;
+        }>(
+          '/api/auth/refresh',
+          { refreshToken: fallbackRefreshToken || undefined },
+          { withCredentials: true }
+        );
+
+        const newAccessToken = refreshResponse.data.accessToken || refreshResponse.data.token;
+        const newRefreshToken = refreshResponse.data.refreshToken;
+
+        if (newAccessToken) {
+          saveAuthToken(newAccessToken);
+        }
+        if (newRefreshToken) {
+          saveRefreshToken(newRefreshToken);
+        }
+
+        processQueue(null, newAccessToken);
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return apiClient(originalRequest);
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        logoutUser();
+        return Promise.reject(refreshErr);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     console.error('[API Error]:', error?.response?.data || error.message);
     return Promise.reject(error);
   }

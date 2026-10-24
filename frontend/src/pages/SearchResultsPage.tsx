@@ -304,7 +304,7 @@ export const SearchResultsPage: React.FC = () => {
     if (cleanQ && lastSearchedQueryRef.current !== cleanQ) {
       lastSearchedQueryRef.current = cleanQ;
       setQueryInput(cleanQ);
-      resetAllFilters();
+      resetAllFilters(false);
       fetchResults(cleanQ);
     }
   }, [queryParam]);
@@ -313,12 +313,10 @@ export const SearchResultsPage: React.FC = () => {
     e.preventDefault();
     const nextQ = queryInput.trim();
     if (!nextQ) return;
+    resetAllFilters(false);
     if (nextQ === queryParam.trim()) {
-      resetAllFilters();
       fetchResults(nextQ);
     } else {
-      lastSearchedQueryRef.current = nextQ;
-      resetAllFilters();
       setSearchParams({ q: nextQ });
     }
   };
@@ -427,7 +425,7 @@ export const SearchResultsPage: React.FC = () => {
   }, [result, featureGroup]);
 
   // Reset all filters
-  const resetAllFilters = () => {
+  const resetAllFilters = (notify = false) => {
     setActivePricePresetIndex(null);
     setCustomMinPrice(null);
     setCustomMaxPrice(null);
@@ -436,7 +434,9 @@ export const SearchResultsPage: React.FC = () => {
     setSelectedChips(new Set());
     setSelectedFeatures(new Set());
     setDisplayedCount(6);
-    showToast('Đã thiết lập lại bộ lọc!');
+    if (notify) {
+      showToast('Đã thiết lập lại bộ lọc!');
+    }
   };
 
   // Toggle filter helpers
@@ -692,8 +692,7 @@ export const SearchResultsPage: React.FC = () => {
     const generatedQuery = newQueryTerms.join(', ');
     setIsEditModalOpen(false);
     showToast('Đang cập nhật tìm kiếm theo tiêu chí mới...');
-    lastSearchedQueryRef.current = generatedQuery;
-    resetAllFilters();
+    resetAllFilters(false);
     setSearchParams({ q: generatedQuery });
   };
 
@@ -999,7 +998,7 @@ export const SearchResultsPage: React.FC = () => {
               </h2>
               <button
                 type="button"
-                onClick={resetAllFilters}
+                onClick={() => resetAllFilters(true)}
                 className="text-[11px] font-bold text-amber-700 hover:underline cursor-pointer flex items-center gap-1"
               >
                 <RefreshCw className="w-3 h-3" />
@@ -1258,7 +1257,7 @@ export const SearchResultsPage: React.FC = () => {
                 </p>
                 <button
                   type="button"
-                  onClick={resetAllFilters}
+                  onClick={() => resetAllFilters(true)}
                   className="brutal-btn px-4 py-2 text-xs font-bold inline-flex items-center gap-1.5 mt-2 cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
