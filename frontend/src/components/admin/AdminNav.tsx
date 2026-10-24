@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { LayoutDashboard, Zap, Activity, Sliders, Package, MessageSquare, Layers, Users, Store } from 'lucide-react';
+import { LayoutDashboard, Zap, Activity, Sliders, Package, MessageSquare, Layers, Users, ScrollText, Store } from 'lucide-react';
 
 export const AdminNav: React.FC = () => {
   const navItems = [
@@ -12,6 +12,7 @@ export const AdminNav: React.FC = () => {
     { to: '/admin/categories', label: 'Ngành hàng & GIN', icon: Layers },
     { to: '/admin/reviews', label: 'Đánh giá & Cache', icon: MessageSquare },
     { to: '/admin/users', label: 'Người dùng & Quyền', icon: Users },
+    { to: '/admin/audit-logs', label: 'Nhật ký thao tác', icon: ScrollText },
   ];
 
   return (
