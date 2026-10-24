@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminNav } from '../../components/admin/AdminNav';
+import { BulkActionBar, useBulkSelection } from '../../components/admin/BulkActionBar';
 import { apiClient } from '../../api/client';
 import {
   getCategoriesList,
   exportProductsExcel,
   downloadExcelTemplate,
   importProductsExcel,
+  bulkUpdateProducts,
 } from '../../api/adminApi';
 import type { ProductExcelImportResultDTO } from '../../api/adminApi';
 import type { CategoryOption } from '../../types/admin';
@@ -29,6 +31,7 @@ import {
   X,
   FileCheck,
   AlertTriangle,
+  EyeOff,
 } from 'lucide-react';
 
 const DEFAULT_CATEGORIES: CategoryOption[] = [
@@ -47,7 +50,19 @@ export const AdminProductsPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
+  const [bulkLoading, setBulkLoading] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  const currentPageIds = useMemo(() => products.map((p) => p.id), [products]);
+  const {
+    selectedIds,
+    selectedArray,
+    selectedCount,
+    isAllPageSelected,
+    toggleOne,
+    toggleAllCurrentPage,
+    clearSelection,
+  } = useBulkSelection(currentPageIds, [page, categoryCode]);
 
   // Excel Import / Export States
   const [isExporting, setIsExporting] = useState<boolean>(false);
@@ -142,7 +157,7 @@ export const AdminProductsPage: React.FC = () => {
   const loadProducts = async (pageIdx = page) => {
     setLoading(true);
     try {
-      const params: Record<string, any> = { page: pageIdx, size: 10 };
+      const params: Record<string, any> = { page: pageIdx, size: 10, includeInactive: true };
       if (categoryCode) params.categoryCode = categoryCode;
       if (keyword.trim()) params.keyword = keyword.trim();
 
@@ -158,6 +173,7 @@ export const AdminProductsPage: React.FC = () => {
             page: pageIdx,
             size: 10,
             categoryCode: 'laptop',
+            includeInactive: true,
           };
           if (keyword.trim()) fallbackParams.keyword = keyword.trim();
           const resFallback = await apiClient.get<PageResponse<ProductDetailDTO>>('/products', {
@@ -192,7 +208,7 @@ export const AdminProductsPage: React.FC = () => {
     setDeleting(true);
     try {
       await apiClient.delete(`/products/${deleteId}`);
-      setFeedback(`Đã xóa thành công sản phẩm #${deleteId}!`);
+      setFeedback(`Đã ngừng bán (xóa mềm) thành công sản phẩm #${deleteId}!`);
       setTimeout(() => setFeedback(null), 3000);
       setDeleteId(null);
       loadProducts(page);
@@ -201,6 +217,27 @@ export const AdminProductsPage: React.FC = () => {
       alert('Không thể xóa sản phẩm. Vui lòng thử lại!');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleBulkProductAction = async (actionId: string) => {
+    if (selectedArray.length === 0) return;
+    setBulkLoading(true);
+    try {
+      const act = actionId as 'activate' | 'deactivate';
+      const res = await bulkUpdateProducts(selectedArray, act);
+      const label = act === 'activate' ? 'kích hoạt mở bán' : 'ngừng bán (ẩn)';
+      setFeedback(
+        `Đã ${label} hàng loạt ${res.processed}/${res.requested} sản phẩm và làm mới bộ nhớ đệm!`
+      );
+      setTimeout(() => setFeedback(null), 4000);
+      clearSelection();
+      loadProducts(page);
+    } catch (err: any) {
+      console.error('Bulk product action failed:', err);
+      alert(err?.response?.data?.message || 'Không thể thực hiện thao tác hàng loạt!');
+    } finally {
+      setBulkLoading(false);
     }
   };
 
@@ -317,12 +354,50 @@ export const AdminProductsPage: React.FC = () => {
         </form>
       </div>
 
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedCount}
+        entityLabel="sản phẩm"
+        loading={bulkLoading}
+        onExecute={handleBulkProductAction}
+        onClear={clearSelection}
+        actions={[
+          {
+            id: 'activate',
+            label: 'Kích hoạt bán',
+            variant: 'emerald',
+            icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+            confirmTitle: 'Xác nhận kích hoạt bán hàng loạt',
+            confirmMessage: (count) =>
+              `Bạn có chắc chắn muốn mở bán trở lại (${count} sản phẩm đã chọn)? Sản phẩm sẽ xuất hiện ngay trên trang chủ và kết quả tìm kiếm AI.`,
+          },
+          {
+            id: 'deactivate',
+            label: 'Ngừng bán (Ẩn)',
+            variant: 'rose',
+            icon: <EyeOff className="w-3.5 h-3.5" />,
+            confirmTitle: 'Xác nhận ngừng bán sản phẩm hàng loạt',
+            confirmMessage: (count) =>
+              `Bạn có chắc chắn muốn ngừng bán / ẩn ${count} sản phẩm đã chọn khỏi danh mục và kết quả tìm kiếm khách hàng?`,
+          },
+        ]}
+      />
+
       {/* Products Table */}
       <div className="bg-warm-surface border-2 border-warm-text rounded-2xl shadow-brutal overflow-hidden mb-6">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-warm-bg border-b-2 border-warm-text text-warm-text font-black uppercase text-[10px] tracking-wider">
               <tr>
+                <th className="py-3 px-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={isAllPageSelected}
+                    onChange={toggleAllCurrentPage}
+                    className="w-4 h-4 accent-warm-primary rounded cursor-pointer"
+                    title="Chọn tất cả trong trang hiện tại"
+                  />
+                </th>
                 <th className="py-3 px-3">Sản phẩm</th>
                 <th className="py-3 px-3">Ngành hàng</th>
                 <th className="py-3 px-3">Thương hiệu</th>
@@ -336,61 +411,84 @@ export const AdminProductsPage: React.FC = () => {
             <tbody className="divide-y-2 divide-warm-border-subtle font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-warm-muted">
+                  <td colSpan={9} className="py-8 text-center text-warm-muted">
                     Đang tải dữ liệu sản phẩm...
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-warm-muted">
+                  <td colSpan={9} className="py-8 text-center text-warm-muted">
                     Không tìm thấy sản phẩm nào phù hợp.
                   </td>
                 </tr>
               ) : (
-                products.map((prod) => (
-                  <tr key={prod.id} className="hover:bg-warm-bg/70 transition-colors">
-                    <td className="py-3.5 px-3">
-                      <div className="flex items-center gap-3">
-                        {prod.imageUrls && prod.imageUrls.length > 0 ? (
-                          <img
-                            src={prod.imageUrls[0]}
-                            alt={prod.name}
-                            className="w-12 h-12 rounded-lg object-contain bg-white border border-warm-text/20 p-1 flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-lg bg-warm-bg border border-warm-text/20 flex items-center justify-center flex-shrink-0">
-                            <Package className="w-6 h-6 text-warm-muted" />
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-mono text-[10px] font-bold text-warm-muted">
-                            #{prod.id} {prod.sku && `• ${prod.sku}`}
-                          </div>
-                          <div className="font-extrabold text-warm-text text-xs line-clamp-2 max-w-[220px]">
-                            {prod.name}
+                products.map((prod) => {
+                  const isSelected = selectedIds.has(prod.id);
+                  const isActive = prod.isActive !== false;
+
+                  return (
+                    <tr
+                      key={prod.id}
+                      className={`hover:bg-warm-bg/70 transition-colors ${
+                        isSelected ? 'bg-warm-pastel-amber/30' : ''
+                      }`}
+                    >
+                      <td className="py-3.5 px-3">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleOne(prod.id)}
+                          className="w-4 h-4 accent-warm-primary rounded cursor-pointer"
+                        />
+                      </td>
+                      <td className="py-3.5 px-3">
+                        <div className="flex items-center gap-3">
+                          {prod.imageUrls && prod.imageUrls.length > 0 ? (
+                            <img
+                              src={prod.imageUrls[0]}
+                              alt={prod.name}
+                              className="w-12 h-12 rounded-lg object-contain bg-white border border-warm-text/20 p-1 flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-warm-bg border border-warm-text/20 flex items-center justify-center flex-shrink-0">
+                              <Package className="w-6 h-6 text-warm-muted" />
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-mono text-[10px] font-bold text-warm-muted">
+                              #{prod.id} {prod.sku && `• ${prod.sku}`}
+                            </div>
+                            <div className="font-extrabold text-warm-text text-xs line-clamp-2 max-w-[220px]">
+                              {prod.name}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-warm-pastel-amber border border-warm-text text-warm-secondary-text">
-                        {prod.categoryCode}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-3 font-bold">{prod.brand}</td>
-                    <td className="py-3.5 px-3 font-mono font-bold text-warm-primary-text whitespace-nowrap">
-                      {formatPrice(prod.price)}
-                    </td>
-                    <td className="py-3.5 px-3 whitespace-nowrap">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[11px] font-bold text-warm-text">
-                          SL: {prod.stockQuantity ?? 10}
+                      </td>
+                      <td className="py-3.5 px-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-warm-pastel-amber border border-warm-text text-warm-secondary-text">
+                          {prod.categoryCode}
                         </span>
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 w-max">
-                          Đang bán
-                        </span>
-                      </div>
-                    </td>
+                      </td>
+                      <td className="py-3.5 px-3 font-bold">{prod.brand}</td>
+                      <td className="py-3.5 px-3 font-mono font-bold text-warm-primary-text whitespace-nowrap">
+                        {formatPrice(prod.price)}
+                      </td>
+                      <td className="py-3.5 px-3 whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[11px] font-bold text-warm-text">
+                            SL: {prod.stockQuantity ?? 10}
+                          </span>
+                          {isActive ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 w-max">
+                              Đang bán
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 w-max">
+                              <EyeOff className="w-2.5 h-2.5" /> Ngừng bán
+                            </span>
+                          )}
+                        </div>
+                      </td>
                     <td className="py-3.5 px-3 whitespace-nowrap">
                       <div className="flex items-center gap-1 font-bold text-warm-text">
                         <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
@@ -441,7 +539,8 @@ export const AdminProductsPage: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

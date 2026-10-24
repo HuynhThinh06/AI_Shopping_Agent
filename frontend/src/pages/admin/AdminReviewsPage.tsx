@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminNav } from '../../components/admin/AdminNav';
+import { BulkActionBar, useBulkSelection } from '../../components/admin/BulkActionBar';
 import {
   getAllReviews,
   toggleReviewSpam,
   approveReview,
   deleteReview,
   triggerReSummarize,
+  bulkModerateReviews,
 } from '../../api/adminApi';
 import type { AdminReviewDTO } from '../../types/admin';
 import {
@@ -32,8 +34,20 @@ export const AdminReviewsPage: React.FC = () => {
   const [totalElements, setTotalElements] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [bulkLoading, setBulkLoading] = useState<boolean>(false);
   const [summarizingProductId, setSummarizingProductId] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  const currentPageIds = useMemo(() => reviews.map((r) => r.id), [reviews]);
+  const {
+    selectedIds,
+    selectedArray,
+    selectedCount,
+    isAllPageSelected,
+    toggleOne,
+    toggleAllCurrentPage,
+    clearSelection,
+  } = useBulkSelection(currentPageIds, [page, filter]);
 
   const loadReviews = async (pageIdx = page, currentFilter = filter) => {
     setLoading(true);
@@ -120,6 +134,30 @@ export const AdminReviewsPage: React.FC = () => {
     }
   };
 
+  const handleBulkReviewAction = async (actionId: string) => {
+    if (selectedArray.length === 0) return;
+    setBulkLoading(true);
+    try {
+      const act = actionId as 'approve' | 'spam' | 'delete';
+      const res = await bulkModerateReviews(selectedArray, act);
+      const labelMap = {
+        approve: 'phê duyệt hợp lệ',
+        spam: 'đánh dấu Spam',
+        delete: 'xóa mềm (ẩn)',
+      };
+      showNotice(
+        `Đã ${labelMap[act]} hàng loạt ${res.processed}/${res.requested} đánh giá và cập nhật lại điểm trung bình sản phẩm!`
+      );
+      clearSelection();
+      loadReviews(page, filter);
+    } catch (err: any) {
+      console.error('Bulk review action failed:', err);
+      alert(err?.response?.data?.message || 'Không thể thực hiện thao tác hàng loạt!');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   return (
     <div>
       <AdminNav />
@@ -192,12 +230,59 @@ export const AdminReviewsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedCount}
+        entityLabel="đánh giá"
+        loading={bulkLoading}
+        onExecute={handleBulkReviewAction}
+        onClear={clearSelection}
+        actions={[
+          {
+            id: 'approve',
+            label: 'Duyệt hợp lệ',
+            variant: 'emerald',
+            icon: <Check className="w-3.5 h-3.5" />,
+            confirmTitle: 'Xác nhận phê duyệt đánh giá hàng loạt',
+            confirmMessage: (count) =>
+              `Bạn có chắc chắn muốn phê duyệt và hiển thị hợp lệ ${count} đánh giá đã chọn? Điểm trung bình của các sản phẩm liên quan sẽ được tính lại tự động.`,
+          },
+          {
+            id: 'spam',
+            label: 'Đánh dấu Spam',
+            variant: 'amber',
+            icon: <ShieldAlert className="w-3.5 h-3.5" />,
+            confirmTitle: 'Xác nhận đánh dấu Spam hàng loạt',
+            confirmMessage: (count) =>
+              `Bạn có chắc chắn muốn gắn cờ Spam và ẩn ${count} đánh giá đã chọn khỏi trang sản phẩm?`,
+          },
+          {
+            id: 'delete',
+            label: 'Xóa mềm (Ẩn)',
+            variant: 'rose',
+            icon: <Trash2 className="w-3.5 h-3.5" />,
+            confirmTitle: 'Xác nhận xóa mềm đánh giá hàng loạt',
+            confirmMessage: (count) =>
+              `Bạn có chắc chắn muốn ẩn (xóa mềm) ${count} đánh giá đã chọn khỏi hệ thống?`,
+          },
+        ]}
+      />
+
       {/* Reviews Table */}
       <div className="bg-warm-surface border-2 border-warm-text rounded-2xl shadow-brutal overflow-hidden mb-6">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-warm-bg border-b-2 border-warm-text text-warm-text font-black uppercase text-[10px] tracking-wider">
               <tr>
+                <th className="py-3 px-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={isAllPageSelected}
+                    onChange={toggleAllCurrentPage}
+                    className="w-4 h-4 accent-warm-primary rounded cursor-pointer"
+                    title="Chọn tất cả trong trang hiện tại"
+                  />
+                </th>
                 <th className="py-3 px-3">ID</th>
                 <th className="py-3 px-3">Người đánh giá</th>
                 <th className="py-3 px-3">Sản phẩm</th>
@@ -211,13 +296,13 @@ export const AdminReviewsPage: React.FC = () => {
             <tbody className="divide-y-2 divide-warm-border-subtle font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-warm-muted">
+                  <td colSpan={9} className="py-8 text-center text-warm-muted">
                     Đang tải danh sách đánh giá...
                   </td>
                 </tr>
               ) : reviews.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-warm-muted">
+                  <td colSpan={9} className="py-8 text-center text-warm-muted">
                     Không có đánh giá nào khớp với bộ lọc hiện tại.
                   </td>
                 </tr>
@@ -225,9 +310,23 @@ export const AdminReviewsPage: React.FC = () => {
                 reviews.map((r) => {
                   const isBusy = actionLoadingId === r.id;
                   const isSummarizing = summarizingProductId === r.productId;
+                  const isSelected = selectedIds.has(r.id);
 
                   return (
-                    <tr key={r.id} className="hover:bg-warm-bg/70 transition-colors">
+                    <tr
+                      key={r.id}
+                      className={`hover:bg-warm-bg/70 transition-colors ${
+                        isSelected ? 'bg-warm-pastel-amber/30' : ''
+                      }`}
+                    >
+                      <td className="py-3.5 px-3">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleOne(r.id)}
+                          className="w-4 h-4 accent-warm-primary rounded cursor-pointer"
+                        />
+                      </td>
                       <td className="py-3.5 px-3 font-mono font-bold text-warm-text">#{r.id}</td>
                       <td className="py-3.5 px-3 font-bold text-warm-text whitespace-nowrap">
                         {r.reviewerName || 'Khách hàng'}
