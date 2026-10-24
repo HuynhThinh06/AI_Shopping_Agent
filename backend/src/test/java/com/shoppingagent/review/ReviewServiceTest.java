@@ -38,6 +38,9 @@ class ReviewServiceTest {
     @Mock
     private ProductRepository productRepository;
 
+    @Mock
+    private ReviewFilterService reviewFilterService;
+
     @InjectMocks
     private ReviewService reviewService;
 
@@ -52,6 +55,7 @@ class ReviewServiceTest {
                 .reviewCount(0)
                 .avgRating(null)
                 .build();
+        lenient().when(reviewFilterService.isValid(anyString())).thenReturn(true);
     }
 
     @Test
@@ -145,5 +149,31 @@ class ReviewServiceTest {
 
         assertThrows(ProductNotFoundException.class, () -> reviewService.createReview(999L, request));
         verify(reviewRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Tự động phát hiện và cách ly (quarantine) đánh giá spam khi người dùng đăng")
+    void shouldQuarantineSpamReview() {
+        ReviewCreateRequest request = new ReviewCreateRequest();
+        request.setReviewerName("Spammer");
+        request.setContent("Mua hàng giá rẻ tại http://spam-site.com liên hệ 0912345678");
+        request.setRating((short) 5);
+
+        when(productRepository.findById(1L)).thenReturn(Optional.of(sampleProduct));
+        when(reviewFilterService.isValid(request.getContent())).thenReturn(false);
+        when(reviewRepository.save(any(Review.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ReviewResponseDTO response = reviewService.createReview(1L, request);
+
+        assertNotNull(response);
+        // Kiểm tra review được lưu với isSpam = true và isActive = false
+        ArgumentCaptor<Review> captor = ArgumentCaptor.forClass(Review.class);
+        verify(reviewRepository).save(captor.capture());
+        Review saved = captor.getValue();
+        assertTrue(saved.getIsSpam());
+        assertFalse(saved.getIsActive());
+
+        // Kiểm tra KHÔNG gọi cập nhật stats cho sản phẩm
+        verify(productRepository, never()).save(any(Product.class));
     }
 }

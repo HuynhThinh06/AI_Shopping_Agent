@@ -97,6 +97,24 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.PAYLOAD_TOO_LARGE, "Payload Too Large", "Kích thước tập tin vượt quá giới hạn cho phép");
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+        log.warn("[GlobalExceptionHandler] DataIntegrityViolation: {}", ex.getMessage());
+        String msg = "Dữ liệu bị trùng lặp (ví dụ mã SKU) hoặc vi phạm ràng buộc toàn vẹn cơ sở dữ liệu.";
+        return buildResponse(HttpStatus.CONFLICT, "Conflict", msg);
+    }
+
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        return buildResponse(HttpStatus.NOT_FOUND, "Not Found", "Tài nguyên yêu cầu không tồn tại trên hệ thống");
+    }
+
+    @ExceptionHandler(com.shoppingagent.shared.exception.TooManyRequestsException.class)
+    public ResponseEntity<Map<String, Object>> handleTooManyRequests(com.shoppingagent.shared.exception.TooManyRequestsException ex) {
+        log.warn("[GlobalExceptionHandler] TooManyRequests: {}", ex.getMessage());
+        return buildResponse(HttpStatus.TOO_MANY_REQUESTS, "Too Many Requests", ex.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
         log.error("[GlobalExceptionHandler] Unhandled exception: {}", ex.getMessage(), ex);
