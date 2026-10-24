@@ -34,6 +34,7 @@ const COMPARE_BUCKETS_KEY = 'shopping_agent_compare_buckets';
 const HISTORY_KEY = 'shopping_agent_search_history';
 const USER_KEY = 'shopping_agent_auth_user';
 const TOKEN_KEY = 'shopping_agent_jwt_token';
+const REFRESH_TOKEN_KEY = 'shopping_agent_refresh_token';
 const REVIEWS_KEY = 'shopping_agent_user_reviews';
 
 export type CompareCategory = 'laptop' | 'phone';
@@ -526,6 +527,30 @@ export function removeAuthToken(): void {
   }
 }
 
+export function getRefreshToken(): string | null {
+  try {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveRefreshToken(token: string): void {
+  try {
+    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+export function removeRefreshToken(): void {
+  try {
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 export function getAuthUser(): AuthUser | null {
   try {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -566,6 +591,7 @@ export function logoutUser(): void {
   try {
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     window.dispatchEvent(new Event('auth-updated'));
     window.dispatchEvent(new Event('favorites-updated'));
     window.dispatchEvent(new Event('compare-updated'));

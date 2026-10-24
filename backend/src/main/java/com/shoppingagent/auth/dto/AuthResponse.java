@@ -10,7 +10,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AuthResponse {
-    private String token;
+    private String token; // Access Token (cho backward compatibility)
+    private String accessToken;
+    private String refreshToken;
+    private Long expiresIn;
     @Builder.Default
     private String tokenType = "Bearer";
     private UserSummary user;
