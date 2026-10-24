@@ -94,6 +94,7 @@ export const AuthPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Password visibility toggles
@@ -120,6 +121,7 @@ export const AuthPage: React.FC = () => {
     setMode(newMode);
     setErrors({});
     setErrorMsg(null);
+    setErrorCode(null);
     setShowDemoBox(newMode === 'login');
     setIsOtpStep(false);
     setOtpSuccessMessage(null);
@@ -386,9 +388,15 @@ export const AuthPage: React.FC = () => {
         setOtpCode(['', '', '', '', '', '']);
         setOtpSuccessMessage(res.message);
         setErrorMsg(null);
+        setErrorCode(null);
       } catch (err: any) {
         const message = err?.response?.data?.message || err.message || 'Không thể gửi mã xác nhận qua email';
+        const code = err?.response?.data?.code || null;
         setErrorMsg(message);
+        setErrorCode(code);
+        if (code === 'DUPLICATE_EMAIL' || message.toLowerCase().includes('email đã được đăng ký')) {
+          setErrors((prev) => ({ ...prev, email: 'Địa chỉ Email này đã có tài khoản trong hệ thống' }));
+        }
       } finally {
         setIsLoading(false);
       }
@@ -611,9 +619,31 @@ export const AuthPage: React.FC = () => {
           <>
             {/* Error message */}
             {errorMsg && (
-              <div className="p-3 rounded-xl bg-rose-50 border-2 border-rose-500 text-rose-700 text-xs font-bold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-                <span>{errorMsg}</span>
+              <div className="p-3.5 rounded-2xl bg-rose-50 border-2 border-rose-500 text-rose-800 text-xs font-bold space-y-2.5 shadow-brutal-xs">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                  <span className="font-black leading-snug">{errorMsg}</span>
+                </div>
+
+                {(errorCode === 'DUPLICATE_EMAIL' ||
+                  errorMsg.toLowerCase().includes('đã được đăng ký') ||
+                  errorMsg.toLowerCase().includes('đã tồn tại')) && (
+                  <div className="pt-2 border-t border-rose-200/80 flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-rose-700 font-medium">
+                      Bạn đã có tài khoản với email này?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleSwitchMode('login');
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-black text-[11px] flex items-center gap-1 transition-transform active:scale-95 cursor-pointer shadow-sm shrink-0"
+                    >
+                      <span>Đăng nhập ngay</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
