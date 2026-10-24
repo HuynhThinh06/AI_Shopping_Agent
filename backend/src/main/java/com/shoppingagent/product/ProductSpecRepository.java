@@ -43,8 +43,29 @@ public class ProductSpecRepository {
      * @param requiredSpecs Specs yêu cầu từ LLM, vd: {"ram":"16", "cpu":"i7", "storage":">=512"}
      * @return Danh sách sản phẩm đã lọc sơ bộ tại DB level
      */
+    /**
+     * Lấy sản phẩm ứng viên với lọc specs tại DB level (không lọc thương hiệu).
+     */
+    public List<Product> findCandidatesWithSpecs(String categoryCode,
+                                                  Long budgetMin,
+                                                  Long budgetMax,
+                                                  Map<String, String> requiredSpecs) {
+        return findCandidatesWithSpecs(categoryCode, null, budgetMin, budgetMax, requiredSpecs);
+    }
+
+    /**
+     * Lấy sản phẩm ứng viên với lọc thương hiệu + ngân sách + specs tại DB level.
+     *
+     * @param categoryCode  Mã ngành hàng (laptop / phone)
+     * @param brand         Thương hiệu mong muốn (null nếu không lọc)
+     * @param budgetMin     Giá tối thiểu (null = không giới hạn)
+     * @param budgetMax     Giá tối đa (null = không giới hạn)
+     * @param requiredSpecs Specs yêu cầu từ LLM, vd: {"ram":"16", "cpu":"i7", "storage":">=512"}
+     * @return Danh sách sản phẩm đã lọc sơ bộ tại DB level
+     */
     @SuppressWarnings("unchecked")
     public List<Product> findCandidatesWithSpecs(String categoryCode,
+                                                  String brand,
                                                   Long budgetMin,
                                                   Long budgetMax,
                                                   Map<String, String> requiredSpecs) {
@@ -58,6 +79,20 @@ public class ProductSpecRepository {
 
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("categoryCode", categoryCode);
+
+        // ── Lọc thương hiệu (Brand) ──────────────────────────────────────────
+        if (brand != null && !brand.isBlank()) {
+            String b = brand.trim().toLowerCase();
+            if (b.equals("apple") || b.equals("macbook") || b.equals("mac")) {
+                sql.append(" AND (LOWER(p.brand) IN ('macbook', 'apple') OR LOWER(p.name) LIKE '%macbook%')");
+            } else if (b.equals("iphone")) {
+                sql.append(" AND (LOWER(p.brand) IN ('iphone', 'apple') OR LOWER(p.name) LIKE '%iphone%')");
+            } else {
+                sql.append(" AND (LOWER(p.brand) = LOWER(:brand) OR LOWER(p.name) LIKE LOWER(:brandPattern))");
+                params.put("brand", brand.trim());
+                params.put("brandPattern", "%" + brand.trim().toLowerCase() + "%");
+            }
+        }
 
         if (budgetMin != null) {
             sql.append(" AND p.price >= :budgetMin");

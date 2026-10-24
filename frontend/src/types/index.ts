@@ -28,6 +28,7 @@ export interface RankedProduct extends Product {
 
 export interface ExtractedCriteria {
   categoryCode?: string;
+  brand?: string | null;
   budgetMin?: number;
   budgetMax?: number;
   requiredSpecs?: Record<string, string>;
