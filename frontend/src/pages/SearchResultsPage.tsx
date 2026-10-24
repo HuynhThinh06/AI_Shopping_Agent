@@ -238,6 +238,7 @@ export const SearchResultsPage: React.FC = () => {
 
   // Edit Criteria Modal
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editBrand, setEditBrand] = useState<string>('');
   const [editBudgetMax, setEditBudgetMax] = useState<string>('');
   const [editRam, setEditRam] = useState<string>('');
   const [editTarget, setEditTarget] = useState<string>('');
@@ -275,6 +276,7 @@ export const SearchResultsPage: React.FC = () => {
 
       // Populate edit criteria modal values from extractedCriteria
       if (data.extractedCriteria) {
+        setEditBrand(data.extractedCriteria.brand || '');
         setEditBudgetMax(data.extractedCriteria.budgetMax ? String(data.extractedCriteria.budgetMax) : '');
         setEditRam(data.extractedCriteria.requiredSpecs?.ram || '');
         setEditTarget(data.extractedCriteria.target || '');
@@ -673,6 +675,7 @@ export const SearchResultsPage: React.FC = () => {
     if (!result) return;
 
     const newQueryTerms: string[] = [];
+    if (editBrand) newQueryTerms.push(editBrand);
     if (category === 'phone') newQueryTerms.push('điện thoại');
     else newQueryTerms.push('laptop');
 
@@ -822,6 +825,21 @@ export const SearchResultsPage: React.FC = () => {
                 <span className="text-warm-muted font-medium">Ngành hàng:</span>
                 <span className="uppercase">{category === 'phone' ? 'Điện thoại' : 'Laptop'}</span>
               </div>
+
+              {result.extractedCriteria?.brand && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-100 border-2 border-warm-border font-extrabold text-rose-950 shadow-brutal-xs">
+                  <span className="text-warm-muted font-medium">Thương hiệu:</span>
+                  <span className="uppercase">{result.extractedCriteria.brand}</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="hover:text-rose-700 ml-1 font-bold cursor-pointer"
+                    title="Chỉnh sửa thương hiệu"
+                  >
+                    ✎
+                  </button>
+                </div>
+              )}
 
               {(result.extractedCriteria?.budgetMin || result.extractedCriteria?.budgetMax) && (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 border-2 border-warm-border font-extrabold text-emerald-950 shadow-brutal-xs">
@@ -1482,6 +1500,19 @@ export const SearchResultsPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleApplyCriteriaEdit} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-bold text-warm-text mb-1">
+                  Thương hiệu mong muốn:
+                </label>
+                <input
+                  type="text"
+                  value={editBrand}
+                  onChange={(e) => setEditBrand(e.target.value)}
+                  placeholder="Ví dụ: MacBook, Asus, Dell, iPhone, Samsung..."
+                  className="w-full bg-warm-bg border-2 border-warm-border rounded-xl px-3 py-2 font-bold text-xs"
+                />
+              </div>
+
               <div>
                 <label className="block font-bold text-warm-text mb-1">
                   Mức ngân sách tối đa (VNĐ):

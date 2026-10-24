@@ -50,12 +50,14 @@ public class ProductController {
             @Parameter(description = "Số trang, bắt đầu từ 0")
             @RequestParam(defaultValue = "0")  int page,
             @Parameter(description = "Số sản phẩm mỗi trang, tối đa 50")
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Bao gồm cả sản phẩm đã ẩn/ngừng bán (dành cho Admin)")
+            @RequestParam(defaultValue = "false") boolean includeInactive) {
 
         int safePage = Math.max(0, page);
         int safeSize = Math.min(Math.max(1, size), 100);
         return ResponseEntity.ok(
-                productService.searchProducts(categoryCode, minPrice, maxPrice, keyword, safePage, safeSize));
+                productService.searchProducts(categoryCode, minPrice, maxPrice, keyword, safePage, safeSize, includeInactive));
     }
 
     // ── GET /products/featured ──────────────────────────────────────────────

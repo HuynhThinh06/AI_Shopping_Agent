@@ -1,6 +1,8 @@
 package com.shoppingagent.admin;
 
 import com.shoppingagent.admin.dto.*;
+import com.shoppingagent.audit.AuditLogDTO;
+import com.shoppingagent.audit.AuditLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -8,9 +10,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
@@ -21,6 +25,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final ProductExcelService productExcelService;
+    private final AuditLogService auditLogService;
 
     // ── 1. Thống kê hệ thống & Dashboard ────────────────────────────────────
 
@@ -34,6 +39,14 @@ public class AdminController {
     @Operation(summary = "Lấy số liệu thống kê tổng quan (Dashboard KPIs)")
     public ResponseEntity<AdminStatsDTO> getDashboardStats() {
         return ResponseEntity.ok(adminService.getDashboardStats());
+    }
+
+    @GetMapping("/dashboard/trends")
+    @Operation(summary = "Lấy dữ liệu biểu đồ xu hướng theo ngày (7/14/30/90 ngày)")
+    public ResponseEntity<DashboardTrendsDTO> getDashboardTrends(
+            @RequestParam(defaultValue = "14") int days
+    ) {
+        return ResponseEntity.ok(adminService.getDashboardTrends(days));
     }
 
     // ── 2. Quản lý và kiểm duyệt Review ─────────────────────────────────────
@@ -68,6 +81,12 @@ public class AdminController {
     public ResponseEntity<Void> deleteReview(@PathVariable Long id) {
         adminService.deleteReview(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/reviews/bulk")
+    @Operation(summary = "Thao tác hàng loạt với đánh giá (approve | spam | delete)")
+    public ResponseEntity<BulkActionResultDTO> bulkModerateReviews(@RequestBody BulkActionRequest request) {
+        return ResponseEntity.ok(adminService.bulkModerateReviews(request));
     }
 
     @PostMapping("/reviews/{productId}/summarize")
@@ -203,5 +222,31 @@ public class AdminController {
     public ResponseEntity<com.shoppingagent.admin.dto.ProductExcelImportResultDTO> importProducts(
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file) throws java.io.IOException {
         return ResponseEntity.ok(productExcelService.importProductsFromExcel(file));
+    }
+
+    @PostMapping("/products/bulk")
+    @Operation(summary = "Thao tác hàng loạt với sản phẩm (activate | deactivate)")
+    public ResponseEntity<BulkActionResultDTO> bulkUpdateProducts(@RequestBody BulkActionRequest request) {
+        return ResponseEntity.ok(adminService.bulkUpdateProducts(request));
+    }
+
+    // ── 8. Nhật ký thao tác Quản trị viên (Audit Logs) ──────────────────────
+
+    @GetMapping("/audit-logs")
+    @Operation(summary = "Lấy danh sách nhật ký thao tác của quản trị viên (phân trang, lọc)")
+    public ResponseEntity<Page<AuditLogDTO>> getAuditLogs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String entityType,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String admin,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String keyword
+    ) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(auditLogService.getAuditLogs(entityType, action, admin, from, to, keyword, pageable));
     }
 }

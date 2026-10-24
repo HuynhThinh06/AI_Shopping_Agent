@@ -26,6 +26,12 @@ public class FavoriteService {
     private final ProductRepository productRepository;
 
     @Transactional(readOnly = true)
+    public List<Long> getFavoriteProductIds(Integer userId) {
+        if (userId == null) return Collections.emptyList();
+        return userFavoriteRepository.findProductIdsByUserId(userId);
+    }
+
+    @Transactional(readOnly = true)
     public List<Long> getFavoriteProductIds(String userEmail, Integer userId) {
         if (userId != null) {
             return userFavoriteRepository.findProductIdsByUserId(userId);
@@ -34,6 +40,45 @@ public class FavoriteService {
             return userFavoriteRepository.findProductIdsByUserEmail(userEmail.trim().toLowerCase());
         }
         return Collections.emptyList();
+    }
+
+    @Transactional
+    public ToggleFavoriteResponse toggleFavorite(Integer userId, Long productId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("Người dùng chưa được xác thực.");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng ID: " + userId));
+
+        if (productId == null) {
+            throw new IllegalArgumentException("Mã sản phẩm không được để trống.");
+        }
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm #" + productId + " không tồn tại."));
+
+        Optional<UserFavorite> existing = userFavoriteRepository.findByUserIdAndProductId(user.getId(), productId);
+
+        if (existing.isPresent()) {
+            userFavoriteRepository.delete(existing.get());
+            log.info("[Favorite] User #{} ({}) REMOVED product #{}", user.getId(), user.getEmail(), productId);
+            return ToggleFavoriteResponse.builder()
+                    .productId(productId)
+                    .isFavorite(false)
+                    .message("Đã xóa khỏi danh sách yêu thích.")
+                    .build();
+        } else {
+            UserFavorite favorite = UserFavorite.builder()
+                    .user(user)
+                    .product(product)
+                    .build();
+            userFavoriteRepository.save(favorite);
+            log.info("[Favorite] User #{} ({}) ADDED product #{}", user.getId(), user.getEmail(), productId);
+            return ToggleFavoriteResponse.builder()
+                    .productId(productId)
+                    .isFavorite(true)
+                    .message("Đã lưu vào danh sách yêu thích thành công.")
+                    .build();
+        }
     }
 
     @Transactional
@@ -69,6 +114,14 @@ public class FavoriteService {
                     .isFavorite(true)
                     .message("Đã lưu vào danh sách yêu thích thành công.")
                     .build();
+        }
+    }
+
+    @Transactional
+    public void removeFavorite(Integer userId, Long productId) {
+        if (userId != null && productId != null) {
+            userFavoriteRepository.deleteByUserIdAndProductId(userId, productId);
+            log.info("[Favorite] User #{} DELETED product #{}", userId, productId);
         }
     }
 

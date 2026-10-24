@@ -1,5 +1,7 @@
 package com.shoppingagent.product;
 
+import com.shoppingagent.audit.AuditAction;
+import com.shoppingagent.audit.AuditLogService;
 import com.shoppingagent.product.dto.ProductCreateRequest;
 import com.shoppingagent.product.dto.ProductDetailDTO;
 import com.shoppingagent.shared.entity.Category;
@@ -19,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,6 +36,7 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final ProductImageRepository productImageRepository;
     private final CloudinaryService cloudinaryService;
+    private final AuditLogService auditLogService;
 
     @org.springframework.cache.annotation.Cacheable(value = "productDetails", key = "#id")
     public ProductDetailDTO getById(Long id) {
@@ -98,6 +102,16 @@ public class ProductService {
                                                   String keyword,
                                                   int    page,
                                                   int    size) {
+        return searchProducts(categoryCode, minPrice, maxPrice, keyword, page, size, false);
+    }
+
+    public Page<ProductDetailDTO> searchProducts(String  categoryCode,
+                                                  Long    minPrice,
+                                                  Long    maxPrice,
+                                                  String  keyword,
+                                                  int     page,
+                                                  int     size,
+                                                  boolean includeInactive) {
         Pageable pageable = PageRequest.of(
                 page,
                 size,
@@ -105,8 +119,9 @@ public class ProductService {
         );
         String cleanCategory = (categoryCode != null && !categoryCode.isBlank()) ? categoryCode.trim() : "";
         String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : "";
-        Page<Product> productPage = productRepository
-                .searchProducts(cleanCategory, minPrice, maxPrice, cleanKeyword, pageable);
+        Page<Product> productPage = includeInactive
+                ? productRepository.searchProductsWithInactive(cleanCategory, minPrice, maxPrice, cleanKeyword, true, pageable)
+                : productRepository.searchProducts(cleanCategory, minPrice, maxPrice, cleanKeyword, pageable);
 
         if (productPage.isEmpty()) {
             return Page.empty(pageable);
@@ -129,9 +144,16 @@ public class ProductService {
         Category category = categoryRepository.findByCode(request.getCategoryCode())
                 .orElseThrow(() -> new IllegalArgumentException("Category not found: " + request.getCategoryCode()));
 
+        String cleanSku = (request.getSku() != null && !request.getSku().isBlank())
+                ? request.getSku().trim()
+                : null;
+        if (cleanSku != null && productRepository.findBySku(cleanSku).isPresent()) {
+            throw new IllegalArgumentException("Mã SKU '" + cleanSku + "' đã tồn tại trong hệ thống. Vui lòng chọn mã SKU khác.");
+        }
+
         Product product = Product.builder()
                 .category(category)
-                .sku(request.getSku())
+                .sku(cleanSku)
                 .name(request.getName())
                 .brand(request.getBrand())
                 .price(request.getPrice())
@@ -179,6 +201,19 @@ public class ProductService {
         product.setImages(productImages);
 
         Product saved = productRepository.save(product);
+
+        if (auditLogService != null) {
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("sku", saved.getSku());
+            details.put("name", saved.getName());
+            details.put("brand", saved.getBrand());
+            details.put("categoryCode", category.getCode());
+            details.put("price", saved.getPrice());
+            details.put("stockQuantity", saved.getStockQuantity());
+            auditLogService.log(AuditAction.PRODUCT_CREATE, "PRODUCT", saved.getId(),
+                    "Thêm mới sản phẩm '" + saved.getName() + "' (SKU: " + saved.getSku() + ")", details);
+        }
+
         return toDetailDTO(saved);
     }
 
@@ -188,6 +223,14 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
 
+        Map<String, Object> beforeState = new LinkedHashMap<>();
+        beforeState.put("name", product.getName());
+        beforeState.put("brand", product.getBrand());
+        beforeState.put("sku", product.getSku());
+        beforeState.put("price", product.getPrice());
+        beforeState.put("stockQuantity", product.getStockQuantity());
+        beforeState.put("isActive", product.getIsActive());
+
         if (request.getCategoryCode() != null && !request.getCategoryCode().isBlank()) {
             Category category = categoryRepository.findByCode(request.getCategoryCode())
                     .orElseThrow(() -> new IllegalArgumentException("Category not found: " + request.getCategoryCode()));
@@ -196,7 +239,17 @@ public class ProductService {
 
         if (request.getName() != null) product.setName(request.getName());
         if (request.getBrand() != null) product.setBrand(request.getBrand());
-        if (request.getSku() != null) product.setSku(request.getSku());
+        if (request.getSku() != null) {
+            String cleanSku = !request.getSku().isBlank() ? request.getSku().trim() : null;
+            if (cleanSku != null) {
+                productRepository.findBySku(cleanSku).ifPresent(existing -> {
+                    if (!existing.getId().equals(id)) {
+                        throw new IllegalArgumentException("Mã SKU '" + cleanSku + "' đã được sử dụng bởi sản phẩm khác (#" + existing.getId() + " - " + existing.getName() + ").");
+                    }
+                });
+            }
+            product.setSku(cleanSku);
+        }
         if (request.getPrice() != null) product.setPrice(request.getPrice());
         if (request.getStockQuantity() != null) product.setStockQuantity(request.getStockQuantity());
         if (request.getProductUrl() != null) product.setProductUrl(request.getProductUrl());
@@ -244,6 +297,23 @@ public class ProductService {
         }
 
         Product saved = productRepository.save(product);
+
+        if (auditLogService != null) {
+            Map<String, Object> afterState = new LinkedHashMap<>();
+            afterState.put("name", saved.getName());
+            afterState.put("brand", saved.getBrand());
+            afterState.put("sku", saved.getSku());
+            afterState.put("price", saved.getPrice());
+            afterState.put("stockQuantity", saved.getStockQuantity());
+            afterState.put("isActive", saved.getIsActive());
+
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("before", beforeState);
+            details.put("after", afterState);
+            auditLogService.log(AuditAction.PRODUCT_UPDATE, "PRODUCT", saved.getId(),
+                    "Cập nhật sản phẩm #" + saved.getId() + " ('" + saved.getName() + "')", details);
+        }
+
         return toDetailDTO(saved);
     }
 
@@ -252,9 +322,20 @@ public class ProductService {
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
+        boolean beforeActive = Boolean.TRUE.equals(product.getIsActive());
         product.setIsActive(false);
         productRepository.save(product);
         log.info("Product #{} marked as inactive (soft deleted)", id);
+
+        if (auditLogService != null) {
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("sku", product.getSku());
+            details.put("name", product.getName());
+            details.put("beforeActive", beforeActive);
+            details.put("afterActive", false);
+            auditLogService.log(AuditAction.PRODUCT_DELETE, "PRODUCT", id,
+                    "Ngừng bán (xóa mềm) sản phẩm #" + id + " ('" + product.getName() + "')", details);
+        }
     }
 
     private ProductDetailDTO toDetailDTO(Product p, List<String> imageUrls) {

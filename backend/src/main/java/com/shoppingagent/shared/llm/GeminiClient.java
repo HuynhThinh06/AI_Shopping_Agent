@@ -49,6 +49,7 @@ public class GeminiClient implements LlmClient {
             "properties", Map.ofEntries(
                     Map.entry("reasoning",      Map.of("type", "string", "description", "Step by step reasoning before extraction")),
                     Map.entry("categoryCode",   Map.of("type", "string")),
+                    Map.entry("brand",          Map.of("type", "string", "nullable", true, "description", "Thương hiệu sản phẩm: MacBook, Dell, Asus, HP, Lenovo, Acer, MSI, iPhone, Samsung, Xiaomi, OPPO... null nếu không nhắc")),
                     Map.entry("budgetMax",      Map.of("type", "number", "nullable", true)),
                     Map.entry("budgetMin",      Map.of("type", "number", "nullable", true)),
                     Map.entry("target",         Map.of("type", "string", "nullable", true)),
@@ -208,6 +209,14 @@ public class GeminiClient implements LlmClient {
                 - DANH SÁCH THUỘC TÍNH ĐƯỢC PHÉP DÙNG TRONG requiredSpecs: %s
                 (CHỈ ĐƯỢC DÙNG các key nằm trong danh sách này để đảm bảo query database, KHÔNG tự bịa key khác).
 
+                [QUY TẮC NHẬN DIỆN THƯƠNG HIỆU (BRAND)]:
+                - Nếu khách hàng nhắc đến thương hiệu hoặc dòng máy độc quyền (vd: "MacBook", "Mac", "Apple", "Dell", "Asus", "HP", "ThinkPad", "Lenovo", "Acer", "MSI", "iPhone", "Samsung", "Xiaomi", "OPPO", "Vivo", "Realme"...):
+                  + Trích xuất tên hãng chuẩn vào trường "brand":
+                    * Với laptop Apple/Mac: brand="MacBook"
+                    * Với điện thoại Apple/iPhone: brand="iPhone"
+                    * Các hãng khác: brand="Asus", "Dell", "HP", "Lenovo", "Acer", "MSI", "Samsung", "Xiaomi"...
+                - Nếu khách hàng KHÔNG nhắc đến hãng hoặc muốn tìm chung: brand=null
+
                 [QUY TẮC RÀNG BUỘC KIỂU DỮ LIỆU ĐẶC BIỆT]:
                 - Các thuộc tính đo lường vật lý: ram, storage, battery, weight, screen_size, refresh_rate BẮT BUỘC PHẢI LÀ GIÁ TRỊ SỐ (ví dụ: "16", "512", "60", "1.5", "90", "120").
                 - TUYỆT ĐỐI KHÔNG gán tính từ cảm quan (như "đẹp", "khủng", "trâu", "nhẹ", "mạnh", "xịn") vào các trường số này.
@@ -237,7 +246,9 @@ public class GeminiClient implements LlmClient {
                      + Trọng số: weightPrice=0.5, weightSpec=0.3, weightRating=0.2
                 4. HIỆU NĂNG & PIN:
                    - "pin trâu", "pin khỏe", "dùng cả ngày":
-                     + requiredSpecs: {"battery": ">=60"} (laptop) hoặc {"battery": ">=5000"} (phone)
+                     + Với MacBook (Apple Silicon): requiredSpecs: {"battery": ">=35"} (vì chip ARM tiết kiệm điện vượt trội, 35-50Wh đã dùng 15-18 tiếng).
+                     + Với laptop thông thường: requiredSpecs: {"battery": ">=60"} (Wh).
+                     + Với điện thoại: requiredSpecs: {"battery": ">=5000"} (mAh).
                    - "chơi game", "chiến game", "gaming":
                      + target: "gamer"
                      + requiredSpecs: {"refresh_rate": ">=120", "ram": ">=16"}
@@ -249,10 +260,11 @@ public class GeminiClient implements LlmClient {
                 - Mặc định: weightPrice=0.35, weightRating=0.20, weightSpec=0.45
 
                 [VÍ DỤ MẪU (FEW-SHOTS)]:
-                - "Tìm laptop màn hình đẹp" -> {"categoryCode": "laptop", "budgetMin": null, "budgetMax": null, "target": "designer", "requiredSpecs": {"refresh_rate": ">=90"}, "weightPrice": 0.2, "weightRating": 0.2, "weightSpec": 0.6}
-                - "Laptop sinh viên 15 củ" -> {"categoryCode": "laptop", "budgetMin": null, "budgetMax": 15000000, "target": "student", "requiredSpecs": {}, "weightPrice": 0.5, "weightRating": 0.2, "weightSpec": 0.3}
-                - "lap 15 củ học IT" -> {"categoryCode": "laptop", "budgetMin": null, "budgetMax": 15000000, "target": "developer", "requiredSpecs": {"ram": ">=16"}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
-                - "đt pin trâu dưới 10 chai" -> {"categoryCode": "phone", "budgetMin": null, "budgetMax": 10000000, "target": null, "requiredSpecs": {"battery": ">=5000"}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
+                - "MacBook mỏng nhẹ dưới 22 triệu" -> {"categoryCode": "laptop", "brand": "MacBook", "budgetMin": null, "budgetMax": 22000000, "target": "office", "requiredSpecs": {"weight": "<=1.5"}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
+                - "Tìm laptop màn hình đẹp" -> {"categoryCode": "laptop", "brand": null, "budgetMin": null, "budgetMax": null, "target": "designer", "requiredSpecs": {"refresh_rate": ">=90"}, "weightPrice": 0.2, "weightRating": 0.2, "weightSpec": 0.6}
+                - "Laptop sinh viên 15 củ" -> {"categoryCode": "laptop", "brand": null, "budgetMin": null, "budgetMax": 15000000, "target": "student", "requiredSpecs": {}, "weightPrice": 0.5, "weightRating": 0.2, "weightSpec": 0.3}
+                - "lap 15 củ học IT" -> {"categoryCode": "laptop", "brand": null, "budgetMin": null, "budgetMax": 15000000, "target": "developer", "requiredSpecs": {"ram": ">=16"}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
+                - "đt pin trâu dưới 10 chai" -> {"categoryCode": "phone", "brand": null, "budgetMin": null, "budgetMax": 10000000, "target": null, "requiredSpecs": {"battery": ">=5000"}, "weightPrice": 0.4, "weightRating": 0.2, "weightSpec": 0.4}
 
                 [CÂU HỎI THỰC TẾ]:
                 "%s"

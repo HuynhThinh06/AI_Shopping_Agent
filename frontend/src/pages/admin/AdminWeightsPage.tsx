@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { AdminNav } from '../../components/admin/AdminNav';
 import { getCategoryWeights, updateCategoryWeights, getCategoriesList } from '../../api/adminApi';
 import type { CategoryOption } from '../../types/admin';
-import { Sliders, Save, CheckCircle2, RotateCcw, Info, Sparkles } from 'lucide-react';
+import { Sliders, Save, CheckCircle2, RotateCcw, Info, Sparkles, AlertCircle, LogIn } from 'lucide-react';
 
 const DEFAULT_CATEGORIES: CategoryOption[] = [
   { id: 1, code: 'laptop', name: 'Laptop' },
@@ -17,6 +18,9 @@ export const AdminWeightsPage: React.FC = () => {
   const [wSpec, setWSpec] = useState(0.45);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isAuthError, setIsAuthError] = useState(false);
 
   useEffect(() => {
     getCategoriesList()
@@ -28,14 +32,23 @@ export const AdminWeightsPage: React.FC = () => {
 
   const loadWeights = async (code = categoryCode) => {
     try {
+      setErrorMessage(null);
+      setIsAuthError(false);
       const weights = await getCategoryWeights(code);
       if (weights) {
         if (weights.price != null) setWPrice(weights.price);
         if (weights.rating != null) setWRating(weights.rating);
         if (weights.spec_match != null) setWSpec(weights.spec_match);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load weights:', err);
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) {
+        setIsAuthError(true);
+        setErrorMessage('Phiên làm việc đã hết hạn hoặc bạn chưa đăng nhập tài khoản Quản trị viên (admin). Vui lòng đăng nhập lại tài khoản admin để chỉnh sửa cấu hình.');
+      } else {
+        setErrorMessage('Không thể tải cấu hình trọng số từ máy chủ. Vui lòng kiểm tra kết nối mạng!');
+      }
     }
   };
 
@@ -49,9 +62,12 @@ export const AdminWeightsPage: React.FC = () => {
   const handleNormalize = () => {
     const sum = wPrice + wRating + wSpec;
     if (sum > 0) {
-      setWPrice(Math.round((wPrice / sum) * 100) / 100);
-      setWRating(Math.round((wRating / sum) * 100) / 100);
-      setWSpec(Math.round((1 - (wPrice / sum) - (wRating / sum)) * 100) / 100);
+      const p = Math.round((wPrice / sum) * 100) / 100;
+      const r = Math.round((wRating / sum) * 100) / 100;
+      const s = Math.round((1.0 - p - r) * 100) / 100;
+      setWPrice(p);
+      setWRating(r);
+      setWSpec(s);
     }
   };
 
@@ -59,20 +75,59 @@ export const AdminWeightsPage: React.FC = () => {
     setWPrice(p);
     setWRating(r);
     setWSpec(s);
+    setErrorMessage(null);
   };
 
   const handleSave = async () => {
     setSaving(true);
+    setErrorMessage(null);
+    setIsAuthError(false);
+    setSaveSuccess(false);
+
+    // Tự động cân bằng nếu tổng 3 trọng số bị lệch do kéo thanh trượt
+    let finalP = wPrice;
+    let finalR = wRating;
+    let finalS = wSpec;
+    const sum = wPrice + wRating + wSpec;
+    if (sum > 0 && Math.abs(sum - 1.0) > 0.001) {
+      finalP = Math.round((wPrice / sum) * 100) / 100;
+      finalR = Math.round((wRating / sum) * 100) / 100;
+      finalS = Math.round((1.0 - finalP - finalR) * 100) / 100;
+      setWPrice(finalP);
+      setWRating(finalR);
+      setWSpec(finalS);
+    }
+
     try {
-      await updateCategoryWeights(categoryCode, {
-        price: wPrice,
-        rating: wRating,
-        spec_match: wSpec,
+      const res = await updateCategoryWeights(categoryCode, {
+        price: finalP,
+        rating: finalR,
+        spec_match: finalS,
       });
+
+      if (res) {
+        if (res.price != null) setWPrice(res.price);
+        if (res.rating != null) setWRating(res.rating);
+        if (res.spec_match != null) setWSpec(res.spec_match);
+      }
+
+      const catName = categories.find((c) => c.code === categoryCode)?.name || categoryCode;
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (err) {
+      setSuccessMessage(`Đã lưu thành công bộ trọng số xếp hạng cho ngành hàng: ${catName} (Giá: ${(finalP * 100).toFixed(0)}%, Rating: ${(finalR * 100).toFixed(0)}%, Cấu hình: ${(finalS * 100).toFixed(0)}%)!`);
+      setTimeout(() => {
+        setSaveSuccess(false);
+        setSuccessMessage(null);
+      }, 5000);
+    } catch (err: any) {
       console.error('Failed to save weights:', err);
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) {
+        setIsAuthError(true);
+        setErrorMessage('Lỗi xác thực (401/403): Phiên làm việc đã hết hạn hoặc tài khoản hiện tại không có quyền Quản trị viên (admin). Vui lòng đăng nhập lại tài khoản admin.');
+      } else {
+        const msg = err?.response?.data?.message || err.message || 'Không thể lưu cấu hình trọng số.';
+        setErrorMessage(`Lỗi lưu cấu hình: ${msg}`);
+      }
     } finally {
       setSaving(false);
     }
@@ -102,8 +157,9 @@ export const AdminWeightsPage: React.FC = () => {
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving || !isValid}
-          className="px-5 py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal flex items-center gap-2 cursor-pointer shrink-0 disabled:opacity-50"
+          disabled={saving}
+          className="px-5 py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text hover:text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal flex items-center gap-2 cursor-pointer shrink-0 disabled:opacity-50 transition-transform active:translate-x-0.5 active:translate-y-0.5"
+          title={!isValid ? 'Tự động chuẩn hóa tổng 100% và lưu' : 'Lưu cấu hình trọng số'}
         >
           {saving ? (
             <span>Đang lưu...</span>
@@ -115,11 +171,37 @@ export const AdminWeightsPage: React.FC = () => {
           ) : (
             <>
               <Save className="w-4 h-4" />
-              <span>Lưu cấu hình</span>
+              <span>{isValid ? 'Lưu cấu hình' : 'Cân bằng & Lưu'}</span>
             </>
           )}
         </button>
       </div>
+
+      {/* Notifications / Alerts */}
+      {successMessage && (
+        <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-600 text-emerald-900 font-bold text-xs sm:text-sm flex items-center gap-3 shadow-brutal-xs animate-in fade-in">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <span>{successMessage}</span>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="mb-6 p-4 rounded-2xl bg-rose-50 border-2 border-rose-600 text-rose-950 font-bold text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-brutal-xs">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+          {isAuthError && (
+            <Link
+              to="/auth?redirect=/admin/weights"
+              className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center gap-1.5 shrink-0 shadow-brutal-xs border border-rose-800 cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Đăng nhập Admin</span>
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left: Sliders & Controls (7 Cols) */}

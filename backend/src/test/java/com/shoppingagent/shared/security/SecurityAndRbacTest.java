@@ -96,4 +96,66 @@ class SecurityAndRbacTest {
         assertThat(jwtTokenProvider.validateToken("<script>alert(1)</script>")).isFalse();
         assertThat(jwtTokenProvider.validateToken("..")).isFalse();
     }
+
+    @Test
+    @DisplayName("Bảo mật 5: JwtAuthenticationFilter từ chối ngay Token của tài khoản đã bị Admin khóa (is_active = false)")
+    void shouldRejectTokenForLockedUserInFilter() throws Exception {
+        User lockedUser = User.builder()
+                .id(8)
+                .username("spammer_bot")
+                .email("spambot999@disposable.org")
+                .role("user")
+                .isActive(false)
+                .build();
+        String validJwt = jwtTokenProvider.generateToken(lockedUser);
+
+        UserAuthCacheService cacheService = org.mockito.Mockito.mock(UserAuthCacheService.class);
+        org.mockito.Mockito.when(cacheService.getSnapshot(8))
+                .thenReturn(new UserAuthCacheService.UserAuthSnapshot(8, "spammer_bot", "spambot999@disposable.org", "user", false));
+
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtTokenProvider, cacheService);
+        org.springframework.mock.web.MockHttpServletRequest req = new org.springframework.mock.web.MockHttpServletRequest();
+        req.addHeader("Authorization", "Bearer " + validJwt);
+        org.springframework.mock.web.MockHttpServletResponse res = new org.springframework.mock.web.MockHttpServletResponse();
+        org.springframework.mock.web.MockFilterChain chain = new org.springframework.mock.web.MockFilterChain();
+
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        filter.doFilterInternal(req, res, chain);
+
+        assertThat(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    @DisplayName("Bảo mật 6: JwtAuthenticationFilter áp dụng ngay vai trò mới nhất từ DB/Cache thay vì role cũ trong JWT")
+    void shouldUseUpdatedRoleFromSnapshotInFilter() throws Exception {
+        User user = User.builder()
+                .id(3)
+                .username("tuananh")
+                .email("tuananh.dev@gmail.com")
+                .role("admin") // Token cũ đang giữ quyền admin
+                .isActive(true)
+                .build();
+        String oldAdminJwt = jwtTokenProvider.generateToken(user);
+
+        UserAuthCacheService cacheService = org.mockito.Mockito.mock(UserAuthCacheService.class);
+        // Trong DB đã bị hạ xuống 'user'
+        org.mockito.Mockito.when(cacheService.getSnapshot(3))
+                .thenReturn(new UserAuthCacheService.UserAuthSnapshot(3, "tuananh", "tuananh.dev@gmail.com", "user", true));
+
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtTokenProvider, cacheService);
+        org.springframework.mock.web.MockHttpServletRequest req = new org.springframework.mock.web.MockHttpServletRequest();
+        req.addHeader("Authorization", "Bearer " + oldAdminJwt);
+        org.springframework.mock.web.MockHttpServletResponse res = new org.springframework.mock.web.MockHttpServletResponse();
+        org.springframework.mock.web.MockFilterChain chain = new org.springframework.mock.web.MockFilterChain();
+
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        filter.doFilterInternal(req, res, chain);
+
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        assertThat(auth).isNotNull();
+        assertThat(auth.getAuthorities())
+                .extracting("authority")
+                .containsExactly("ROLE_USER");
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+    }
 }

@@ -6,6 +6,9 @@ import type {
   GinBenchmarkResult,
   AdminReviewDTO,
   CategoryOption,
+  AuditLogDTO,
+  BulkActionResultDTO,
+  DashboardTrendsDTO,
 } from '../types/admin';
 import type { PageResponse } from '../types/review';
 
@@ -130,3 +133,62 @@ export async function importProductsExcel(file: File): Promise<ProductExcelImpor
   });
   return res.data;
 }
+
+export interface AuditLogFilterParams {
+  page?: number;
+  size?: number;
+  entityType?: string;
+  action?: string;
+  admin?: string;
+  from?: string;
+  to?: string;
+  keyword?: string;
+}
+
+export async function getAuditLogs(
+  filters: AuditLogFilterParams = {}
+): Promise<PageResponse<AuditLogDTO>> {
+  const params: Record<string, any> = {
+    page: filters.page ?? 0,
+    size: filters.size ?? 20,
+  };
+  if (filters.entityType && filters.entityType !== 'ALL') params.entityType = filters.entityType;
+  if (filters.action && filters.action !== 'ALL') params.action = filters.action;
+  if (filters.admin && filters.admin.trim()) params.admin = filters.admin.trim();
+  if (filters.from) params.from = filters.from;
+  if (filters.to) params.to = filters.to;
+  if (filters.keyword && filters.keyword.trim()) params.keyword = filters.keyword.trim();
+
+  const res = await apiClient.get<PageResponse<AuditLogDTO>>('/admin/audit-logs', { params });
+  return res.data;
+}
+
+export async function bulkModerateReviews(
+  ids: number[],
+  action: 'approve' | 'spam' | 'delete'
+): Promise<BulkActionResultDTO> {
+  const res = await apiClient.post<BulkActionResultDTO>('/admin/reviews/bulk', {
+    ids,
+    action,
+  });
+  return res.data;
+}
+
+export async function bulkUpdateProducts(
+  ids: number[],
+  action: 'activate' | 'deactivate'
+): Promise<BulkActionResultDTO> {
+  const res = await apiClient.post<BulkActionResultDTO>('/admin/products/bulk', {
+    ids,
+    action,
+  });
+  return res.data;
+}
+
+export async function getDashboardTrends(days: 7 | 14 | 30 | 90 = 14): Promise<DashboardTrendsDTO> {
+  const res = await apiClient.get<DashboardTrendsDTO>('/admin/dashboard/trends', {
+    params: { days },
+  });
+  return res.data;
+}
+

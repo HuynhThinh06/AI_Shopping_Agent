@@ -2,11 +2,13 @@ package com.shoppingagent.favorite;
 
 import com.shoppingagent.favorite.dto.ToggleFavoriteRequest;
 import com.shoppingagent.favorite.dto.ToggleFavoriteResponse;
+import com.shoppingagent.shared.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,20 +24,28 @@ public class FavoriteController {
 
     @GetMapping
     @Operation(summary = "Lấy danh sách ID sản phẩm yêu thích của người dùng",
-               description = "Truy vấn danh sách product_id thuộc quyền sở hữu của user (dựa theo email hoặc userId).")
+               description = "Truy vấn danh sách product_id thuộc quyền sở hữu của user đã đăng nhập.")
     public ResponseEntity<List<Long>> getFavorites(
-            @RequestParam(required = false) String userEmail,
-            @RequestParam(required = false) Integer userId
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
-        List<Long> productIds = favoriteService.getFavoriteProductIds(userEmail, userId);
+        if (principal == null || principal.getId() == null) {
+            return ResponseEntity.status(401).build();
+        }
+        List<Long> productIds = favoriteService.getFavoriteProductIds(principal.getId());
         return ResponseEntity.ok(productIds);
     }
 
     @PostMapping("/toggle")
     @Operation(summary = "Thêm hoặc Xóa sản phẩm khỏi danh sách yêu thích",
                description = "Nếu sản phẩm chưa có trong danh sách -> Thêm vào; Nếu đã có -> Xóa bỏ (Toggle).")
-    public ResponseEntity<ToggleFavoriteResponse> toggleFavorite(@Valid @RequestBody ToggleFavoriteRequest request) {
-        ToggleFavoriteResponse response = favoriteService.toggleFavorite(request);
+    public ResponseEntity<ToggleFavoriteResponse> toggleFavorite(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody ToggleFavoriteRequest request
+    ) {
+        if (principal == null || principal.getId() == null) {
+            return ResponseEntity.status(401).build();
+        }
+        ToggleFavoriteResponse response = favoriteService.toggleFavorite(principal.getId(), request.getProductId());
         return ResponseEntity.ok(response);
     }
 
@@ -43,11 +53,13 @@ public class FavoriteController {
     @Operation(summary = "Xóa sản phẩm khỏi danh sách yêu thích",
                description = "Xóa triệt để sản phẩm khỏi danh sách yêu thích của người dùng.")
     public ResponseEntity<Map<String, Object>> removeFavorite(
-            @PathVariable Long productId,
-            @RequestParam(required = false) String userEmail,
-            @RequestParam(required = false) Integer userId
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long productId
     ) {
-        favoriteService.removeFavorite(userEmail, userId, productId);
+        if (principal == null || principal.getId() == null) {
+            return ResponseEntity.status(401).build();
+        }
+        favoriteService.removeFavorite(principal.getId(), productId);
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "productId", productId,

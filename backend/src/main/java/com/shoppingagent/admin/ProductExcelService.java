@@ -3,18 +3,20 @@ package com.shoppingagent.admin;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shoppingagent.admin.dto.ProductExcelImportResultDTO;
+import com.shoppingagent.audit.AuditAction;
+import com.shoppingagent.audit.AuditLogService;
 import com.shoppingagent.product.CategoryRepository;
 import com.shoppingagent.product.ProductRepository;
 import com.shoppingagent.shared.entity.Category;
 import com.shoppingagent.shared.entity.Product;
 import com.shoppingagent.shared.entity.ProductImage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,13 +30,33 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ProductExcelService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ObjectMapper objectMapper;
     private final CacheManager cacheManager;
+    private final AuditLogService auditLogService;
+
+    @Autowired
+    public ProductExcelService(ProductRepository productRepository,
+                               CategoryRepository categoryRepository,
+                               ObjectMapper objectMapper,
+                               CacheManager cacheManager,
+                               @Autowired(required = false) AuditLogService auditLogService) {
+        this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
+        this.objectMapper = objectMapper;
+        this.cacheManager = cacheManager;
+        this.auditLogService = auditLogService;
+    }
+
+    public ProductExcelService(ProductRepository productRepository,
+                               CategoryRepository categoryRepository,
+                               ObjectMapper objectMapper,
+                               CacheManager cacheManager) {
+        this(productRepository, categoryRepository, objectMapper, cacheManager, null);
+    }
 
     private static final String[] HEADERS = {
             "ID",
@@ -481,6 +503,25 @@ public class ProductExcelService {
             log.info("[ProductExcel] Import finished: {} total, {} success ({} created, {} updated), {} errors",
                     result.getTotalRows(), result.getSuccessCount(), result.getCreatedCount(),
                     result.getUpdatedCount(), result.getErrorCount());
+
+            if (auditLogService != null) {
+                Map<String, Object> details = new LinkedHashMap<>();
+                details.put("filename", filename);
+                details.put("totalRows", result.getTotalRows());
+                details.put("successCount", result.getSuccessCount());
+                details.put("createdCount", result.getCreatedCount());
+                details.put("updatedCount", result.getUpdatedCount());
+                details.put("errorCount", result.getErrorCount());
+                auditLogService.log(
+                        AuditAction.PRODUCT_IMPORT_EXCEL,
+                        "PRODUCT",
+                        null,
+                        String.format("Nhập sản phẩm từ file Excel '%s': %d/%d thành công (%d thêm mới, %d cập nhật, %d lỗi)",
+                                filename, result.getSuccessCount(), result.getTotalRows(),
+                                result.getCreatedCount(), result.getUpdatedCount(), result.getErrorCount()),
+                        details
+                );
+            }
         }
 
         return result;

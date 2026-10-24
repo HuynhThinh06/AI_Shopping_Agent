@@ -27,6 +27,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
 import { AdminProductEditPage } from './pages/admin/AdminProductEditPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
+import { AdminAuditLogsPage } from './pages/admin/AdminAuditLogsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Guard bảo vệ các trang quản trị
@@ -73,6 +74,7 @@ export const App: React.FC = () => {
             <Route path="/admin/categories" element={<AdminCategoriesPage />} />
             <Route path="/admin/reviews" element={<AdminReviewsPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
           </Route>
 
           {/* Fallback 404 */}

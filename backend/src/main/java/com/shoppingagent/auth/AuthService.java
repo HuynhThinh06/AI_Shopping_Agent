@@ -5,12 +5,18 @@ import com.shoppingagent.auth.dto.AuthResponse;
 import com.shoppingagent.auth.dto.LoginRequest;
 import com.shoppingagent.auth.dto.RegisterRequest;
 import com.shoppingagent.shared.entity.User;
+import com.shoppingagent.shared.exception.TooManyRequestsException;
 import com.shoppingagent.shared.security.JwtTokenProvider;
+import com.shoppingagent.shared.security.RateLimiterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @Slf4j
 @Service
@@ -20,12 +26,24 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RateLimiterService rateLimiterService;
 
     public AuthResponse login(LoginRequest request) {
-        String identifier = request.getUsernameOrEmail().trim();
+        String clientIp = resolveClientIp();
+        if (rateLimiterService != null && rateLimiterService.isRateLimited(clientIp)) {
+            long waitSec = rateLimiterService.getRemainingSeconds(clientIp);
+            throw new TooManyRequestsException("Bạn đã thử đăng nhập thất bại quá nhiều lần. Vui lòng thử lại sau " + waitSec + " giây.");
+        }
+
+        String identifier = request.getUsernameOrEmail() != null ? request.getUsernameOrEmail().trim() : "";
         User user = userRepository.findByUsername(identifier)
                 .or(() -> userRepository.findByEmail(identifier))
-                .orElseThrow(() -> new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác"));
+                .orElse(null);
+
+        if (user == null) {
+            if (rateLimiterService != null) rateLimiterService.recordFailedAttempt(clientIp);
+            throw new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác");
+        }
 
         if (Boolean.FALSE.equals(user.getIsActive())) {
             throw new IllegalStateException("Tài khoản của bạn đã bị khóa bởi Quản trị viên");
@@ -44,13 +62,33 @@ public class AuthService {
         }
 
         if (!passwordMatches) {
+            if (rateLimiterService != null) rateLimiterService.recordFailedAttempt(clientIp);
             throw new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác");
+        }
+
+        if (rateLimiterService != null) {
+            rateLimiterService.reset(clientIp);
         }
 
         String token = jwtTokenProvider.generateToken(user);
         log.info("[Auth] User logged in successfully: username={}, role={}", user.getUsername(), user.getRole());
 
         return toAuthResponse(token, user);
+    }
+
+    private String resolveClientIp() {
+        try {
+            var attributes = RequestContextHolder.getRequestAttributes();
+            if (attributes instanceof ServletRequestAttributes sra) {
+                HttpServletRequest req = sra.getRequest();
+                String xff = req.getHeader("X-Forwarded-For");
+                if (xff != null && !xff.isBlank()) {
+                    return xff.split(",")[0].trim();
+                }
+                return req.getRemoteAddr();
+            }
+        } catch (Exception ignored) {}
+        return "127.0.0.1";
     }
 
     @Transactional

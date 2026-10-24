@@ -10,6 +10,9 @@ import java.util.List;
 @Repository
 public interface SearchQueryRepository extends JpaRepository<SearchQuery, Long> {
     @EntityGraph(attributePaths = {"categoryDetected"})
+    List<SearchQuery> findTop10ByOrderByIdDesc();
+
+    @EntityGraph(attributePaths = {"categoryDetected"})
     List<SearchQuery> findTop10ByOrderByCreatedAtDesc();
 
     List<SearchQuery> findTop20ByUserIdOrderByCreatedAtDesc(Integer userId);
