@@ -49,11 +49,11 @@ public class QueryParserService {
 
         ExtractedCriteria criteria = llmClient.extractCriteria(queryText, categoryCode, filterableKeys);
 
-        // Gọi lớp Validation để làm sạch và chuẩn hóa dữ liệu bị lỗi (Task A3)
-        criteriaValidatorService.validateAndNormalize(criteria);
+        // Gọi lớp Validation để làm sạch và chuẩn hóa dữ liệu bị lỗi (Task A3 + Brand & Spec Normalization)
+        criteriaValidatorService.validateAndNormalize(criteria, queryText);
 
-        log.info("[QueryParser] Extracted & Validated: budget=[{},{}], target={}, specs={}",
-                criteria.getBudgetMin(), criteria.getBudgetMax(), criteria.getTarget(), criteria.getRequiredSpecs());
+        log.info("[QueryParser] Extracted & Validated: brand={}, budget=[{},{}], target={}, specs={}",
+                criteria.getBrand(), criteria.getBudgetMin(), criteria.getBudgetMax(), criteria.getTarget(), criteria.getRequiredSpecs());
         return criteria;
     }
 }

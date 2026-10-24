@@ -52,7 +52,7 @@ class QueryParserServiceTest {
 
         when(llmClient.extractCriteria(eq(query), eq(categoryCode), eq(List.of("ram", "cpu"))))
                 .thenReturn(criteriaFromLlm);
-        doNothing().when(criteriaValidatorService).validateAndNormalize(criteriaFromLlm);
+        doNothing().when(criteriaValidatorService).validateAndNormalize(criteriaFromLlm, query);
 
         // Act
         ExtractedCriteria result = queryParserService.parse(query, categoryCode);
@@ -65,6 +65,6 @@ class QueryParserServiceTest {
 
         verify(categoryRepository).findByCategoryCodeAndFilterable(categoryCode);
         verify(llmClient).extractCriteria(eq(query), eq(categoryCode), eq(List.of("ram", "cpu")));
-        verify(criteriaValidatorService).validateAndNormalize(criteriaFromLlm);
+        verify(criteriaValidatorService).validateAndNormalize(criteriaFromLlm, query);
     }
 }

@@ -8,6 +8,7 @@ export interface SearchRequest {
 
 export interface ExtractedCriteria {
   categoryCode?: string;
+  brand?: string | null;
   budgetMin?: number | null;
   budgetMax?: number | null;
   target?: string | null;
