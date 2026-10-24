@@ -1,5 +1,7 @@
 package com.shoppingagent.product;
 
+import com.shoppingagent.audit.AuditAction;
+import com.shoppingagent.audit.AuditLogService;
 import com.shoppingagent.product.dto.CategoryAttributeDTO;
 import com.shoppingagent.product.dto.CategoryCreateRequest;
 import com.shoppingagent.product.dto.CategoryDTO;
@@ -14,7 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -26,6 +30,7 @@ public class CategoryController {
     private final CategoryRepository categoryRepository;
     private final CategoryAttributeRepository categoryAttributeRepository;
     private final CategoryFacetService categoryFacetService;
+    private final AuditLogService auditLogService;
 
     @GetMapping
     @org.springframework.cache.annotation.Cacheable(value = "categories", key = "#includeInactive")
@@ -71,6 +76,16 @@ public class CategoryController {
             saveCategoryAttributes(saved, req.getAttributes(), false);
         }
 
+        if (auditLogService != null) {
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("code", saved.getCode());
+            details.put("name", saved.getName());
+            details.put("description", saved.getDescription());
+            details.put("attributesCount", req.getAttributes() != null ? req.getAttributes().size() : 0);
+            auditLogService.log(AuditAction.CATEGORY_CREATE, "CATEGORY", saved.getId(),
+                    "Tạo mới ngành hàng '" + saved.getName() + "' (" + saved.getCode() + ")", details);
+        }
+
         return ResponseEntity.ok(toDTO(saved));
     }
 
@@ -84,6 +99,11 @@ public class CategoryController {
         Category cat = categoryRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ngành hàng với ID: " + id));
 
+        Map<String, Object> beforeState = new LinkedHashMap<>();
+        beforeState.put("name", cat.getName());
+        beforeState.put("description", cat.getDescription());
+        beforeState.put("isActive", cat.getIsActive());
+
         if (req.getName() != null) cat.setName(req.getName().trim());
         if (req.getDescription() != null) cat.setDescription(req.getDescription());
         if (req.getIsActive() != null) cat.setIsActive(req.getIsActive());
@@ -92,6 +112,19 @@ public class CategoryController {
 
         if (req.getAttributes() != null) {
             saveCategoryAttributes(saved, req.getAttributes(), true);
+        }
+
+        if (auditLogService != null) {
+            Map<String, Object> afterState = new LinkedHashMap<>();
+            afterState.put("name", saved.getName());
+            afterState.put("description", saved.getDescription());
+            afterState.put("isActive", saved.getIsActive());
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("code", saved.getCode());
+            details.put("before", beforeState);
+            details.put("after", afterState);
+            auditLogService.log(AuditAction.CATEGORY_UPDATE, "CATEGORY", saved.getId(),
+                    "Cập nhật ngành hàng '" + saved.getName() + "' (" + saved.getCode() + ")", details);
         }
 
         return ResponseEntity.ok(toDTO(saved));
@@ -146,7 +179,21 @@ public class CategoryController {
                     .displayOrder(nextOrder)
                     .build();
         }
-        categoryAttributeRepository.save(attr);
+        CategoryAttribute savedAttr = categoryAttributeRepository.save(attr);
+
+        if (auditLogService != null) {
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("categoryCode", cat.getCode());
+            details.put("attributeId", savedAttr.getId());
+            details.put("attributeKey", cleanKey);
+            details.put("attributeLabel", cleanLabel);
+            details.put("dataType", cleanType);
+            details.put("unit", savedAttr.getUnit());
+            details.put("isFilterable", savedAttr.getIsFilterable());
+            auditLogService.log(AuditAction.CATEGORY_ATTRIBUTE_ADD, "CATEGORY", cat.getId(),
+                    "Cập nhật/thêm thuộc tính '" + cleanKey + "' cho ngành hàng '" + cat.getName() + "'", details);
+        }
+
         return ResponseEntity.ok(toDTO(cat));
     }
 
@@ -162,7 +209,18 @@ public class CategoryController {
 
         categoryAttributeRepository.findById(attrId).ifPresent(attr -> {
             if (attr.getCategory() != null && id.equals(attr.getCategory().getId())) {
+                String attrKey = attr.getAttributeKey();
+                String attrLabel = attr.getAttributeLabel();
                 categoryAttributeRepository.delete(attr);
+                if (auditLogService != null) {
+                    Map<String, Object> details = new LinkedHashMap<>();
+                    details.put("categoryCode", cat.getCode());
+                    details.put("attributeId", attrId);
+                    details.put("attributeKey", attrKey);
+                    details.put("attributeLabel", attrLabel);
+                    auditLogService.log(AuditAction.CATEGORY_ATTRIBUTE_DELETE, "CATEGORY", cat.getId(),
+                            "Xóa thuộc tính '" + attrKey + "' khỏi ngành hàng '" + cat.getName() + "'", details);
+                }
             }
         });
         return ResponseEntity.ok(toDTO(cat));
@@ -175,8 +233,20 @@ public class CategoryController {
     public ResponseEntity<Void> deleteCategory(@PathVariable Integer id) {
         Category cat = categoryRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ngành hàng với ID: " + id));
+        boolean beforeActive = Boolean.TRUE.equals(cat.getIsActive());
         cat.setIsActive(false);
         categoryRepository.save(cat);
+
+        if (auditLogService != null) {
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("code", cat.getCode());
+            details.put("name", cat.getName());
+            details.put("beforeActive", beforeActive);
+            details.put("afterActive", false);
+            auditLogService.log(AuditAction.CATEGORY_DELETE, "CATEGORY", cat.getId(),
+                    "Vô hiệu hóa ngành hàng '" + cat.getName() + "' (" + cat.getCode() + ")", details);
+        }
+
         return ResponseEntity.noContent().build();
     }
 

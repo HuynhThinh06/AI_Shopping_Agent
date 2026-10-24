@@ -74,8 +74,7 @@ class SummarizerServiceTest {
                 .reviewHash("2-3") // 2 reviews, sumIds = 1 + 2 = 3
                 .generatedAt(LocalDateTime.now())
                 .build();
-        product.setReviewSummary(cached);
-
+        when(reviewSummaryRepository.findById(10L)).thenReturn(Optional.of(cached));
         when(productRepository.findById(10L)).thenReturn(Optional.of(product));
         when(reviewRepository.findValidReviews(10L)).thenReturn(validReviews);
 
@@ -96,7 +95,7 @@ class SummarizerServiceTest {
     @DisplayName("Cache Miss: Gọi LLM tóm tắt khi chưa có cache hoặc có review mới, sau đó lưu cache")
     void shouldCallLlmAndSaveCacheWhenCacheMiss() {
         // Chưa có reviewSummary (null)
-        product.setReviewSummary(null);
+        when(reviewSummaryRepository.findById(10L)).thenReturn(Optional.empty());
 
         Review r1 = Review.builder().id(1L).content("Pin cực trâu, máy mượt.").build();
         Review r2 = Review.builder().id(2L).content("Camera chụp đêm rất đẹp.").build();

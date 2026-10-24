@@ -9,7 +9,6 @@ import {
   User,
   Phone,
   ArrowRight,
-  ShieldCheck,
   Eye,
   EyeOff,
   AlertCircle,
@@ -20,6 +19,7 @@ import {
   ArrowLeft,
   RotateCw,
   CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface TestAccount {
@@ -294,6 +294,7 @@ export const AuthPage: React.FC = () => {
     setConfirmPassword('password123');
     setErrors({});
     setErrorMsg(null);
+    setErrorCode(null);
 
     if (autoLogin) {
       await executeLogin(acc.email, 'password123', acc.name, acc.role);

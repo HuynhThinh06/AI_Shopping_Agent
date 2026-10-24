@@ -147,10 +147,32 @@ public class RankingService {
     /**
      * Tính tỉ lệ spec của sản phẩm khớp với yêu cầu trong criteria.
      * So sánh đơn giản: cast về số nếu có thể, còn lại so sánh chuỗi.
+     * Áp dụng hệ số phạt nếu người dùng chỉ định rõ thương hiệu nhưng sản phẩm lại khác thương hiệu.
      */
     private double computeSpecMatch(Product product, ExtractedCriteria criteria) {
-        Map<String, String> required = criteria.getRequiredSpecs();
-        if (required == null || required.isEmpty()) return 1.0;
+        double brandMultiplier = 1.0;
+        if (criteria != null && criteria.getBrand() != null && !criteria.getBrand().isBlank()) {
+            boolean brandMatch = false;
+            String cb = criteria.getBrand().trim().toLowerCase();
+            String pb = product.getBrand() != null ? product.getBrand().trim().toLowerCase() : "";
+            String pn = product.getName() != null ? product.getName().trim().toLowerCase() : "";
+
+            if (cb.equals("macbook") || cb.equals("apple") || cb.equals("mac")) {
+                brandMatch = pb.contains("macbook") || pb.contains("apple") || pn.contains("macbook");
+            } else if (cb.equals("iphone")) {
+                brandMatch = pb.contains("iphone") || pb.contains("apple") || pn.contains("iphone");
+            } else {
+                brandMatch = pb.contains(cb) || pn.contains(cb);
+            }
+
+            if (!brandMatch) {
+                // Phạt nặng (giảm 80% điểm khớp cấu hình) nếu sản phẩm không đúng thương hiệu người dùng yêu cầu
+                brandMultiplier = 0.2;
+            }
+        }
+
+        Map<String, String> required = criteria != null ? criteria.getRequiredSpecs() : null;
+        if (required == null || required.isEmpty()) return 1.0 * brandMultiplier;
 
         Map<String, Object> actualSpecs = product.getSpecs();
         if (actualSpecs == null) return 0.0;
@@ -161,7 +183,7 @@ public class RankingService {
             return matchSpec(actual.toString(), entry.getValue());
         }).count();
 
-        return (double) matched / required.size();
+        return ((double) matched / required.size()) * brandMultiplier;
     }
 
     /**

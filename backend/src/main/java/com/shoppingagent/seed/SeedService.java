@@ -184,13 +184,13 @@ public class SeedService {
         record UserData(String username, String email, String passwordHash, String displayName, String role, boolean isActive) {}
 
         List<UserData> defaultUsers = List.of(
-            new UserData("admin", "admin@shoppingagent.com", "$2a$10$w8T0pC0sJpUjV/y6aJm6E.b9V7H9pI1jD8kF2lM4nO5pQ6rS7tU8v", "Quản trị viên Hệ thống (Admin)", "admin", true),
-            new UserData("tuananh", "tuananh.dev@gmail.com", "$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2", "Trần Tuấn Anh (VIP)", "user", true),
-            new UserData("giathinh", "giathinh.student@hcmut.edu.vn", "$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2", "Huỳnh Gia Thịnh (Sinh viên IT)", "user", true),
-            new UserData("hoangminh", "hoangminh.tech@gmail.com", "$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2", "Hoàng Minh (Tech Reviewer / Gamer)", "user", true),
-            new UserData("lananh", "lananh.office@company.vn", "$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2", "Nguyễn Lan Anh (Văn phòng)", "user", true),
-            new UserData("khanh_reviewer", "khanh.reviewer@techlab.vn", "$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2", "Trần Quốc Khánh (Chuyên gia Đánh giá)", "user", true),
-            new UserData("spammer_bot", "spambot999@disposable.org", "$2a$10$G8w9v5b5e3d2c1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2", "Dịch vụ Quảng cáo 247 (Spam Bot)", "user", false)
+            new UserData("admin", "admin@shoppingagent.com", "$2a$10$R0tBJjKn5yR4FutIJV73OurD/w0Bfz0Mi6gplX3JigptulQj3NE3.", "Quản trị viên Hệ thống (Admin)", "admin", true),
+            new UserData("tuananh", "tuananh.dev@gmail.com", "$2a$10$.J7MALTe9SrRBVXXO35rKuGJy2jNFMksrJvVz2DYgYWCENBU2x42C", "Trần Tuấn Anh (VIP)", "user", true),
+            new UserData("giathinh", "giathinh.student@hcmut.edu.vn", "$2a$10$.J7MALTe9SrRBVXXO35rKuGJy2jNFMksrJvVz2DYgYWCENBU2x42C", "Huỳnh Gia Thịnh (Sinh viên IT)", "user", true),
+            new UserData("hoangminh", "hoangminh.tech@gmail.com", "$2a$10$.J7MALTe9SrRBVXXO35rKuGJy2jNFMksrJvVz2DYgYWCENBU2x42C", "Hoàng Minh (Tech Reviewer / Gamer)", "user", true),
+            new UserData("lananh", "lananh.office@company.vn", "$2a$10$.J7MALTe9SrRBVXXO35rKuGJy2jNFMksrJvVz2DYgYWCENBU2x42C", "Nguyễn Lan Anh (Văn phòng)", "user", true),
+            new UserData("khanh_reviewer", "khanh.reviewer@techlab.vn", "$2a$10$.J7MALTe9SrRBVXXO35rKuGJy2jNFMksrJvVz2DYgYWCENBU2x42C", "Trần Quốc Khánh (Chuyên gia Đánh giá)", "user", true),
+            new UserData("spammer_bot", "spambot999@disposable.org", "$2a$10$.J7MALTe9SrRBVXXO35rKuGJy2jNFMksrJvVz2DYgYWCENBU2x42C", "Dịch vụ Quảng cáo 247 (Spam Bot)", "user", false)
         );
 
         List<User> result = new java.util.ArrayList<>();

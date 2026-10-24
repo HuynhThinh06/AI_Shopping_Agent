@@ -14,7 +14,7 @@ import java.util.List;
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     /**
-     * Lấy sản phẩm ứng viên theo ngành hàng và lọc sơ bộ theo giá.
+     * Lấy sản phẩm ứng viên theo ngành hàng, thương hiệu và lọc sơ bộ theo giá.
      * Lọc chi tiết hơn (spec) sẽ thực hiện trong RankingService.
      */
     @Query("""
@@ -22,13 +22,23 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             JOIN p.category c
             WHERE LOWER(c.code) = LOWER(:categoryCode)
               AND p.isActive = TRUE
+              AND (:brand IS NULL OR :brand = '' 
+                   OR LOWER(p.brand) = LOWER(:brand) 
+                   OR LOWER(p.name) LIKE LOWER(CONCAT('%', :brand, '%'))
+                   OR (:brand = 'MacBook' AND (LOWER(p.brand) = 'apple' OR LOWER(p.name) LIKE '%macbook%'))
+                   OR (:brand = 'iPhone' AND (LOWER(p.brand) = 'apple' OR LOWER(p.name) LIKE '%iphone%')))
               AND (:budgetMin IS NULL OR p.price >= :budgetMin)
               AND (:budgetMax IS NULL OR p.price <= :budgetMax)
             ORDER BY p.avgRating DESC NULLS LAST
             """)
     List<Product> findCandidates(@Param("categoryCode") String categoryCode,
+                                  @Param("brand") String brand,
                                   @Param("budgetMin") Long budgetMin,
                                   @Param("budgetMax") Long budgetMax);
+
+    default List<Product> findCandidates(String categoryCode, Long budgetMin, Long budgetMax) {
+        return findCandidates(categoryCode, null, budgetMin, budgetMax);
+    }
 
     /** Lấy tất cả sản phẩm active của một ngành hàng (dùng cho admin) */
     @Query("SELECT p FROM Product p JOIN p.category c WHERE LOWER(c.code) = LOWER(:code) AND p.isActive = TRUE")
@@ -92,6 +102,40 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             Pageable pageable
     );
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category"})
+    @Query(
+        value = """
+            SELECT p FROM Product p
+            JOIN p.category c
+            WHERE (:includeInactive = TRUE OR p.isActive = TRUE)
+              AND (:categoryCode IS NULL OR :categoryCode = '' OR LOWER(c.code) = LOWER(:categoryCode))
+              AND (:minPrice     IS NULL OR p.price         >= :minPrice)
+              AND (:maxPrice     IS NULL OR p.price         <= :maxPrice)
+              AND (:keyword      IS NULL OR :keyword = ''
+                   OR LOWER(p.name)  LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(p.brand) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            """,
+        countQuery = """
+            SELECT COUNT(p) FROM Product p
+            JOIN p.category c
+            WHERE (:includeInactive = TRUE OR p.isActive = TRUE)
+              AND (:categoryCode IS NULL OR :categoryCode = '' OR LOWER(c.code) = LOWER(:categoryCode))
+              AND (:minPrice     IS NULL OR p.price         >= :minPrice)
+              AND (:maxPrice     IS NULL OR p.price         <= :maxPrice)
+              AND (:keyword      IS NULL OR :keyword = ''
+                   OR LOWER(p.name)  LIKE LOWER(CONCAT('%', :keyword, '%'))
+                   OR LOWER(p.brand) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            """
+    )
+    Page<Product> searchProductsWithInactive(
+            @Param("categoryCode")    String   categoryCode,
+            @Param("minPrice")        Long     minPrice,
+            @Param("maxPrice")        Long     maxPrice,
+            @Param("keyword")         String   keyword,
+            @Param("includeInactive") boolean  includeInactive,
+            Pageable pageable
+    );
+
     long countByIsActiveTrue();
 
     @Query("SELECT COUNT(p) FROM Product p JOIN p.category c WHERE LOWER(c.code) = LOWER(:code) AND p.isActive = TRUE")
@@ -108,4 +152,19 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         ORDER BY COUNT(p.id) DESC, p.brand ASC
     """)
     List<Object[]> findBrandCountsByCategoryCode(@Param("code") String code);
+
+    java.util.Optional<Product> findBySku(String sku);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"category", "images"})
+    @Query("""
+        SELECT p FROM Product p
+        JOIN p.category c
+        WHERE (:categoryCode IS NULL OR :categoryCode = '' OR LOWER(c.code) = LOWER(:categoryCode))
+          AND (:keyword IS NULL OR :keyword = ''
+               OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(p.brand) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :keyword, '%')))
+        ORDER BY p.id ASC
+    """)
+    List<Product> findForExport(@Param("categoryCode") String categoryCode, @Param("keyword") String keyword);
 }

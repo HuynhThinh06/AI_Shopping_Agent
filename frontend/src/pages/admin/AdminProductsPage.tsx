@@ -1,12 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminNav } from '../../components/admin/AdminNav';
+import { BulkActionBar, useBulkSelection } from '../../components/admin/BulkActionBar';
 import { apiClient } from '../../api/client';
-import { getCategoriesList } from '../../api/adminApi';
+import {
+  getCategoriesList,
+  exportProductsExcel,
+  downloadExcelTemplate,
+  importProductsExcel,
+  bulkUpdateProducts,
+} from '../../api/adminApi';
+import type { ProductExcelImportResultDTO } from '../../api/adminApi';
 import type { CategoryOption } from '../../types/admin';
 import type { ProductDetailDTO } from '../../types/product';
 import type { PageResponse } from '../../types/review';
-import { Package, Search, ExternalLink, Star, Plus, Edit, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  Package,
+  Search,
+  ExternalLink,
+  Star,
+  Plus,
+  Edit,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  FileSpreadsheet,
+  Download,
+  Upload,
+  Loader2,
+  X,
+  FileCheck,
+  AlertTriangle,
+  EyeOff,
+} from 'lucide-react';
 
 const DEFAULT_CATEGORIES: CategoryOption[] = [
   { id: 1, code: 'laptop', name: 'Laptop' },
@@ -24,7 +50,101 @@ export const AdminProductsPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
+  const [bulkLoading, setBulkLoading] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  const currentPageIds = useMemo(() => products.map((p) => p.id), [products]);
+  const {
+    selectedIds,
+    selectedArray,
+    selectedCount,
+    isAllPageSelected,
+    toggleOne,
+    toggleAllCurrentPage,
+    clearSelection,
+  } = useBulkSelection(currentPageIds, [page, categoryCode]);
+
+  // Excel Import / Export States
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [showImportModal, setShowImportModal] = useState<boolean>(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState<boolean>(false);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState<boolean>(false);
+  const [importResult, setImportResult] = useState<ProductExcelImportResultDTO | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await exportProductsExcel(categoryCode, keyword);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      a.download = `products_export_${timestamp}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      setFeedback('Xuất danh sách sản phẩm ra Excel thành công!');
+      setTimeout(() => setFeedback(null), 3000);
+    } catch (err: any) {
+      console.error('Export failed:', err);
+      alert('Không thể xuất file Excel: ' + (err.message || 'Lỗi không xác định'));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    setIsDownloadingTemplate(true);
+    try {
+      const blob = await downloadExcelTemplate();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'product_import_template.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Template download failed:', err);
+      alert('Không thể tải file mẫu: ' + (err.message || 'Lỗi không xác định'));
+    } finally {
+      setIsDownloadingTemplate(false);
+    }
+  };
+
+  const handleExecuteImport = async () => {
+    if (!selectedFile) return;
+    setIsImporting(true);
+    setImportError(null);
+    setImportResult(null);
+
+    try {
+      const result = await importProductsExcel(selectedFile);
+      setImportResult(result);
+      if (result.successCount > 0) {
+        setFeedback(`Nhập Excel hoàn tất: ${result.createdCount} tạo mới, ${result.updatedCount} cập nhật!`);
+        setTimeout(() => setFeedback(null), 4000);
+        loadProducts(0);
+      }
+    } catch (err: any) {
+      console.error('Import failed:', err);
+      const msg = err?.response?.data?.message || err.message || 'Lỗi khi nhập file Excel';
+      setImportError(msg);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleCloseImportModal = () => {
+    setShowImportModal(false);
+    setSelectedFile(null);
+    setImportResult(null);
+    setImportError(null);
+  };
 
   useEffect(() => {
     getCategoriesList()
@@ -37,7 +157,7 @@ export const AdminProductsPage: React.FC = () => {
   const loadProducts = async (pageIdx = page) => {
     setLoading(true);
     try {
-      const params: Record<string, any> = { page: pageIdx, size: 10 };
+      const params: Record<string, any> = { page: pageIdx, size: 10, includeInactive: true };
       if (categoryCode) params.categoryCode = categoryCode;
       if (keyword.trim()) params.keyword = keyword.trim();
 
@@ -53,6 +173,7 @@ export const AdminProductsPage: React.FC = () => {
             page: pageIdx,
             size: 10,
             categoryCode: 'laptop',
+            includeInactive: true,
           };
           if (keyword.trim()) fallbackParams.keyword = keyword.trim();
           const resFallback = await apiClient.get<PageResponse<ProductDetailDTO>>('/products', {
@@ -87,7 +208,7 @@ export const AdminProductsPage: React.FC = () => {
     setDeleting(true);
     try {
       await apiClient.delete(`/products/${deleteId}`);
-      setFeedback(`Đã xóa thành công sản phẩm #${deleteId}!`);
+      setFeedback(`Đã ngừng bán (xóa mềm) thành công sản phẩm #${deleteId}!`);
       setTimeout(() => setFeedback(null), 3000);
       setDeleteId(null);
       loadProducts(page);
@@ -96,6 +217,27 @@ export const AdminProductsPage: React.FC = () => {
       alert('Không thể xóa sản phẩm. Vui lòng thử lại!');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleBulkProductAction = async (actionId: string) => {
+    if (selectedArray.length === 0) return;
+    setBulkLoading(true);
+    try {
+      const act = actionId as 'activate' | 'deactivate';
+      const res = await bulkUpdateProducts(selectedArray, act);
+      const label = act === 'activate' ? 'kích hoạt mở bán' : 'ngừng bán (ẩn)';
+      setFeedback(
+        `Đã ${label} hàng loạt ${res.processed}/${res.requested} sản phẩm và làm mới bộ nhớ đệm!`
+      );
+      setTimeout(() => setFeedback(null), 4000);
+      clearSelection();
+      loadProducts(page);
+    } catch (err: any) {
+      console.error('Bulk product action failed:', err);
+      alert(err?.response?.data?.message || 'Không thể thực hiện thao tác hàng loạt!');
+    } finally {
+      setBulkLoading(false);
     }
   };
 
@@ -124,13 +266,43 @@ export const AdminProductsPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/admin/products/new"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal transition-all hover:-translate-y-0.5 whitespace-nowrap"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Thêm Sản Phẩm Mới</span>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Xuất Excel */}
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={isExporting}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal transition-all hover:-translate-y-0.5 cursor-pointer disabled:opacity-50"
+            title="Xuất danh sách sản phẩm hiện tại ra file Excel (.xlsx)"
+          >
+            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <span>{isExporting ? 'Đang xuất...' : 'Xuất Excel'}</span>
+          </button>
+
+          {/* Nhập Excel */}
+          <button
+            type="button"
+            onClick={() => {
+              setImportResult(null);
+              setImportError(null);
+              setSelectedFile(null);
+              setShowImportModal(true);
+            }}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal transition-all hover:-translate-y-0.5 cursor-pointer"
+            title="Nhập sản phẩm hàng loạt từ file Excel"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Nhập Excel</span>
+          </button>
+
+          <Link
+            to="/admin/products/new"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-warm-primary hover:bg-warm-primary-hover text-warm-primary-text font-black text-xs sm:text-sm border-2 border-warm-text shadow-brutal transition-all hover:-translate-y-0.5 whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Thêm Sản Phẩm Mới</span>
+          </Link>
+        </div>
       </div>
 
       {/* Alert notification */}
@@ -182,12 +354,50 @@ export const AdminProductsPage: React.FC = () => {
         </form>
       </div>
 
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedCount}
+        entityLabel="sản phẩm"
+        loading={bulkLoading}
+        onExecute={handleBulkProductAction}
+        onClear={clearSelection}
+        actions={[
+          {
+            id: 'activate',
+            label: 'Kích hoạt bán',
+            variant: 'emerald',
+            icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+            confirmTitle: 'Xác nhận kích hoạt bán hàng loạt',
+            confirmMessage: (count) =>
+              `Bạn có chắc chắn muốn mở bán trở lại (${count} sản phẩm đã chọn)? Sản phẩm sẽ xuất hiện ngay trên trang chủ và kết quả tìm kiếm AI.`,
+          },
+          {
+            id: 'deactivate',
+            label: 'Ngừng bán (Ẩn)',
+            variant: 'rose',
+            icon: <EyeOff className="w-3.5 h-3.5" />,
+            confirmTitle: 'Xác nhận ngừng bán sản phẩm hàng loạt',
+            confirmMessage: (count) =>
+              `Bạn có chắc chắn muốn ngừng bán / ẩn ${count} sản phẩm đã chọn khỏi danh mục và kết quả tìm kiếm khách hàng?`,
+          },
+        ]}
+      />
+
       {/* Products Table */}
       <div className="bg-warm-surface border-2 border-warm-text rounded-2xl shadow-brutal overflow-hidden mb-6">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-warm-bg border-b-2 border-warm-text text-warm-text font-black uppercase text-[10px] tracking-wider">
               <tr>
+                <th className="py-3 px-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={isAllPageSelected}
+                    onChange={toggleAllCurrentPage}
+                    className="w-4 h-4 accent-warm-primary rounded cursor-pointer"
+                    title="Chọn tất cả trong trang hiện tại"
+                  />
+                </th>
                 <th className="py-3 px-3">Sản phẩm</th>
                 <th className="py-3 px-3">Ngành hàng</th>
                 <th className="py-3 px-3">Thương hiệu</th>
@@ -201,61 +411,84 @@ export const AdminProductsPage: React.FC = () => {
             <tbody className="divide-y-2 divide-warm-border-subtle font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-warm-muted">
+                  <td colSpan={9} className="py-8 text-center text-warm-muted">
                     Đang tải dữ liệu sản phẩm...
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-warm-muted">
+                  <td colSpan={9} className="py-8 text-center text-warm-muted">
                     Không tìm thấy sản phẩm nào phù hợp.
                   </td>
                 </tr>
               ) : (
-                products.map((prod) => (
-                  <tr key={prod.id} className="hover:bg-warm-bg/70 transition-colors">
-                    <td className="py-3.5 px-3">
-                      <div className="flex items-center gap-3">
-                        {prod.imageUrls && prod.imageUrls.length > 0 ? (
-                          <img
-                            src={prod.imageUrls[0]}
-                            alt={prod.name}
-                            className="w-12 h-12 rounded-lg object-contain bg-white border border-warm-text/20 p-1 flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-lg bg-warm-bg border border-warm-text/20 flex items-center justify-center flex-shrink-0">
-                            <Package className="w-6 h-6 text-warm-muted" />
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-mono text-[10px] font-bold text-warm-muted">
-                            #{prod.id} {prod.sku && `• ${prod.sku}`}
-                          </div>
-                          <div className="font-extrabold text-warm-text text-xs line-clamp-2 max-w-[220px]">
-                            {prod.name}
+                products.map((prod) => {
+                  const isSelected = selectedIds.has(prod.id);
+                  const isActive = prod.isActive !== false;
+
+                  return (
+                    <tr
+                      key={prod.id}
+                      className={`hover:bg-warm-bg/70 transition-colors ${
+                        isSelected ? 'bg-warm-pastel-amber/30' : ''
+                      }`}
+                    >
+                      <td className="py-3.5 px-3">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleOne(prod.id)}
+                          className="w-4 h-4 accent-warm-primary rounded cursor-pointer"
+                        />
+                      </td>
+                      <td className="py-3.5 px-3">
+                        <div className="flex items-center gap-3">
+                          {prod.imageUrls && prod.imageUrls.length > 0 ? (
+                            <img
+                              src={prod.imageUrls[0]}
+                              alt={prod.name}
+                              className="w-12 h-12 rounded-lg object-contain bg-white border border-warm-text/20 p-1 flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-warm-bg border border-warm-text/20 flex items-center justify-center flex-shrink-0">
+                              <Package className="w-6 h-6 text-warm-muted" />
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-mono text-[10px] font-bold text-warm-muted">
+                              #{prod.id} {prod.sku && `• ${prod.sku}`}
+                            </div>
+                            <div className="font-extrabold text-warm-text text-xs line-clamp-2 max-w-[220px]">
+                              {prod.name}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-warm-pastel-amber border border-warm-text text-warm-secondary-text">
-                        {prod.categoryCode}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-3 font-bold">{prod.brand}</td>
-                    <td className="py-3.5 px-3 font-mono font-bold text-warm-primary-text whitespace-nowrap">
-                      {formatPrice(prod.price)}
-                    </td>
-                    <td className="py-3.5 px-3 whitespace-nowrap">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[11px] font-bold text-warm-text">
-                          SL: {prod.stockQuantity ?? 10}
+                      </td>
+                      <td className="py-3.5 px-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-warm-pastel-amber border border-warm-text text-warm-secondary-text">
+                          {prod.categoryCode}
                         </span>
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 w-max">
-                          Đang bán
-                        </span>
-                      </div>
-                    </td>
+                      </td>
+                      <td className="py-3.5 px-3 font-bold">{prod.brand}</td>
+                      <td className="py-3.5 px-3 font-mono font-bold text-warm-primary-text whitespace-nowrap">
+                        {formatPrice(prod.price)}
+                      </td>
+                      <td className="py-3.5 px-3 whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[11px] font-bold text-warm-text">
+                            SL: {prod.stockQuantity ?? 10}
+                          </span>
+                          {isActive ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 w-max">
+                              Đang bán
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 w-max">
+                              <EyeOff className="w-2.5 h-2.5" /> Ngừng bán
+                            </span>
+                          )}
+                        </div>
+                      </td>
                     <td className="py-3.5 px-3 whitespace-nowrap">
                       <div className="flex items-center gap-1 font-bold text-warm-text">
                         <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
@@ -306,7 +539,8 @@ export const AdminProductsPage: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -368,6 +602,179 @@ export const AdminProductsPage: React.FC = () => {
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>{deleting ? 'Đang xóa...' : 'Xóa sản phẩm'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Excel Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-warm-surface border-2 border-warm-text rounded-2xl max-w-xl w-full shadow-brutal my-8 overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="p-5 border-b-2 border-warm-text bg-warm-bg flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-100 border border-warm-text rounded-xl text-indigo-700">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-warm-text">Nhập Sản Phẩm Bằng Excel</h3>
+                  <p className="text-xs text-warm-muted font-medium">Đồng bộ hoặc thêm mới danh sách sản phẩm từ file .xlsx</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseImportModal}
+                disabled={isImporting}
+                className="p-1.5 rounded-lg border border-warm-text hover:bg-white text-warm-text cursor-pointer transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+              {/* Step 1: Download Template */}
+              <div className="p-4 rounded-xl bg-indigo-50/60 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="text-xs font-black text-indigo-900 flex items-center gap-1.5">
+                    <FileCheck className="w-4 h-4 text-indigo-600" />
+                    <span>File mẫu chuẩn của hệ thống</span>
+                  </div>
+                  <p className="text-xs text-indigo-800/80 font-medium">
+                    Tải mẫu Excel đã cấu hình sẵn các cột, sheet hướng dẫn & dữ liệu mẫu.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  disabled={isDownloadingTemplate}
+                  className="px-3.5 py-2 rounded-xl bg-white border border-warm-text text-warm-text font-black text-xs hover:bg-warm-bg shadow-brutal-xs flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50"
+                >
+                  {isDownloadingTemplate ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                  <span>Tải File Mẫu (.xlsx)</span>
+                </button>
+              </div>
+
+              {/* Step 2: Upload File */}
+              <div>
+                <label className="block text-xs font-black text-warm-text mb-2">
+                  Chọn file dữ liệu Excel (.xlsx, .xls)
+                </label>
+                <label className="border-2 border-dashed border-warm-text/40 hover:border-warm-text rounded-2xl p-6 bg-warm-bg/50 hover:bg-warm-bg flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-center">
+                  <input
+                    type="file"
+                    accept=".xlsx, .xls"
+                    className="hidden"
+                    disabled={isImporting}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setSelectedFile(e.target.files[0]);
+                        setImportResult(null);
+                        setImportError(null);
+                      }
+                    }}
+                  />
+                  <Upload className="w-8 h-8 text-warm-muted" />
+                  {selectedFile ? (
+                    <div>
+                      <span className="text-xs font-black text-emerald-700 block">{selectedFile.name}</span>
+                      <span className="text-[11px] text-warm-muted font-medium">
+                        {(selectedFile.size / 1024).toFixed(1)} KB — Nhấp để đổi file khác
+                      </span>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="text-xs font-bold text-warm-text block">
+                        Nhấp vào đây để duyệt file từ máy tính
+                      </span>
+                      <span className="text-[11px] text-warm-muted font-medium">
+                        Hỗ trợ định dạng Microsoft Excel (.xlsx, .xls)
+                      </span>
+                    </div>
+                  )}
+                </label>
+              </div>
+
+              {/* Import Error Message */}
+              {importError && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border-2 border-rose-300 text-rose-800 text-xs font-bold flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                  <span>{importError}</span>
+                </div>
+              )}
+
+              {/* Import Result Summary */}
+              {importResult && (
+                <div className="space-y-3 pt-2 border-t border-warm-text/20">
+                  <h4 className="text-xs font-black text-warm-text">Kết Quả Nhập Dữ Liệu:</h4>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="p-2.5 rounded-xl bg-warm-bg border border-warm-text text-center">
+                      <div className="text-[10px] font-bold text-warm-muted">Tổng số</div>
+                      <div className="text-sm font-black text-warm-text">{importResult.totalRows}</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-500 text-center">
+                      <div className="text-[10px] font-bold text-emerald-700">Tạo mới</div>
+                      <div className="text-sm font-black text-emerald-700">{importResult.createdCount}</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-500 text-center">
+                      <div className="text-[10px] font-bold text-blue-700">Cập nhật</div>
+                      <div className="text-sm font-black text-blue-700">{importResult.updatedCount}</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-500 text-center">
+                      <div className="text-[10px] font-bold text-rose-700">Lỗi</div>
+                      <div className="text-sm font-black text-rose-700">{importResult.errorCount}</div>
+                    </div>
+                  </div>
+
+                  {/* Errors List */}
+                  {importResult.errors && importResult.errors.length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-xs font-bold text-rose-700 mb-1.5">
+                        Chi tiết các dòng bị lỗi ({importResult.errors.length}):
+                      </div>
+                      <div className="max-h-36 overflow-y-auto space-y-1.5 p-2 bg-rose-50/70 border border-rose-200 rounded-xl text-xs">
+                        {importResult.errors.map((err, idx) => (
+                          <div key={idx} className="text-rose-800 flex items-start gap-1.5">
+                            <span className="font-bold flex-shrink-0">•</span>
+                            <span className="font-medium">{err}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t-2 border-warm-text bg-warm-bg flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={handleCloseImportModal}
+                disabled={isImporting}
+                className="px-4 py-2 rounded-xl bg-white border border-warm-text font-bold text-xs hover:bg-warm-bg cursor-pointer"
+              >
+                {importResult ? 'Đóng' : 'Hủy bỏ'}
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteImport}
+                disabled={!selectedFile || isImporting}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs border border-warm-text shadow-brutal-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Đang xử lý file...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Bắt đầu nhập dữ liệu</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

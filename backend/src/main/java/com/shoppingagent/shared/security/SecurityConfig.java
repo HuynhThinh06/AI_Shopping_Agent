@@ -72,8 +72,9 @@ public class SecurityConfig {
                         })
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // Cho phép preflight CORS OPTIONS requests
+                        // Cho phép preflight CORS OPTIONS requests & error dispatch
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/error", "/api/error").permitAll()
 
                         // Cho phép truy cập luồng xử lý lỗi hệ thống (ngăn Spring Security chặn nhầm thành 401)
                         .requestMatchers("/error", "/api/error").permitAll()
@@ -93,8 +94,8 @@ public class SecurityConfig {
                         // Allow users to submit reviews
                         .requestMatchers(HttpMethod.POST, "/products/*/reviews", "/api/products/*/reviews").permitAll()
 
-                        // Allow users to manage favorites
-                        .requestMatchers("/favorites/**", "/api/favorites/**").permitAll()
+                        // Allow users to manage favorites (requires authenticated user)
+                        .requestMatchers("/favorites/**", "/api/favorites/**").authenticated()
 
                         // Documentation & Monitoring
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()

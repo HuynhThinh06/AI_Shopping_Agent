@@ -17,6 +17,8 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     Optional<User> findByEmail(String email);
 
+    long countByRoleAndIsActiveTrue(String role);
+
     @Query("""
             SELECT u FROM User u
             WHERE (:keyword IS NULL OR :keyword = ''

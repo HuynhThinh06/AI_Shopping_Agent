@@ -5,8 +5,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,10 +20,21 @@ import java.util.List;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
+    private final UserAuthCacheService userAuthCacheService;
+
+    @Autowired
+    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider,
+                                   @Autowired(required = false) UserAuthCacheService userAuthCacheService) {
+        this.tokenProvider = tokenProvider;
+        this.userAuthCacheService = userAuthCacheService;
+    }
+
+    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider) {
+        this(tokenProvider, null);
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -37,6 +48,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String role = claims.get("role", String.class);
                 Integer userId = claims.get("userId", Integer.class);
                 String email = claims.get("email", String.class);
+
+                if (userAuthCacheService != null) {
+                    UserAuthCacheService.UserAuthSnapshot snapshot = (userId != null)
+                            ? userAuthCacheService.getSnapshot(userId)
+                            : userAuthCacheService.getSnapshotByUsername(username);
+
+                    if (snapshot == null || !snapshot.active()) {
+                        log.warn("[JWT Filter] Rejected token for inactive or non-existent user: userId={}, username={}",
+                                userId, username);
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+
+                    if (snapshot.id() != null) userId = snapshot.id();
+                    if (snapshot.username() != null) username = snapshot.username();
+                    if (snapshot.email() != null) email = snapshot.email();
+                    if (snapshot.role() != null && !snapshot.role().isBlank()) {
+                        role = snapshot.role();
+                    }
+                }
 
                 String formattedRole = (role != null && !role.isBlank()) ? role.trim().toUpperCase() : "USER";
                 if (!formattedRole.startsWith("ROLE_")) {

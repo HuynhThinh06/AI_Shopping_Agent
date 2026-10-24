@@ -68,41 +68,49 @@ public class SearchService {
         // ── Bước 3: Lấy sản phẩm ứng viên từ DB ──────────────────────────────
         List<Product> candidates;
         if (criteria.getRequiredSpecs() != null && !criteria.getRequiredSpecs().isEmpty()) {
-            // Có specs → dùng native SQL với GIN index để lọc tại DB level
+            // Có specs → dùng native SQL với GIN index để lọc tại DB level (kết hợp brand nếu có)
             candidates = productSpecRepository.findCandidatesWithSpecs(
                     categoryCode,
+                    criteria.getBrand(),
                     criteria.getBudgetMin(),
                     criteria.getBudgetMax(),
                     criteria.getRequiredSpecs()
             );
-            log.debug("[Search] Found {} candidates (GIN-filtered by specs: {})",
-                    candidates.size(), criteria.getRequiredSpecs().keySet());
+            log.debug("[Search] Found {} candidates (GIN-filtered by specs: {}, brand: {})",
+                    candidates.size(), criteria.getRequiredSpecs().keySet(), criteria.getBrand());
 
             // Fallback Relaxation: Nếu lọc cứng đồng thời cả specs lẫn budget ra 0 kết quả (Over-constrained query),
             // nới lỏng điều kiện lọc specs tại tầng DB và nới ngân sách tối đa 40% để tìm sản phẩm tiệm cận nhất.
             if (candidates.isEmpty()) {
-                log.info("[Search] 0 candidates with strict specs filter. Falling back to relaxed budget candidates...");
+                log.info("[Search] 0 candidates with strict specs filter. Falling back to relaxed budget candidates for brand: {}...", criteria.getBrand());
                 Long relaxedMax = criteria.getBudgetMax() != null ? (long) (criteria.getBudgetMax() * 1.40) : null;
                 candidates = productRepository.findCandidates(
                         categoryCode,
+                        criteria.getBrand(),
                         criteria.getBudgetMin(),
                         relaxedMax
                 );
             }
         } else {
-            // Không có specs → query cơ bản (chỉ lọc category + price)
+            // Không có specs → query cơ bản (chỉ lọc category + brand + price)
             candidates = productRepository.findCandidates(
                     categoryCode,
+                    criteria.getBrand(),
                     criteria.getBudgetMin(),
                     criteria.getBudgetMax()
             );
-            log.debug("[Search] Found {} candidates (no spec filter)", candidates.size());
+            log.debug("[Search] Found {} candidates (no spec filter, brand: {})", candidates.size(), criteria.getBrand());
         }
 
-        // Nếu vẫn không có ứng viên nào (ngân sách quá thấp), fallback lấy toàn bộ sản phẩm cùng ngành hàng
+        // Nếu vẫn không có ứng viên nào (ngân sách quá thấp), fallback lấy toàn bộ sản phẩm cùng hãng, hoặc cùng ngành hàng
         if (candidates.isEmpty()) {
-            log.info("[Search] Still 0 candidates. Falling back to all products in category: {}", categoryCode);
-            candidates = productRepository.findCandidates(categoryCode, null, null);
+            log.info("[Search] Still 0 candidates. Falling back for brand: {} or category: {}", criteria.getBrand(), categoryCode);
+            if (criteria.getBrand() != null && !criteria.getBrand().isBlank()) {
+                candidates = productRepository.findCandidates(categoryCode, criteria.getBrand(), null, null);
+            }
+            if (candidates.isEmpty()) {
+                candidates = productRepository.findCandidates(categoryCode, null, null, null);
+            }
         }
 
         // ── Bước 4: Lấy trọng số xếp hạng từ DB ──────────────────────────────
@@ -187,6 +195,7 @@ public class SearchService {
         Map<String, Object> criteriaMap = new HashMap<>();
         if (criteria != null) {
             if (criteria.getCategoryCode() != null) criteriaMap.put("categoryCode", criteria.getCategoryCode());
+            if (criteria.getBrand() != null) criteriaMap.put("brand", criteria.getBrand());
             if (criteria.getBudgetMin() != null) criteriaMap.put("budgetMin", criteria.getBudgetMin());
             if (criteria.getBudgetMax() != null) criteriaMap.put("budgetMax", criteria.getBudgetMax());
             if (criteria.getTarget() != null) criteriaMap.put("target", criteria.getTarget());

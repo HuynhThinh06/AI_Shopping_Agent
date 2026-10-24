@@ -8,6 +8,7 @@ import com.shoppingagent.auth.dto.UserSessionDTO;
 import com.shoppingagent.shared.entity.User;
 import com.shoppingagent.shared.entity.UserSession;
 import com.shoppingagent.shared.security.JwtTokenProvider;
+import com.shoppingagent.shared.security.RateLimiterService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +50,9 @@ class AuthServiceTest {
 
     @Mock
     private JwtTokenProvider jwtTokenProvider;
+
+    @Mock
+    private RateLimiterService rateLimiterService;
 
     @InjectMocks
     private AuthService authService;

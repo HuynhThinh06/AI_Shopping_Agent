@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminNav } from '../../components/admin/AdminNav';
 import { getSystemStats } from '../../api/adminApi';
 import type { SystemStatsDTO } from '../../types/admin';
+
+const TrendCharts = React.lazy(() => import('../../components/admin/TrendCharts'));
 import {
   LayoutDashboard,
   Package,
@@ -119,6 +121,17 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Time-Series Trend Charts (Lazy-loaded Recharts) */}
+      <Suspense
+        fallback={
+          <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-6 shadow-brutal mb-6 text-xs font-bold text-warm-muted text-center">
+            Đang tải biểu đồ xu hướng theo thời gian...
+          </div>
+        }
+      >
+        <TrendCharts />
+      </Suspense>
 
       {/* Quick Navigation Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">

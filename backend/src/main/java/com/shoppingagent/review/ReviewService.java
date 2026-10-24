@@ -29,11 +29,20 @@ import java.math.RoundingMode;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final ProductRepository productRepository;
+    private final ReviewFilterService reviewFilterService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public ReviewService(ReviewRepository reviewRepository,
+                         ProductRepository productRepository,
+                         @org.springframework.beans.factory.annotation.Autowired(required = false) ReviewFilterService reviewFilterService) {
+        this.reviewRepository = reviewRepository;
+        this.productRepository = productRepository;
+        this.reviewFilterService = reviewFilterService;
+    }
 
     // ── Public API ───────────────────────────────────────────────────────────
 
@@ -65,6 +74,9 @@ public class ReviewService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ProductNotFoundException(productId));
 
+        // Tự động kiểm tra Spam ngay tại thời điểm đăng
+        boolean isSpamDetected = reviewFilterService != null && !reviewFilterService.isValid(req.getContent());
+
         // Xây dựng entity Review
         Review review = Review.builder()
                 .product(product)
@@ -73,17 +85,20 @@ public class ReviewService {
                         : "Khách hàng ẩn danh")
                 .content(req.getContent().trim())
                 .rating(req.getRating())
-                .isSpam(false)    // spam detection sẽ được ReviewFilterService xử lý khi tóm tắt
-                .isActive(true)
+                .isSpam(isSpamDetected)
+                .isActive(!isSpamDetected) // Nếu là spam, cách ly ngay lập tức (không hiển thị ra catalog)
                 .build();
 
         reviewRepository.save(review);
-        log.info("[ReviewService] Review mới: productId={}, rating={}", productId, req.getRating());
 
-        // ⚡ QUAN TRỌNG: Cập nhật thống kê sản phẩm
-        // Nếu bỏ qua bước này → SummarizerService sẽ không biết có review mới
-        // → Cache tóm tắt AI sẽ không bao giờ được làm mới!
-        refreshProductStats(product);
+        if (isSpamDetected) {
+            log.warn("[ReviewService] Detected and quarantined spam review for product #{}: '{}'",
+                    productId, req.getContent());
+        } else {
+            log.info("[ReviewService] Review mới hợp lệ: productId={}, rating={}", productId, req.getRating());
+            // Chỉ cập nhật thống kê sản phẩm khi review là hợp lệ
+            refreshProductStats(product);
+        }
 
         return toDTO(review);
     }

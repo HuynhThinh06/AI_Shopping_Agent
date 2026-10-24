@@ -1,6 +1,8 @@
 package com.shoppingagent.admin;
 
 import com.shoppingagent.admin.dto.*;
+import com.shoppingagent.audit.AuditLogDTO;
+import com.shoppingagent.audit.AuditLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -8,9 +10,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
@@ -20,6 +24,8 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
+    private final ProductExcelService productExcelService;
+    private final AuditLogService auditLogService;
 
     // ── 1. Thống kê hệ thống & Dashboard ────────────────────────────────────
 
@@ -35,6 +41,14 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getDashboardStats());
     }
 
+    @GetMapping("/dashboard/trends")
+    @Operation(summary = "Lấy dữ liệu biểu đồ xu hướng theo ngày (7/14/30/90 ngày)")
+    public ResponseEntity<DashboardTrendsDTO> getDashboardTrends(
+            @RequestParam(defaultValue = "14") int days
+    ) {
+        return ResponseEntity.ok(adminService.getDashboardTrends(days));
+    }
+
     // ── 2. Quản lý và kiểm duyệt Review ─────────────────────────────────────
 
     @GetMapping("/reviews")
@@ -44,8 +58,9 @@ public class AdminController {
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(defaultValue = "all", required = false) String filter
     ) {
-        int safeSize = Math.min(size, 100);
-        Pageable pageable = PageRequest.of(page, safeSize, Sort.by("createdAt").descending());
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("createdAt").descending());
         return ResponseEntity.ok(adminService.getReviews(pageable, filter));
     }
 
@@ -66,6 +81,12 @@ public class AdminController {
     public ResponseEntity<Void> deleteReview(@PathVariable Long id) {
         adminService.deleteReview(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/reviews/bulk")
+    @Operation(summary = "Thao tác hàng loạt với đánh giá (approve | spam | delete)")
+    public ResponseEntity<BulkActionResultDTO> bulkModerateReviews(@RequestBody BulkActionRequest request) {
+        return ResponseEntity.ok(adminService.bulkModerateReviews(request));
     }
 
     @PostMapping("/reviews/{productId}/summarize")
@@ -112,8 +133,9 @@ public class AdminController {
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(required = false) String requestType,
             @RequestParam(required = false) String status) {
-        int safeSize = Math.min(size, 100);
-        return ResponseEntity.ok(adminService.getLlmLogs(PageRequest.of(page, safeSize), requestType, status));
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 50);
+        return ResponseEntity.ok(adminService.getLlmLogs(PageRequest.of(safePage, safeSize), requestType, status));
     }
 
     // ── 5. Benchmark thực nghiệm & GIN Index ─────────────────────────────────
@@ -142,8 +164,9 @@ public class AdminController {
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String role) {
-        int safeSize = Math.min(size, 100);
-        return ResponseEntity.ok(adminService.getUsers(PageRequest.of(page, safeSize, Sort.by("id").ascending()), keyword, role));
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        return ResponseEntity.ok(adminService.getUsers(PageRequest.of(safePage, safeSize, Sort.by("id").ascending()), keyword, role));
     }
 
     @PutMapping("/users/{id}/role")
@@ -165,5 +188,65 @@ public class AdminController {
     public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
         adminService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── 7. Nhập / Xuất Excel Sản phẩm ───────────────────────────────────────
+
+    @GetMapping("/products/export")
+    @Operation(summary = "Xuất danh sách sản phẩm ra file Excel (.xlsx)")
+    public ResponseEntity<byte[]> exportProducts(
+            @RequestParam(required = false) String categoryCode,
+            @RequestParam(required = false) String keyword) throws java.io.IOException {
+        byte[] excelBytes = productExcelService.exportProductsToExcel(categoryCode, keyword);
+        String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String filename = "products_export_" + timestamp + ".xlsx";
+
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(excelBytes);
+    }
+
+    @GetMapping("/products/template")
+    @Operation(summary = "Tải file mẫu Excel (.xlsx) để nhập sản phẩm")
+    public ResponseEntity<byte[]> downloadTemplate() throws java.io.IOException {
+        byte[] templateBytes = productExcelService.generateExcelTemplate();
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"product_import_template.xlsx\"")
+                .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .body(templateBytes);
+    }
+
+    @PostMapping(value = "/products/import", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Nhập danh sách sản phẩm hàng loạt từ file Excel (.xlsx / .xls)")
+    public ResponseEntity<com.shoppingagent.admin.dto.ProductExcelImportResultDTO> importProducts(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) throws java.io.IOException {
+        return ResponseEntity.ok(productExcelService.importProductsFromExcel(file));
+    }
+
+    @PostMapping("/products/bulk")
+    @Operation(summary = "Thao tác hàng loạt với sản phẩm (activate | deactivate)")
+    public ResponseEntity<BulkActionResultDTO> bulkUpdateProducts(@RequestBody BulkActionRequest request) {
+        return ResponseEntity.ok(adminService.bulkUpdateProducts(request));
+    }
+
+    // ── 8. Nhật ký thao tác Quản trị viên (Audit Logs) ──────────────────────
+
+    @GetMapping("/audit-logs")
+    @Operation(summary = "Lấy danh sách nhật ký thao tác của quản trị viên (phân trang, lọc)")
+    public ResponseEntity<Page<AuditLogDTO>> getAuditLogs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String entityType,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String admin,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String keyword
+    ) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), 100);
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(auditLogService.getAuditLogs(entityType, action, admin, from, to, keyword, pageable));
     }
 }

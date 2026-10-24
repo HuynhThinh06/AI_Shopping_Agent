@@ -244,9 +244,36 @@ COMMENT ON COLUMN "llm_request_logs"."status"       IS 'success / failed / retri
 COMMENT ON COLUMN "llm_request_logs"."latency_ms"   IS 'Thời gian gọi LLM (ms), đo từ lúc gửi đến khi nhận response';
 COMMENT ON COLUMN "llm_request_logs"."tokens_used"  IS 'Tổng số token tiêu thụ (Gemini trả về trong usageMetadata)';
 
+-- -------------------------------------------------------------
+-- BẢNG 14: admin_audit_logs
+-- Nhật ký thao tác của quản trị viên (tự động dọn log > 180 ngày)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS "admin_audit_logs" (
+  "id"             BIGSERIAL     PRIMARY KEY,
+  "admin_id"       INTEGER       REFERENCES "users"("id") ON DELETE SET NULL,
+  "admin_username" VARCHAR(100)  NOT NULL,
+  "action"         VARCHAR(50)   NOT NULL,
+  "entity_type"    VARCHAR(30)   NOT NULL,
+  "entity_id"      VARCHAR(64),
+  "summary"        VARCHAR(500)  NOT NULL,
+  "details"        JSONB,
+  "ip_address"     VARCHAR(45),
+  "created_at"     TIMESTAMP     NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE "admin_audit_logs" IS 'Nhật ký thao tác quản trị (CRUD sản phẩm, ngành hàng, trọng số, review, user, bulk action).';
+
 -- =============================================================
 -- INDEXES
 -- =============================================================
+
+CREATE INDEX IF NOT EXISTS "idx_audit_created" ON "admin_audit_logs" ("created_at" DESC);
+CREATE INDEX IF NOT EXISTS "idx_audit_entity"  ON "admin_audit_logs" ("entity_type", "entity_id");
+CREATE INDEX IF NOT EXISTS "idx_audit_admin"   ON "admin_audit_logs" ("admin_id");
+
+CREATE INDEX IF NOT EXISTS "idx_search_queries_created" ON "search_queries" ("created_at");
+CREATE INDEX IF NOT EXISTS "idx_llm_logs_created"       ON "llm_request_logs" ("created_at");
+CREATE INDEX IF NOT EXISTS "idx_reviews_created"        ON "reviews" ("created_at");
 
 -- category_attributes: mỗi ngành hàng không được có attribute_key trùng
 CREATE UNIQUE INDEX ON "category_attributes" ("category_id", "attribute_key");

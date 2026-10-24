@@ -18,8 +18,18 @@ public class CriteriaValidatorService {
      * @param criteria Dữ liệu thô từ LLM
      */
     public void validateAndNormalize(ExtractedCriteria criteria) {
+        validateAndNormalize(criteria, null);
+    }
+
+    /**
+     * Tự động kiểm tra và chuẩn hóa dữ liệu từ LLM kết hợp câu truy vấn gốc.
+     * @param criteria Dữ liệu thô từ LLM
+     * @param queryText Câu truy vấn gốc của người dùng
+     */
+    public void validateAndNormalize(ExtractedCriteria criteria, String queryText) {
         if (criteria == null) return;
 
+        normalizeBrand(criteria, queryText);
         normalizeBudgets(criteria);
         normalizeSpecs(criteria);
         normalizeTarget(criteria);
@@ -133,7 +143,83 @@ public class CriteriaValidatorService {
                 }
             }
         }
+
+        // Điều chỉnh thông số Pin thực tế:
+        // MacBook dùng chip Apple Silicon (ARM) tiêu thụ điện năng cực thấp, 35-50Wh đã chạy được 15-18 tiếng thực tế ("dùng cả ngày").
+        // Nếu LLM gán pin >= 60Wh (chuẩn của laptop Windows x86) cho MacBook, ta chuẩn hóa về >= 35Wh để không loại nhầm MacBook Neo/Air.
+        boolean isMacBook = "MacBook".equalsIgnoreCase(criteria.getBrand()) 
+                || "Apple".equalsIgnoreCase(criteria.getBrand())
+                || ("laptop".equalsIgnoreCase(criteria.getCategoryCode()) && criteria.getBrand() != null && criteria.getBrand().toLowerCase().contains("mac"));
+        
+        if (isMacBook && cleanedSpecs.containsKey("battery")) {
+            String bVal = cleanedSpecs.get("battery");
+            String numStr = bVal.replaceAll("^(>=|<=|>|<)\\s*", "").trim();
+            try {
+                double valNum = Double.parseDouble(numStr);
+                if (valNum >= 45.0) {
+                    cleanedSpecs.put("battery", ">=35");
+                    log.info("Adjusted battery spec for MacBook from '{}' to '>=35' Wh (ARM energy efficiency)", bVal);
+                }
+            } catch (NumberFormatException ignored) {}
+        }
+
         criteria.setRequiredSpecs(cleanedSpecs);
+    }
+
+    private void normalizeBrand(ExtractedCriteria criteria, String queryText) {
+        String b = criteria.getBrand();
+        String q = queryText != null ? queryText.toLowerCase() : "";
+
+        // 1. Fallback trích xuất thương hiệu từ queryText nếu LLM chưa trích xuất được
+        if (b == null || b.isBlank()) {
+            if (q.contains("macbook") || q.contains("apple") || q.contains("mac book") || q.contains("mac m")) {
+                b = "laptop".equalsIgnoreCase(criteria.getCategoryCode()) ? "MacBook" : "Apple";
+            } else if (q.contains("iphone")) {
+                b = "iPhone";
+            } else if (q.contains("asus") || q.contains("vivobook") || q.contains("zenbook") || q.contains("rog")) {
+                b = "Asus";
+            } else if (q.contains("dell") || q.contains("xps") || q.contains("inspiron") || q.contains("vostro")) {
+                b = "Dell";
+            } else if (q.contains("hp") || q.contains("pavilion") || q.contains("envy") || q.contains("spectre")) {
+                b = "HP";
+            } else if (q.contains("lenovo") || q.contains("thinkpad") || q.contains("ideapad") || q.contains("legion")) {
+                b = "Lenovo";
+            } else if (q.contains("acer") || q.contains("aspire") || q.contains("predator") || q.contains("nitro")) {
+                b = "Acer";
+            } else if (q.contains("msi")) {
+                b = "MSI";
+            } else if (q.contains("samsung") || q.contains("galaxy")) {
+                b = "Samsung";
+            } else if (q.contains("xiaomi") || q.contains("redmi")) {
+                b = "Xiaomi";
+            } else if (q.contains("oppo")) {
+                b = "OPPO";
+            } else if (q.contains("vivo")) {
+                b = "Vivo";
+            } else if (q.contains("realme")) {
+                b = "realme";
+            }
+        }
+
+        // 2. Chuẩn hóa tên thương hiệu đồng bộ với DB
+        if (b != null && !b.isBlank()) {
+            String clean = b.trim();
+            if (clean.equalsIgnoreCase("apple") || clean.equalsIgnoreCase("mac") || clean.equalsIgnoreCase("macbook")) {
+                if ("laptop".equalsIgnoreCase(criteria.getCategoryCode())) {
+                    clean = "MacBook";
+                } else if ("phone".equalsIgnoreCase(criteria.getCategoryCode())) {
+                    clean = "iPhone";
+                }
+            } else if (clean.equalsIgnoreCase("thinkpad") || clean.equalsIgnoreCase("ideapad") || clean.equalsIgnoreCase("legion")) {
+                clean = "Lenovo";
+            } else if (clean.equalsIgnoreCase("vivobook") || clean.equalsIgnoreCase("zenbook") || clean.equalsIgnoreCase("rog")) {
+                clean = "Asus";
+            } else if (clean.equalsIgnoreCase("redmi")) {
+                clean = "Xiaomi";
+            }
+            criteria.setBrand(clean);
+            log.info("Normalized brand: '{}'", clean);
+        }
     }
 
     private void normalizeTarget(ExtractedCriteria criteria) {

@@ -28,6 +28,9 @@ public class ExtractedCriteria {
     /** Đối tượng người dùng: student, gamer, office, designer... null nếu không rõ */
     private String target;
 
+    /** Thương hiệu mong muốn: MacBook, Dell, Asus, HP, Lenovo, iPhone, Samsung... null nếu không chỉ định */
+    private String brand;
+
     /**
      * Thông số kỹ thuật yêu cầu.
      * Key = attribute_key (vd: "ram"), Value = giá trị yêu cầu (vd: "16" hoặc ">=16")

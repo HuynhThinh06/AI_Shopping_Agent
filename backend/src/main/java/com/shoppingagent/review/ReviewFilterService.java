@@ -66,16 +66,14 @@ public class ReviewFilterService {
         return filtered;
     }
 
-    // ── Private helpers ─────────────────────────────────────────────────────────
+    // ── Public & Private helpers ─────────────────────────────────────────────────────────
 
-    private String removeEmojis(String text) {
+    public String removeEmojis(String text) {
         if (text == null) return null;
-        // Giữ lại: Chữ cái (\p{L}), Số (\p{N}), Dấu câu (\p{P}), Khoảng trắng (\p{Z}), 
-        // Tiền tệ (\p{Sc}), Ký hiệu toán học (\p{Sm}). Xóa mọi biểu tượng khác (bao gồm Emoji).
         return text.replaceAll("[^\\p{L}\\p{N}\\p{P}\\p{Z}\\p{Sc}\\p{Sm}]", "");
     }
 
-    private boolean isValid(String content) {
+    public boolean isValid(String content) {
         if (content == null) return false;
         String trimmed = content.trim();
 

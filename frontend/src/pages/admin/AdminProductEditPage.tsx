@@ -23,6 +23,7 @@ export const AdminProductEditPage: React.FC = () => {
   const [sku, setSku] = useState('');
   const [price, setPrice] = useState<number>(15000000);
   const [stockQuantity, setStockQuantity] = useState<number>(20);
+  const [isActive, setIsActive] = useState<boolean>(true);
   const [categoryCode, setCategoryCode] = useState('laptop');
   const [productUrl, setProductUrl] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>(['']);
@@ -57,6 +58,7 @@ export const AdminProductEditPage: React.FC = () => {
           setSku(p.sku || '');
           setPrice(p.price || 0);
           setStockQuantity(p.stockQuantity ?? 15);
+          setIsActive(p.isActive !== false);
           setCategoryCode(p.categoryCode || 'laptop');
           setProductUrl(p.productUrl || '');
           if (p.imageUrls && p.imageUrls.length > 0) {
@@ -157,7 +159,7 @@ export const AdminProductEditPage: React.FC = () => {
       productUrl: productUrl.trim() || undefined,
       specs: specsMap,
       imageUrls: cleanImageUrls,
-      isActive: true,
+      isActive,
     };
 
     try {
@@ -297,7 +299,7 @@ export const AdminProductEditPage: React.FC = () => {
                 <input
                   type="number"
                   required
-                  min={100000}
+                  min={0}
                   step={50000}
                   value={price}
                   onChange={(e) => setPrice(Number(e.target.value))}
@@ -317,15 +319,33 @@ export const AdminProductEditPage: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-black text-warm-text mb-1">Link nguồn sản phẩm</label>
-              <input
-                type="url"
-                value={productUrl}
-                onChange={(e) => setProductUrl(e.target.value)}
-                placeholder="https://thegioididong.com/..."
-                className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none font-mono"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-black text-warm-text mb-1">Link nguồn sản phẩm</label>
+                <input
+                  type="url"
+                  value={productUrl}
+                  onChange={(e) => setProductUrl(e.target.value)}
+                  placeholder="https://thegioididong.com/..."
+                  className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-warm-text mb-1">Trạng thái kinh doanh</label>
+                <select
+                  value={isActive ? 'active' : 'inactive'}
+                  onChange={(e) => setIsActive(e.target.value === 'active')}
+                  className={`w-full px-3 py-2 rounded-xl border-2 border-warm-text text-xs font-black focus:outline-none ${
+                    isActive
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-500'
+                      : 'bg-warm-border-subtle/30 text-warm-muted'
+                  }`}
+                >
+                  <option value="active">🟢 Đang mở bán (Hiển thị catalog & tìm kiếm)</option>
+                  <option value="inactive">⚪ Ngừng bán / Ẩn (Chỉ hiển thị trong Admin)</option>
+                </select>
+              </div>
             </div>
 
             {/* Images section */}

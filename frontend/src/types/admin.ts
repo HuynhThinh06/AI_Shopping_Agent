@@ -96,3 +96,49 @@ export interface CategoryOption {
   description?: string;
   isActive?: boolean;
 }
+
+export interface AuditLogDTO {
+  id: number;
+  adminId?: number | null;
+  adminUsername: string;
+  action: string;
+  entityType: string;
+  entityId?: string | null;
+  summary: string;
+  details?: Record<string, any> | null;
+  ipAddress?: string | null;
+  createdAt: string;
+}
+
+export interface BulkActionRequest {
+  ids: number[];
+  action: string;
+}
+
+export interface BulkActionResultDTO {
+  action: string;
+  requested: number;
+  processed: number;
+  skippedIds: number[];
+}
+
+export interface TrendPointDTO {
+  date: string;
+  searches: number;
+  llmCalls: number;
+  llmFailed: number;
+  avgLatencyMs: number;
+  tokens: number;
+  newReviews: number;
+  newUsers: number;
+}
+
+export interface DashboardTrendsDTO {
+  days: number;
+  from: string;
+  to: string;
+  series: TrendPointDTO[];
+  totals: Record<string, number>;
+  previousTotals: Record<string, number>;
+}
+
