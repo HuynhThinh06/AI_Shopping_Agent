@@ -473,9 +473,38 @@ export function clearSearchHistory(explicitEmail?: string): void {
 }
 
 // --- Auth User & Token ---
+export function isTokenExpired(token: string | null): boolean {
+  if (!token || typeof token !== 'string') return true;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const decoded = JSON.parse(jsonPayload);
+    if (!decoded.exp) return false;
+    // exp tính theo giây, kiểm tra trừ hao 10 giây (clock skew)
+    return Date.now() >= (decoded.exp * 1000 - 10000);
+  } catch {
+    return true;
+  }
+}
+
 export function getAuthToken(): string | null {
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return null;
+    if (isTokenExpired(token)) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      return null;
+    }
+    return token;
   } catch {
     return null;
   }
@@ -499,8 +528,18 @@ export function removeAuthToken(): void {
 
 export function getAuthUser(): AuthUser | null {
   try {
+    const token = localStorage.getItem(TOKEN_KEY);
     const raw = localStorage.getItem(USER_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+
+    // Đảm bảo tính nhất quán: Nếu token bị thiếu hoặc đã hết hạn, xóa phiên cũ
+    if (!token || isTokenExpired(token)) {
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(TOKEN_KEY);
+      return null;
+    }
+
+    return JSON.parse(raw);
   } catch {
     return null;
   }

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { Category, Product, SearchResponse, SummaryDTO, Review } from '../types';
-import { getAuthToken } from '../utils/storage';
+import { getAuthToken, logoutUser } from '../utils/storage';
 
 // ── Axios Client for React app ─────────────────────────────────────────────
 export const apiClient = axios.create({
@@ -22,6 +22,22 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    const status = error?.response?.status;
+    const requestUrl = error?.config?.url || '';
+
+    // Khi nhận lỗi 401 Unauthorized từ các API được bảo vệ (tránh chặn lúc đăng nhập sai pass)
+    if (status === 401 && !requestUrl.includes('/auth/login') && !requestUrl.includes('/auth/register')) {
+      console.warn('[API Client] Phiên làm việc đã hết hạn hoặc không hợp lệ (401). Tự động dọn dẹp phiên.');
+      logoutUser();
+
+      if (typeof window !== 'undefined') {
+        const currentPath = window.location.pathname;
+        if (currentPath.startsWith('/admin') && !currentPath.includes('/auth') && !currentPath.includes('/login')) {
+          window.location.href = `/auth?redirect=${encodeURIComponent(currentPath)}&expired=1`;
+        }
+      }
+    }
+
     console.error('[API Error]:', error?.response?.data || error.message);
     return Promise.reject(error);
   }

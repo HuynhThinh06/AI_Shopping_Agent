@@ -50,6 +50,7 @@ export const AuthPage: React.FC = () => {
   }>({});
 
   const explicitRedirect = searchParams.get('redirect');
+  const isExpired = searchParams.get('expired') === '1';
 
   // Clear errors when switching modes
   const handleSwitchMode = (newMode: 'login' | 'register') => {
@@ -240,11 +241,38 @@ export const AuthPage: React.FC = () => {
           </button>
         </div>
 
+        {/* Session Expired / Auth Required Notice */}
+        {isExpired && (
+          <div className="p-3.5 rounded-2xl bg-amber-50 border-2 border-amber-500 text-amber-950 text-xs font-bold flex items-center gap-2.5 shadow-brutal-xs">
+            <AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
+            <span>Phiên làm việc đã hết hạn hoặc chưa được xác thực. Vui lòng đăng nhập lại để tiếp tục thao tác!</span>
+          </div>
+        )}
+
         {/* Error message */}
         {errorMsg && (
           <div className="p-3 rounded-xl bg-rose-50 border-2 border-rose-500 text-rose-700 text-xs font-bold flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
             <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {/* Quick Admin Helper for testing */}
+        {mode === 'login' && (
+          <div className="p-2.5 rounded-2xl bg-warm-bg border border-warm-border flex items-center justify-between text-xs">
+            <span className="text-[11px] text-warm-muted font-bold">Thử nghiệm Quản trị viên:</span>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('admin@shoppingagent.com');
+                setPassword('password123');
+                setErrors({});
+                setErrorMsg(null);
+              }}
+              className="px-2.5 py-1 rounded-lg bg-warm-secondary hover:bg-warm-primary/30 text-warm-text border border-warm-border text-[11px] font-black transition-colors cursor-pointer"
+            >
+              🔑 Điền mẫu Admin
+            </button>
           </div>
         )}
 

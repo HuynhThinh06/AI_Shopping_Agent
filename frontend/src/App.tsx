@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
-import { getAuthUser } from './utils/storage';
+import { getAuthUser, getAuthToken } from './utils/storage';
 
 // P0: Core User Flow
 import { HomePage } from './pages/HomePage';
@@ -33,8 +33,9 @@ import { NotFoundPage } from './pages/NotFoundPage';
 // Guard bảo vệ các trang quản trị
 const AdminLayout: React.FC = () => {
   const user = getAuthUser();
-  if (!user || !user.role?.toLowerCase().includes('admin')) {
-    return <Navigate to="/auth?redirect=/admin/dashboard" replace />;
+  const token = getAuthToken();
+  if (!user || !token || !user.role?.toLowerCase().includes('admin')) {
+    return <Navigate to="/auth?redirect=/admin/dashboard&expired=1" replace />;
   }
   return <Outlet />;
 };
