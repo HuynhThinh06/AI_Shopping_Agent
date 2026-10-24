@@ -226,6 +226,30 @@ public class CategoryController {
         return ResponseEntity.ok(toDTO(cat));
     }
 
+    @PutMapping("/{id}/activate")
+    @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = {"categories", "categoryFacets"}, allEntries = true)
+    @Operation(summary = "Kích hoạt lại ngành hàng")
+    public ResponseEntity<CategoryDTO> activateCategory(@PathVariable Integer id) {
+        Category cat = categoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ngành hàng với ID: " + id));
+        boolean beforeActive = Boolean.TRUE.equals(cat.getIsActive());
+        cat.setIsActive(true);
+        Category saved = categoryRepository.save(cat);
+
+        if (auditLogService != null) {
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("code", cat.getCode());
+            details.put("name", cat.getName());
+            details.put("beforeActive", beforeActive);
+            details.put("afterActive", true);
+            auditLogService.log(AuditAction.CATEGORY_UPDATE, "CATEGORY", cat.getId(),
+                    "Kích hoạt lại ngành hàng '" + cat.getName() + "' (" + cat.getCode() + ")", details);
+        }
+
+        return ResponseEntity.ok(toDTO(saved));
+    }
+
     @DeleteMapping("/{id}")
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = {"categories", "categoryFacets"}, allEntries = true)

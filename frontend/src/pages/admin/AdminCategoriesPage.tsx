@@ -12,6 +12,7 @@ import {
   Trash2,
   Sparkles,
   X,
+  Power,
 } from 'lucide-react';
 
 export interface CategoryAttributeItem {
@@ -59,6 +60,7 @@ export const AdminCategoriesPage: React.FC = () => {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [isActive, setIsActive] = useState(true);
   const [modalAttributes, setModalAttributes] = useState<CategoryAttributeItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -99,6 +101,7 @@ export const AdminCategoriesPage: React.FC = () => {
     setCode('');
     setName('');
     setDescription('');
+    setIsActive(true);
     setModalAttributes([
       { attributeKey: 'ram', attributeLabel: 'Dung lượng RAM', unit: 'GB', dataType: 'number', isFilterable: true },
       { attributeKey: 'storage', attributeLabel: 'Bộ nhớ lưu trữ', unit: 'GB', dataType: 'number', isFilterable: true },
@@ -112,6 +115,7 @@ export const AdminCategoriesPage: React.FC = () => {
     setCode(cat.code);
     setName(cat.name);
     setDescription(cat.description || '');
+    setIsActive(cat.isActive !== false);
     const currentAttrs = getCategoryAttributes(cat).map((a) => ({ ...a }));
     setModalAttributes(currentAttrs);
     setIsModalOpen(true);
@@ -159,7 +163,7 @@ export const AdminCategoriesPage: React.FC = () => {
         await apiClient.put(`/categories/${editingCategory.id}`, {
           name: name.trim(),
           description: description.trim(),
-          isActive: editingCategory.isActive ?? true,
+          isActive: isActive,
           attributes: cleanAttrs,
         });
         setFeedback(`Đã cập nhật ngành hàng "${name}" và ${cleanAttrs.length} thuộc tính lọc GIN!`);
@@ -231,18 +235,32 @@ export const AdminCategoriesPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (cat: CategoryItem) => {
+  const handleToggleStatus = async (cat: CategoryItem, nextActive: boolean) => {
     if (!cat.id) return;
-    if (!window.confirm(`Xác nhận vô hiệu hóa ngành hàng [${cat.name}]?`)) return;
+    const actionText = nextActive ? 'kích hoạt lại' : 'vô hiệu hóa (tạm dừng)';
+    if (!window.confirm(`Xác nhận ${actionText} ngành hàng [${cat.name}]?`)) return;
 
     try {
-      await apiClient.delete(`/categories/${cat.id}`);
-      setFeedback(`Đã vô hiệu hóa ngành hàng ${cat.name}!`);
+      if (nextActive) {
+        try {
+          await apiClient.put(`/categories/${cat.id}/activate`);
+        } catch {
+          await apiClient.put(`/categories/${cat.id}`, {
+            name: cat.name,
+            description: cat.description,
+            isActive: true,
+          });
+        }
+        setFeedback(`Đã kích hoạt lại ngành hàng "${cat.name}" thành công!`);
+      } else {
+        await apiClient.delete(`/categories/${cat.id}`);
+        setFeedback(`Đã vô hiệu hóa (tạm dừng) ngành hàng "${cat.name}"!`);
+      }
       setTimeout(() => setFeedback(null), 3000);
       loadCategories();
-    } catch (err) {
-      console.error('Failed to delete category:', err);
-      alert('Không thể vô hiệu hóa ngành hàng!');
+    } catch (err: any) {
+      console.error(`Failed to ${actionText} category:`, err);
+      alert(err.response?.data?.message || `Không thể ${actionText} ngành hàng!`);
     }
   };
 
@@ -305,7 +323,7 @@ export const AdminCategoriesPage: React.FC = () => {
             return (
               <div
                 key={cat.code}
-                className="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 sm:p-6 shadow-brutal space-y-4 flex flex-col justify-between"
+                className={`bg-warm-surface border-2 border-warm-text rounded-2xl p-5 sm:p-6 shadow-brutal space-y-4 flex flex-col justify-between ${cat.isActive === false ? 'opacity-90 bg-warm-bg/50 border-dashed' : ''}`}
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b-2 border-warm-border-subtle">
@@ -323,11 +341,13 @@ export const AdminCategoriesPage: React.FC = () => {
 
                     <div className="flex items-center gap-2">
                       {cat.isActive !== false ? (
-                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px]">
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px] flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                           Active
                         </span>
                       ) : (
-                        <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[10px]">
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[10px] flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                           Tạm dừng
                         </span>
                       )}
@@ -335,20 +355,33 @@ export const AdminCategoriesPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => openEditModal(cat)}
-                        className="p-1.5 rounded-lg hover:bg-warm-bg border border-warm-text/20 text-blue-600 font-bold cursor-pointer"
+                        className="p-1.5 rounded-lg hover:bg-warm-bg border border-warm-text/20 text-blue-600 font-bold cursor-pointer transition-colors"
                         title="Sửa ngành hàng & danh sách thuộc tính"
                       >
                         <Edit className="w-3.5 h-3.5" />
                       </button>
+
                       {cat.id && (
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(cat)}
-                          className="p-1.5 rounded-lg hover:bg-rose-50 border border-warm-text/20 text-rose-600 font-bold cursor-pointer"
-                          title="Vô hiệu hóa ngành hàng"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        cat.isActive === false ? (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(cat, true)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs border border-warm-text shadow-brutal-xs cursor-pointer transition-transform hover:-translate-y-0.5"
+                            title="Kích hoạt lại ngành hàng này"
+                          >
+                            <Power className="w-3.5 h-3.5" />
+                            <span>Kích hoạt lại</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(cat, false)}
+                            className="p-1.5 rounded-lg hover:bg-rose-50 border border-warm-text/20 text-rose-600 font-bold cursor-pointer transition-colors"
+                            title="Vô hiệu hóa (Tạm dừng) ngành hàng"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )
                       )}
                     </div>
                   </div>
@@ -564,6 +597,21 @@ export const AdminCategoriesPage: React.FC = () => {
                   placeholder="Mô tả phân khúc sản phẩm, mục đích sử dụng..."
                   className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-warm-text mb-1">Trạng thái hoạt động</label>
+                <select
+                  value={isActive ? 'active' : 'inactive'}
+                  onChange={(e) => setIsActive(e.target.value === 'active')}
+                  className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none"
+                >
+                  <option value="active">🟢 Đang hoạt động (Active)</option>
+                  <option value="inactive">⚪ Tạm dừng (Inactive)</option>
+                </select>
+                <p className="text-[11px] text-warm-muted mt-1">
+                  Khi tạm dừng, ngành hàng và các sản phẩm thuộc ngành này sẽ bị ẩn khỏi thanh điều hướng người dùng.
+                </p>
               </div>
 
               {/* Attributes Builder inside Modal */}
