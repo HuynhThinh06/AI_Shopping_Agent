@@ -93,7 +93,15 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshErr) {
         processQueue(refreshErr, null);
+        console.warn('[API Client] Phiên làm việc đã hết hạn hoặc không thể refresh (401). Tự động dọn dẹp phiên.');
         logoutUser();
+
+        if (typeof window !== 'undefined') {
+          const currentPath = window.location.pathname;
+          if (currentPath.startsWith('/admin') && !currentPath.includes('/auth') && !currentPath.includes('/login')) {
+            window.location.href = `/auth?redirect=${encodeURIComponent(currentPath)}&expired=1`;
+          }
+        }
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;

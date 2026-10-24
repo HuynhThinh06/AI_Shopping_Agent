@@ -13,68 +13,11 @@ import {
   EyeOff,
   AlertCircle,
   Loader2,
-  ChevronDown,
-  ChevronUp,
   KeyRound,
   ArrowLeft,
   RotateCw,
   CheckCircle2,
-  ShieldCheck,
 } from 'lucide-react';
-
-interface TestAccount {
-  name: string;
-  email: string;
-  phone: string;
-  avatarText: string;
-  role: string;
-  badge: string;
-  badgeColor: string;
-  description: string;
-}
-
-const TEST_ACCOUNTS: TestAccount[] = [
-  {
-    name: 'Trần Tuấn Anh',
-    email: 'tuananh.dev@gmail.com',
-    phone: '0988123456',
-    avatarText: 'TA',
-    role: 'Thành viên VIP',
-    badge: 'VIP Buyer',
-    badgeColor: 'bg-amber-100 text-amber-900 border-amber-400',
-    description: 'Gu cân bằng, so sánh sản phẩm, đánh giá chi tiết',
-  },
-  {
-    name: 'Quản trị viên Hệ thống',
-    email: 'admin@shoppingagent.com',
-    phone: '0901888999',
-    avatarText: 'AD',
-    role: 'Quản trị viên (Admin)',
-    badge: 'Admin',
-    badgeColor: 'bg-rose-100 text-rose-900 border-rose-400',
-    description: 'Toàn quyền Benchmark GIN Index, LLM Logs, Quản lý sản phẩm',
-  },
-  {
-    name: 'Huỳnh Gia Thịnh',
-    email: 'giathinh.student@hcmut.edu.vn',
-    phone: '0912345678',
-    avatarText: 'GT',
-    role: 'Sinh viên IT',
-    badge: 'Student IT',
-    badgeColor: 'bg-blue-100 text-blue-900 border-blue-400',
-    description: 'Gu ngân sách tối ưu ("lap 15 củ học IT"), tìm kiếm giá rẻ',
-  },
-  {
-    name: 'Hoàng Minh',
-    email: 'hoangminh.tech@gmail.com',
-    phone: '0933678999',
-    avatarText: 'HM',
-    role: 'Tech Reviewer',
-    badge: 'Specs Gamer',
-    badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-400',
-    description: 'Gu cấu hình khủng, đồ họa render, viết review chi tiết',
-  },
-];
 
 // Regex kiểm tra số điện thoại chuẩn các nhà mạng Việt Nam:
 // 10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09 (hoặc +84)
@@ -101,9 +44,6 @@ export const AuthPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Accordion toggle for demo accounts
-  const [showDemoBox, setShowDemoBox] = useState<boolean>(initialMode === 'login');
-
   // Inline Validation Errors
   const [errors, setErrors] = useState<{
     name?: string;
@@ -115,6 +55,7 @@ export const AuthPage: React.FC = () => {
   }>({});
 
   const explicitRedirect = searchParams.get('redirect');
+  const isExpired = searchParams.get('expired') === '1';
 
   // Clear errors when switching modes
   const handleSwitchMode = (newMode: 'login' | 'register') => {
@@ -122,7 +63,6 @@ export const AuthPage: React.FC = () => {
     setErrors({});
     setErrorMsg(null);
     setErrorCode(null);
-    setShowDemoBox(newMode === 'login');
     setIsOtpStep(false);
     setOtpSuccessMessage(null);
   };
@@ -286,21 +226,6 @@ export const AuthPage: React.FC = () => {
     }
   };
 
-  const handleSelectAccount = async (acc: TestAccount, autoLogin = false) => {
-    setName(acc.name);
-    setEmail(acc.email);
-    setPhone(acc.phone);
-    setPassword('password123');
-    setConfirmPassword('password123');
-    setErrors({});
-    setErrorMsg(null);
-    setErrorCode(null);
-
-    if (autoLogin) {
-      await executeLogin(acc.email, 'password123', acc.name, acc.role);
-    }
-  };
-
   const validateForm = (): boolean => {
     const newErrors: {
       name?: string;
@@ -446,60 +371,11 @@ export const AuthPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Quick Demo Login Picker (CHỈ hiển thị khi ở tab Đăng nhập & có thể đóng mở) */}
-        {mode === 'login' && (
-          <div className="rounded-2xl bg-amber-50/70 border-2 border-warm-text overflow-hidden shadow-brutal-xs">
-            <button
-              type="button"
-              onClick={() => setShowDemoBox(!showDemoBox)}
-              className="w-full p-3 flex items-center justify-between text-left hover:bg-amber-100/60 transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-amber-700" />
-                <span className="text-xs font-black text-amber-950">
-                  Tài khoản kiểm thử nhanh (Dành cho Giám khảo)
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] bg-amber-300 text-amber-900 font-extrabold px-1.5 py-0.5 rounded-md border border-amber-900/30">
-                  4 Vai trò
-                </span>
-                {showDemoBox ? (
-                  <ChevronUp className="w-3.5 h-3.5 text-amber-900" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5 text-amber-900" />
-                )}
-              </div>
-            </button>
-
-            {showDemoBox && (
-              <div className="p-3.5 pt-1 border-t border-amber-200/80 space-y-2.5">
-                <p className="text-[11px] text-warm-muted font-medium">
-                  Chọn 1 tài khoản bên dưới để <strong>đăng nhập tức thì 1-click</strong> hoặc điền nhanh vào form:
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {TEST_ACCOUNTS.map((acc) => (
-                    <button
-                      key={acc.email}
-                      type="button"
-                      onClick={() => handleSelectAccount(acc, true)}
-                      className="p-2 rounded-xl bg-warm-surface hover:bg-white text-left border border-warm-text shadow-brutal-xs cursor-pointer transition-all hover:translate-x-0.5 hover:-translate-y-0.5 group"
-                      title={`${acc.description} — Click để đăng nhập ngay`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11px] font-black text-warm-text truncate group-hover:text-warm-primary">
-                          {acc.name.split(' ').slice(-2).join(' ')}
-                        </span>
-                        <span className={`text-[9px] font-bold px-1 py-0.2 rounded border ${acc.badgeColor}`}>
-                          {acc.badge}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-warm-muted truncate">{acc.email}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+        {/* Session Expired / Auth Required Notice */}
+        {isExpired && (
+          <div className="p-3.5 rounded-2xl bg-amber-50 border-2 border-amber-500 text-amber-950 text-xs font-bold flex items-center gap-2.5 shadow-brutal-xs">
+            <AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
+            <span>Phiên làm việc đã hết hạn hoặc chưa được xác thực. Vui lòng đăng nhập lại để tiếp tục thao tác!</span>
           </div>
         )}
 

@@ -89,12 +89,23 @@ export interface AdminUserDTO {
   updatedAt?: string;
 }
 
+export interface CategoryAttributeOption {
+  id?: number;
+  attributeKey: string;
+  attributeLabel: string;
+  unit?: string;
+  dataType: string;
+  isFilterable?: boolean;
+  displayOrder?: number;
+}
+
 export interface CategoryOption {
   id: number;
   code: string;
   name: string;
   description?: string;
   isActive?: boolean;
+  attributes?: CategoryAttributeOption[];
 }
 
 export interface AuditLogDTO {
