@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("JwtTokenProvider — Kiểm thử Hộp Trắng thuật toán ký số và giải mã Token JWT")
 class JwtTokenProviderTest {
@@ -54,5 +55,41 @@ class JwtTokenProviderTest {
         assertThat(jwtTokenProvider.validateToken("invalid.token.structure")).isFalse();
         assertThat(jwtTokenProvider.validateToken("")).isFalse();
         assertThat(jwtTokenProvider.validateToken(null)).isFalse();
+    }
+
+    @Test
+    @DisplayName("Bảo mật: Từ chối khởi động (Fail-Fast) khi JWT_SECRET bị thiếu hoặc rỗng")
+    void shouldFailFastWhenSecretIsMissingOrBlank() {
+        JwtTokenProvider providerMissing = new JwtTokenProvider();
+        assertThatThrownBy(providerMissing::init)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("chưa được thiết lập");
+
+        JwtTokenProvider providerBlank = new JwtTokenProvider();
+        ReflectionTestUtils.setField(providerBlank, "jwtSecret", "   ");
+        assertThatThrownBy(providerBlank::init)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("chưa được thiết lập");
+    }
+
+    @Test
+    @DisplayName("Bảo mật: Từ chối khởi động khi JWT_SECRET quá ngắn (< 256 bits / 32 bytes)")
+    void shouldFailFastWhenSecretIsTooShort() {
+        JwtTokenProvider provider = new JwtTokenProvider();
+        ReflectionTestUtils.setField(provider, "jwtSecret", "short-key-under-32-bytes");
+        assertThatThrownBy(provider::init)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("quá ngắn");
+    }
+
+    @Test
+    @DisplayName("Bảo mật: Từ chối khởi động khi JWT_SECRET là chuỗi mặc định hard-coded không an toàn")
+    void shouldFailFastWhenSecretIsKnownInsecureDefault() {
+        JwtTokenProvider provider = new JwtTokenProvider();
+        ReflectionTestUtils.setField(provider, "jwtSecret",
+                "shopping-agent-jwt-super-secret-key-must-be-at-least-256-bits-long-2026!");
+        assertThatThrownBy(provider::init)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("chuỗi khóa mặc định/hard-coded không an toàn");
     }
 }

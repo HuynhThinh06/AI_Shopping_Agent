@@ -12,12 +12,23 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Set;
 
 @Slf4j
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret:shopping-agent-jwt-super-secret-key-must-be-at-least-256-bits-long-2026!}")
+    private static final Set<String> INSECURE_DEFAULT_SECRETS = Set.of(
+            "shopping-agent-jwt-super-secret-key-must-be-at-least-256-bits-long-2026!",
+            "your_jwt_secret_here",
+            "secret",
+            "changeme",
+            "12345678901234567890123456789012"
+    );
+
+    private static final int MIN_KEY_BYTES = 32; // 256 bits tối thiểu cho HMAC-SHA256
+
+    @Value("${jwt.secret:}")
     private String jwtSecret;
 
     @Value("${jwt.expiration-ms:900000}")
@@ -30,7 +41,33 @@ public class JwtTokenProvider {
 
     @PostConstruct
     public void init() {
+        validateSecretKey(this.jwtSecret);
         this.secretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private void validateSecretKey(String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "CẤU HÌNH BẢO MẬT THẤT BẠI: Biến môi trường JWT_SECRET chưa được thiết lập. " +
+                    "Ứng dụng từ chối khởi động để ngăn chặn lỗ hổng bảo mật giả mạo token. " +
+                    "Vui lòng cấu hình JWT_SECRET với ít nhất 256-bit entropy (ví dụ: 'openssl rand -base64 48')."
+            );
+        }
+
+        byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length < MIN_KEY_BYTES) {
+            throw new IllegalStateException(
+                    "CẤU HÌNH BẢO MẬT THẤT BẠI: JWT_SECRET quá ngắn (" + secretBytes.length + " bytes). " +
+                    "Thuật toán HMAC-SHA256 yêu cầu khóa bí mật tối thiểu " + MIN_KEY_BYTES + " bytes (256 bits)."
+            );
+        }
+
+        if (INSECURE_DEFAULT_SECRETS.contains(secret.trim())) {
+            throw new IllegalStateException(
+                    "CẤU HÌNH BẢO MẬT THẤT BẠI: JWT_SECRET đang sử dụng chuỗi khóa mặc định/hard-coded không an toàn đã biết. " +
+                    "Vui lòng tạo một khóa ngẫu nhiên mới có độ entropy cao."
+            );
+        }
     }
 
     public long getJwtExpirationMs() {
