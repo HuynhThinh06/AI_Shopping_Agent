@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0 # Quét toàn bộ lịch sử commit trong PR hoặc push
 
       - name: GitGuardian Scan
-        uses: GitGuardian/ggshield-action@v1.36.0
+        uses: GitGuardian/ggshield/actions/secret@v1.55.0
         env:
           GITHUB_PUSH_BEFORE_SHA: ${{ github.event.before }}
           GITHUB_PUSH_BASE_SHA: ${{ github.event.base }}
