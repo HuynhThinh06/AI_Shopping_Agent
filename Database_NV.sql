@@ -284,8 +284,8 @@ CREATE UNIQUE INDEX ON "ranking_weights" ("category_id", "criteria");
 -- products: composite index cho luồng lọc chính (category + giá)
 CREATE INDEX ON "products" ("category_id", "price");
 
--- products: composite index bổ sung cho lọc + sắp xếp theo rating
-CREATE INDEX ON "products" ("category_id", "is_active", "avg_rating" DESC, "price");
+-- products: composite index bổ sung cho lọc + sắp xếp theo rating (khớp ORDER BY avg_rating DESC NULLS LAST)
+CREATE INDEX ON "products" ("category_id", "is_active", "avg_rating" DESC NULLS LAST, "price");
 
 -- products: GIN index cho truy vấn jsonb specs (toán tử @>, ?, @?)
 CREATE INDEX ON "products" USING GIN ("specs");

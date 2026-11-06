@@ -84,11 +84,38 @@ public class SummarizerService {
         return result;
     }
 
-    private String generateHash(List<Review> reviews) {
-        // Hash đơn giản dựa trên số lượng và tổng ID của các bài review
-        long count = reviews.size();
-        long sumIds = reviews.stream().mapToLong(Review::getId).sum();
-        return count + "-" + sumIds;
+    String generateHash(List<Review> reviews) {
+        if (reviews == null || reviews.isEmpty()) {
+            return "";
+        }
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            List<Review> sortedReviews = reviews.stream()
+                    .sorted(java.util.Comparator.comparing(Review::getId, java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())))
+                    .toList();
+
+            StringBuilder sb = new StringBuilder();
+            for (Review r : sortedReviews) {
+                sb.append(r.getId()).append(":")
+                  .append(r.getRating()).append(":")
+                  .append(r.getIsActive()).append(":")
+                  .append(r.getIsSpam()).append(":")
+                  .append(r.getContent() != null ? r.getContent().trim() : "").append(":")
+                  .append(r.getUpdatedAt() != null ? r.getUpdatedAt().toString() : "").append(";");
+            }
+            byte[] hashBytes = digest.digest(sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            long count = reviews.size();
+            long sumIds = reviews.stream().filter(r -> r.getId() != null).mapToLong(Review::getId).sum();
+            return count + "-" + sumIds;
+        }
     }
 
     private boolean isCacheValid(ReviewSummary cached, String currentHash) {

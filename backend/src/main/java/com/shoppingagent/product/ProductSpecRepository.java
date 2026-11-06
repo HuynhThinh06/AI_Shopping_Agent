@@ -80,13 +80,15 @@ public class ProductSpecRepository {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("categoryCode", categoryCode);
 
-        // ── Lọc thương hiệu (Brand) ──────────────────────────────────────────
+        // ── Lọc thương hiệu (Brand) & Dòng sản phẩm (Product Line) ───────────
         if (brand != null && !brand.isBlank()) {
             String b = brand.trim().toLowerCase();
-            if (b.equals("apple") || b.equals("macbook") || b.equals("mac")) {
-                sql.append(" AND (LOWER(p.brand) IN ('macbook', 'apple') OR LOWER(p.name) LIKE '%macbook%')");
+            if (b.equals("apple")) {
+                sql.append(" AND LOWER(p.brand) = 'apple'");
+            } else if (b.equals("macbook") || b.equals("mac")) {
+                sql.append(" AND (LOWER(p.brand) IN ('macbook', 'apple')) AND LOWER(p.name) LIKE '%macbook%'");
             } else if (b.equals("iphone")) {
-                sql.append(" AND (LOWER(p.brand) IN ('iphone', 'apple') OR LOWER(p.name) LIKE '%iphone%')");
+                sql.append(" AND (LOWER(p.brand) IN ('iphone', 'apple')) AND LOWER(p.name) LIKE '%iphone%'");
             } else {
                 sql.append(" AND (LOWER(p.brand) = LOWER(:brand) OR LOWER(p.name) LIKE LOWER(:brandPattern))");
                 params.put("brand", brand.trim());
@@ -150,9 +152,9 @@ public class ProductSpecRepository {
                     sql.append(" AND (jsonb_exists(p.specs, :").append(kl).append(") OR ")
                        .append("jsonb_exists(p.specs, :").append(ku).append(") OR ")
                        .append("jsonb_exists(p.specs, :").append(kc).append("))")
-                       .append(" AND NULLIF(REGEXP_REPLACE(COALESCE(p.specs->>:").append(kl)
+                       .append(" AND NULLIF(REGEXP_REPLACE(REPLACE(COALESCE(p.specs->>:").append(kl)
                        .append(", p.specs->>:").append(ku).append(", p.specs->>:").append(kc)
-                       .append("), '[^0-9.]', '', 'g'), '')::numeric ").append(operator).append(" :").append(valParam);
+                       .append("), ',', '.'), '[^0-9.]', '', 'g'), '')::numeric ").append(operator).append(" :").append(valParam);
                        
                     params.put(kl, specKey.toLowerCase());
                     params.put(ku, specKey.toUpperCase());

@@ -111,7 +111,7 @@ public class GeminiClient implements LlmClient {
                                   String requestType,
                                   Long queryId) {
         String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/"
-                + model + ":generateContent?key=" + apiKey;
+                + model + ":generateContent";
 
         Map<String, Object> requestBody = buildRequestBody(prompt, responseSchema);
         String responseJson = null;
@@ -125,6 +125,7 @@ public class GeminiClient implements LlmClient {
                 String raw = restClient.post()
                         .uri(endpoint)
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("x-goog-api-key", apiKey) // gửi key qua header, tránh lộ key trong URL/log
                         .body(requestBody)
                         .retrieve()
                         .body(String.class);
@@ -225,7 +226,9 @@ public class GeminiClient implements LlmClient {
 
                 [BẢNG QUY TẮC SUY LUẬN NGỮ CẢNH & TIẾNG LÓNG]:
                 1. TIỀN TỆ:
-                   - "củ" = "chai" = "tr" = "triệu" = "lít" = 1.000.000 VNĐ. Ví dụ: "15 củ" -> 15.000.000 VNĐ.
+                   - "củ" = "chai" = "tr" = "triệu" = 1.000.000 VNĐ. Ví dụ: "15 củ" -> 15.000.000 VNĐ.
+                   - "lít" = 100.000 VNĐ. Ví dụ: "100 lít" -> 10.000.000 VNĐ, "5 lít" -> 500.000 VNĐ.
+                   - "xị" = 10.000 VNĐ.
                 2. MÀN HÌNH & THỊ GIÁC:
                    - "màn hình đẹp", "màn nét", "màn sắc nét", "chuẩn màu", "xem phim":
                      + target: "designer"

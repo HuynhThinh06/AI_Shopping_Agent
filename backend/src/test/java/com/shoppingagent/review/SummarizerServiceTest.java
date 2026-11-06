@@ -64,6 +64,7 @@ class SummarizerServiceTest {
         Review r1 = Review.builder().id(1L).content("Review 1").build();
         Review r2 = Review.builder().id(2L).content("Review 2").build();
         List<Review> validReviews = List.of(r1, r2);
+        String expectedHash = summarizerService.generateHash(validReviews);
 
         ReviewSummary cached = ReviewSummary.builder()
                 .product(product)
@@ -71,7 +72,7 @@ class SummarizerServiceTest {
                 .pros("• Màn hình đẹp\n• Camera zoom 5x sắc nét")
                 .cons("• Giá thành cao")
                 .llmModelUsed("gemini-2.0-flash")
-                .reviewHash("2-3") // 2 reviews, sumIds = 1 + 2 = 3
+                .reviewHash(expectedHash)
                 .generatedAt(LocalDateTime.now())
                 .build();
         when(reviewSummaryRepository.findById(10L)).thenReturn(Optional.of(cached));
