@@ -56,19 +56,27 @@ public class RankingService {
         double wSpec   = criteria.getWeightSpec() != null ? criteria.getWeightSpec() : weights.getOrDefault("spec_match",DEFAULT_W_SPEC);
 
         // ── Min-Max normalization values ──────────────────────────────────────
-        double maxRating = products.stream()
-                .map(p -> p.getAvgRating() != null ? p.getAvgRating().doubleValue() : 0.0)
-                .max(Double::compareTo).orElse(5.0);
-        double minRating = products.stream()
-                .map(p -> p.getAvgRating() != null ? p.getAvgRating().doubleValue() : 0.0)
-                .min(Double::compareTo).orElse(0.0);
+        // Đánh giá: chỉ xét tập sản phẩm có avg_rating hợp lệ
+        List<Double> validRatings = products.stream()
+                .map(Product::getAvgRating)
+                .filter(Objects::nonNull)
+                .map(BigDecimal::doubleValue)
+                .toList();
 
-        double maxPrice = products.stream()
-                .map(p -> p.getPrice().doubleValue())
-                .max(Double::compareTo).orElse(1.0);
-        double minPrice = products.stream()
-                .map(p -> p.getPrice().doubleValue())
-                .min(Double::compareTo).orElse(0.0);
+        double minRating = validRatings.stream().min(Double::compareTo).orElse(0.0);
+        double maxRating = validRatings.stream().max(Double::compareTo).orElse(0.0);
+
+        // Giá bán: chỉ xét các giá hợp lệ (> 0) để tính nghịch đảo (1/price)
+        List<Double> validPrices = products.stream()
+                .map(Product::getPrice)
+                .filter(pr -> pr != null && pr > 0)
+                .map(Long::doubleValue)
+                .toList();
+
+        double minValidPrice = validPrices.stream().min(Double::compareTo).orElse(0.0);
+        double maxValidPrice = validPrices.stream().max(Double::compareTo).orElse(0.0);
+        double maxInv = minValidPrice > 0 ? 1.0 / minValidPrice : 0.0;
+        double minInv = maxValidPrice > 0 ? 1.0 / maxValidPrice : 0.0;
 
         // ── Batch load ảnh chính cho toàn bộ candidate trong đúng 1 query ────
         List<Long> productIds = products.stream().map(Product::getId).collect(Collectors.toList());
@@ -92,15 +100,26 @@ public class RankingService {
         // ── Tính score cho từng sản phẩm ─────────────────────────────────────
         List<RankedProduct> ranked = products.stream()
                 .map(p -> {
-                    double normRating = normalize(
-                            p.getAvgRating() != null ? p.getAvgRating().doubleValue() : 0.0,
-                            minRating, maxRating);
+                    // Điểm đánh giá (S_rating): nếu toàn bộ chưa có đánh giá -> 0.5 (trung tính); nếu thiếu riêng lẻ -> 0.0
+                    double normRating;
+                    if (p.getAvgRating() == null) {
+                        normRating = validRatings.isEmpty() ? 0.5 : 0.0;
+                    } else if (maxRating == minRating) {
+                        normRating = 1.0;
+                    } else {
+                        normRating = normalize(p.getAvgRating().doubleValue(), minRating, maxRating);
+                    }
 
-                    // Giá thấp hơn → điểm cao hơn: dùng (1/price) rồi normalize
-                    double invPrice = p.getPrice() > 0 ? 1.0 / p.getPrice() : 0.0;
-                    double maxInv   = minPrice > 0 ? 1.0 / minPrice : 0.0;
-                    double minInv   = maxPrice > 0 ? 1.0 / maxPrice : 0.0;
-                    double normPrice = normalize(invPrice, minInv, maxInv);
+                    // Điểm giá cả (S_price): giá thấp hơn -> điểm cao hơn (nghịch đảo 1/price)
+                    double normPrice;
+                    if (p.getPrice() == null || p.getPrice() <= 0 || validPrices.isEmpty()) {
+                        normPrice = 0.0; // Giá không hợp lệ hoặc toàn bộ tập ứng viên không có giá hợp lệ -> 0 điểm
+                    } else if (validPrices.size() <= 1 || maxInv == minInv) {
+                        normPrice = 1.0; // Tất cả sản phẩm có giá hợp lệ bằng nhau -> 1.0
+                    } else {
+                        double invPrice = 1.0 / p.getPrice();
+                        normPrice = normalize(invPrice, minInv, maxInv);
+                    }
 
                     double specMatch = computeSpecMatch(p, criteria);
 

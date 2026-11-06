@@ -30,6 +30,14 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    /**
+     * Danh sách origin được phép gọi API, cấu hình qua biến môi trường CORS_ALLOWED_ORIGINS
+     * (phân tách bằng dấu phẩy, ví dụ: https://app.example.com,http://localhost:5173).
+     * Mặc định "*" để giữ hành vi cũ khi phát triển; khi triển khai nên đặt origin cụ thể của Frontend.
+     */
+    @org.springframework.beans.factory.annotation.Value("${cors.allowed-origins:*}")
+    private List<String> allowedOrigins;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -43,7 +51,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedOriginPatterns(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
@@ -77,40 +85,36 @@ public class SecurityConfig {
                         .requestMatchers("/error", "/api/error").permitAll()
 
                         // Cho phép truy cập luồng xử lý lỗi hệ thống (ngăn Spring Security chặn nhầm thành 401)
-                        .requestMatchers("/error", "/api/error").permitAll()
+                        .requestMatchers("/error").permitAll()
 
                         // Auth endpoints
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/register-initiate", "/auth/register-verify", "/auth/resend-otp", "/auth/refresh", "/auth/logout").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/register-initiate", "/api/auth/register-verify", "/api/auth/resend-otp", "/api/auth/refresh", "/api/auth/logout").permitAll()
 
                         // Public reads
                         .requestMatchers(HttpMethod.GET, "/categories/**", "/products/**", "/reviews/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/categories/**", "/api/products/**", "/api/reviews/**").permitAll()
 
                         // Public search
                         .requestMatchers(HttpMethod.POST, "/search/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/search/**").permitAll()
 
                         // Allow users to submit reviews
-                        .requestMatchers(HttpMethod.POST, "/products/*/reviews", "/api/products/*/reviews").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/products/*/reviews").permitAll()
 
                         // Allow users to manage favorites (requires authenticated user)
-                        .requestMatchers("/favorites/**", "/api/favorites/**").authenticated()
+                        .requestMatchers("/favorites/**").authenticated()
 
                         // Documentation & Monitoring
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/api/v3/api-docs/**", "/api/swagger-ui/**", "/api/swagger-ui.html").permitAll()
-                        .requestMatchers("/actuator/**", "/api/actuator/**").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
 
                         // Admin Only endpoints
-                        .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/products/**", "/categories/**", "/api/products/**", "/api/categories/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/products/**", "/categories/**", "/api/products/**", "/api/categories/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/products/**", "/categories/**", "/api/products/**", "/api/categories/**").hasRole("ADMIN")
-                        .requestMatchers("/seed/**", "/api/seed/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/products/**", "/categories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/products/**", "/categories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/products/**", "/categories/**").hasRole("ADMIN")
+                        .requestMatchers("/seed/**").hasRole("ADMIN")
 
                         // Authenticated endpoints
-                        .requestMatchers("/auth/me", "/api/auth/me").authenticated()
+                        .requestMatchers("/auth/me").authenticated()
 
                         // Everything else requires authentication
                         .anyRequest().authenticated()

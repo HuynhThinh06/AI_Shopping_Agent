@@ -30,7 +30,7 @@ public class CriteriaValidatorService {
         if (criteria == null) return;
 
         normalizeBrand(criteria, queryText);
-        normalizeBudgets(criteria);
+        normalizeBudgets(criteria, queryText);
         normalizeSpecs(criteria);
         normalizeTarget(criteria);
         normalizeWeights(criteria);
@@ -60,6 +60,10 @@ public class CriteriaValidatorService {
     }
 
     private void normalizeBudgets(ExtractedCriteria criteria) {
+        normalizeBudgets(criteria, null);
+    }
+
+    private void normalizeBudgets(ExtractedCriteria criteria, String queryText) {
         Long min = criteria.getBudgetMin();
         Long max = criteria.getBudgetMax();
 
@@ -73,14 +77,26 @@ public class CriteriaValidatorService {
             max = null;
         }
 
-        // 2. LLM đôi khi quên nhân với 1,000,000 khi khách nói "15 củ" hoặc trả số <= 1000 (hoặc < 100_000)
+        // 2. Kiểm tra ngữ cảnh đơn vị tiền tệ từ câu truy vấn (nếu có)
+        // Nếu người dùng đã chỉ định rõ đơn vị VNĐ/đồng/đ cho giá trị cụ thể (ví dụ 50.000 VNĐ với min/max >= 1.000), giữ nguyên
+        boolean hasExplicitVnd = false;
+        if (queryText != null) {
+            String q = queryText.toLowerCase();
+            hasExplicitVnd = q.contains("vnđ") || q.contains("vnd") || q.contains("đồng") || q.contains(" đ") || q.contains("k");
+        }
+
+        // LLM đôi khi quên nhân với 1.000.000 khi khách dùng số rút gọn theo đơn vị triệu (vd: 15 thay vì 15.000.000 khi khách nói 15 củ / 15 triệu)
         if (min != null && min > 0 && min < 100_000L) {
-            criteria.setBudgetMin(min * 1_000_000L);
-            log.info("Normalized budgetMin from {} to {}", min, criteria.getBudgetMin());
+            if (!(hasExplicitVnd && min >= 1_000L)) {
+                criteria.setBudgetMin(min * 1_000_000L);
+                log.info("Normalized budgetMin from {} to {}", min, criteria.getBudgetMin());
+            }
         }
         if (max != null && max > 0 && max < 100_000L) {
-            criteria.setBudgetMax(max * 1_000_000L);
-            log.info("Normalized budgetMax from {} to {}", max, criteria.getBudgetMax());
+            if (!(hasExplicitVnd && max >= 1_000L)) {
+                criteria.setBudgetMax(max * 1_000_000L);
+                log.info("Normalized budgetMax from {} to {}", max, criteria.getBudgetMax());
+            }
         }
 
         // Cập nhật lại sau khi nhân

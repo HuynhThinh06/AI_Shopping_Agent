@@ -31,6 +31,9 @@ public class JwtTokenProvider {
     @Value("${jwt.secret:}")
     private String jwtSecret;
 
+    @Value("${security.otp.secret:${jwt.secret:}}")
+    private String otpSecret;
+
     @Value("${jwt.expiration-ms:900000}")
     private long jwtExpirationMs;
 
@@ -42,7 +45,17 @@ public class JwtTokenProvider {
     @PostConstruct
     public void init() {
         validateSecretKey(this.jwtSecret);
+        validateOtpSecret(this.otpSecret);
         this.secretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private void validateOtpSecret(String secret) {
+        if (secret != null && !secret.isBlank()) {
+            byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
+            if (secretBytes.length < MIN_KEY_BYTES) {
+                log.warn("[Security] OTP_SECRET is shorter than 256 bits ({} bytes). Recommended length is >= 32 bytes.", secretBytes.length);
+            }
+        }
     }
 
     private void validateSecretKey(String secret) {
@@ -123,6 +136,46 @@ public class JwtTokenProvider {
         } catch (Exception e) {
             throw new RuntimeException("Lỗi băm token bảo mật", e);
         }
+    }
+
+    /**
+     * Băm mã OTP 6 chữ số bằng HMAC-SHA-256 kết hợp khóa bí mật ngoài CSDL (Server-Side Pepper)
+     * Ngăn chặn tấn công vét cạn ngoại tuyến (Offline Brute-Force) khi CSDL bị rò rỉ.
+     */
+    public String hashOtp(String otp) {
+        if (otp == null) return null;
+        try {
+            javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+            String effectiveSecret = (otpSecret != null && !otpSecret.isBlank()) ? otpSecret : jwtSecret;
+            javax.crypto.spec.SecretKeySpec keySpec = new javax.crypto.spec.SecretKeySpec(
+                    effectiveSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            mac.init(keySpec);
+            byte[] hmacBytes = mac.doFinal(otp.trim().getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hmacBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi tính toán HMAC-SHA-256 cho mã OTP", e);
+        }
+    }
+
+    /**
+     * Đối chiếu mã OTP người dùng nhập vào so với giá trị băm trong cơ sở dữ liệu.
+     * Sử dụng MessageDigest.isEqual để chống tấn công phân tích thời gian thực thi (Timing Attack).
+     */
+    public boolean verifyOtp(String rawOtp, String expectedHash) {
+        if (rawOtp == null || expectedHash == null) {
+            return false;
+        }
+        String computedHash = hashOtp(rawOtp);
+        return java.security.MessageDigest.isEqual(
+                computedHash.getBytes(StandardCharsets.UTF_8),
+                expectedHash.getBytes(StandardCharsets.UTF_8)
+        );
     }
 
     public Claims getClaimsFromToken(String token) {

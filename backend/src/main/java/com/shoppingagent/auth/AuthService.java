@@ -69,16 +69,13 @@ public class AuthService {
             throw new IllegalStateException("Tài khoản của bạn đã bị khóa bởi Quản trị viên");
         }
 
-        // Kiểm tra mật khẩu (hỗ trợ BCrypt hoặc fallback cập nhật cho seed data cũ)
+        // Kiểm tra mật khẩu bằng BCrypt (chỉ chấp nhận chuỗi băm BCrypt hợp lệ)
         boolean passwordMatches = false;
-        if (user.getPasswordHash() != null) {
-            if (user.getPasswordHash().startsWith("$2a$") || user.getPasswordHash().startsWith("$2b$")) {
-                passwordMatches = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
-            } else if (user.getPasswordHash().equals(request.getPassword())) {
-                passwordMatches = true;
-                user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-                userRepository.save(user);
-            }
+        if (user.getPasswordHash() != null
+                && (user.getPasswordHash().startsWith("$2a$")
+                    || user.getPasswordHash().startsWith("$2b$")
+                    || user.getPasswordHash().startsWith("$2y$"))) {
+            passwordMatches = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
         }
 
         if (!passwordMatches) {
@@ -163,7 +160,7 @@ public class AuthService {
 
         // Sinh mã OTP 6 chữ số ngẫu nhiên có độ bảo mật cao
         String otp = String.format("%06d", secureRandom.nextInt(1_000_000));
-        String otpHash = jwtTokenProvider.hashToken(otp);
+        String otpHash = jwtTokenProvider.hashOtp(otp);
 
         PendingUserPayload payload = new PendingUserPayload(
                 username,
@@ -212,8 +209,10 @@ public class AuthService {
     /**
      * Bước 2 Xác thực Đăng ký qua Gmail:
      * Kiểm tra OTP, nếu đúng thì tạo User chính thức, cấp cặp JWT Token và tạo UserSession.
+     * Sử dụng noRollbackFor để đảm bảo số lần thử sai (attempts) và trạng thái vô hiệu hóa (isUsed)
+     * vẫn được lưu vào CSDL khi ném ngoại lệ IllegalArgumentException hoặc SecurityException.
      */
-    @Transactional
+    @Transactional(noRollbackFor = {IllegalArgumentException.class, SecurityException.class})
     public AuthResponse verifyRegistrationOtp(VerifyOtpRequest request, HttpServletRequest httpRequest) {
         String email = request.getEmail().trim().toLowerCase();
         String inputOtp = request.getOtp().trim();
@@ -236,8 +235,7 @@ public class AuthService {
             throw new SecurityException("Bạn đã nhập sai mã quá 5 lần. Yêu cầu xác thực này đã bị hủy bỏ vì lý do an toàn.");
         }
 
-        String inputOtpHash = jwtTokenProvider.hashToken(inputOtp);
-        if (!verification.getOtpHash().equals(inputOtpHash)) {
+        if (!jwtTokenProvider.verifyOtp(inputOtp, verification.getOtpHash())) {
             verification.setAttempts(verification.getAttempts() + 1);
             emailVerificationRepository.save(verification);
             int remaining = 5 - verification.getAttempts();
@@ -297,7 +295,7 @@ public class AuthService {
 
         // Sinh OTP mới
         String newOtp = String.format("%06d", secureRandom.nextInt(1_000_000));
-        verification.setOtpHash(jwtTokenProvider.hashToken(newOtp));
+        verification.setOtpHash(jwtTokenProvider.hashOtp(newOtp));
         verification.setAttempts(0);
         verification.setExpiresAt(LocalDateTime.now().plusMinutes(5));
         emailVerificationRepository.save(verification);

@@ -92,4 +92,53 @@ class JwtTokenProviderTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("chuỗi khóa mặc định/hard-coded không an toàn");
     }
+
+    @Test
+    @DisplayName("HMAC-SHA-256 OTP: Sinh mã băm 64 ký tự hex và xác thực mã OTP chính xác")
+    void shouldHashOtpWithHmacSha256AndVerifySuccessfully() {
+        String rawOtp = "123456";
+        String otpHash = jwtTokenProvider.hashOtp(rawOtp);
+
+        assertThat(otpHash).isNotBlank();
+        assertThat(otpHash).hasSize(64); // 256 bits = 32 bytes = 64 hex characters
+        assertThat(otpHash).matches("^[a-f0-9]{64}$");
+
+        // Xác thực đúng
+        assertThat(jwtTokenProvider.verifyOtp(rawOtp, otpHash)).isTrue();
+
+        // Xác thực sai
+        assertThat(jwtTokenProvider.verifyOtp("654321", otpHash)).isFalse();
+        assertThat(jwtTokenProvider.verifyOtp("12345", otpHash)).isFalse();
+        assertThat(jwtTokenProvider.verifyOtp(null, otpHash)).isFalse();
+        assertThat(jwtTokenProvider.verifyOtp(rawOtp, null)).isFalse();
+    }
+
+    @Test
+    @DisplayName("HMAC-SHA-256 OTP: Tính toán tính chất phân tán (Avalanche Effect) và tính xác định")
+    void shouldExhibitDeterministicAndAvalancheProperties() {
+        String hash1 = jwtTokenProvider.hashOtp("123456");
+        String hash2 = jwtTokenProvider.hashOtp("123456");
+        String hashDifferent = jwtTokenProvider.hashOtp("123457");
+
+        // Tính xác định: cùng OTP và cùng Secret cho ra cùng Hash
+        assertThat(hash1).isEqualTo(hash2);
+
+        // Hiệu ứng phân tán: chỉ đổi 1 chữ số cuối nhưng hash hoàn toàn khác biệt
+        assertThat(hash1).isNotEqualTo(hashDifferent);
+    }
+
+    @Test
+    @DisplayName("HMAC-SHA-256 OTP: Hỗ trợ Server-Side Pepper độc lập qua OTP_SECRET")
+    void shouldUseDedicatedOtpSecretWhenProvided() {
+        String defaultHash = jwtTokenProvider.hashOtp("888888");
+
+        // Thiết lập OTP_SECRET riêng biệt
+        ReflectionTestUtils.setField(jwtTokenProvider, "otpSecret", "dedicated-otp-pepper-secret-key-32bytes!!");
+        String dedicatedPepperHash = jwtTokenProvider.hashOtp("888888");
+
+        assertThat(dedicatedPepperHash).isNotBlank();
+        assertThat(dedicatedPepperHash).hasSize(64);
+        assertThat(dedicatedPepperHash).isNotEqualTo(defaultHash);
+        assertThat(jwtTokenProvider.verifyOtp("888888", dedicatedPepperHash)).isTrue();
+    }
 }
