@@ -84,6 +84,11 @@ public class SummarizerService {
         return result;
     }
 
+    /**
+     * Sinh mã băm mật mã học SHA-256 (64 ký tự Hex) đại diện cho dấu vân tay dữ liệu nguồn (Review Fingerprint).
+     * Sắp xếp danh sách theo ID tăng dần để đảm bảo tính tất định (deterministic).
+     * Bóc tách và kết hợp: ID, Rating, Trạng thái (isActive, isSpam), Nội dung (Content), Thời điểm cập nhật (updatedAt).
+     */
     String generateHash(List<Review> reviews) {
         if (reviews == null || reviews.isEmpty()) {
             return "";
@@ -112,6 +117,7 @@ public class SummarizerService {
             }
             return hexString.toString();
         } catch (java.security.NoSuchAlgorithmException e) {
+            log.error("[Summarizer] SHA-256 algorithm not available, falling back to basic hash", e);
             long count = reviews.size();
             long sumIds = reviews.stream().filter(r -> r.getId() != null).mapToLong(Review::getId).sum();
             return count + "-" + sumIds;
