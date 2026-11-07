@@ -1,10 +1,8 @@
 package com.shoppingagent.auth;
 
 import com.shoppingagent.admin.UserRepository;
-import com.shoppingagent.auth.dto.AuthResponse;
-import com.shoppingagent.auth.dto.LoginRequest;
-import com.shoppingagent.auth.dto.RegisterRequest;
-import com.shoppingagent.auth.dto.UserSessionDTO;
+import com.shoppingagent.auth.dto.*;
+import com.shoppingagent.shared.entity.EmailVerification;
 import com.shoppingagent.shared.entity.User;
 import com.shoppingagent.shared.entity.UserSession;
 import com.shoppingagent.shared.security.JwtTokenProvider;
@@ -273,5 +271,145 @@ class AuthServiceTest {
 
         assertThat(session.getIsRevoked()).isTrue();
         verify(userSessionRepository, times(1)).save(session);
+    }
+
+    @Test
+    @DisplayName("OTP HMAC-SHA-256: Khởi tạo đăng ký (initiateRegistration) băm OTP bằng HMAC và gửi mail")
+    void shouldInitiateRegistrationWithHmacSha256Otp() throws Exception {
+        RegisterRequest request = RegisterRequest.builder()
+                .username("otp_user")
+                .email("otp_user@example.com")
+                .password("Password123!")
+                .displayName("OTP Member")
+                .build();
+
+        when(userRepository.findByUsername("otp_user")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("otp_user@example.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$encodedHash");
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"username\":\"otp_user\"}");
+        when(jwtTokenProvider.hashOtp(anyString())).thenReturn("mock-hmac-sha256-otp-hash-64chars-long-1234567890abcdefabcdef123456");
+
+        RegisterInitiateResponse response = authService.initiateRegistration(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getEmail()).isEqualTo("otp_user@example.com");
+        assertThat(response.getExpiresInSeconds()).isEqualTo(300);
+
+        verify(jwtTokenProvider, times(1)).hashOtp(anyString());
+        verify(emailVerificationRepository, times(1)).save(any(EmailVerification.class));
+        verify(emailService, times(1)).sendOtpEmail(eq("otp_user@example.com"), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("OTP HMAC-SHA-256: Xác thực OTP thành công với Constant-Time verifyOtp")
+    void shouldVerifyRegistrationOtpSuccessfullyWhenHmacMatches() throws Exception {
+        VerifyOtpRequest request = VerifyOtpRequest.builder()
+                .email("otp_user@example.com")
+                .otp("123456")
+                .build();
+
+        EmailVerification verification = EmailVerification.builder()
+                .id(1L)
+                .email("otp_user@example.com")
+                .otpHash("stored-hmac-hash")
+                .type("REGISTRATION")
+                .registrationPayload("{\"username\":\"otp_user\",\"email\":\"otp_user@example.com\",\"passwordHash\":\"$2a$10$hash\",\"displayName\":\"OTP Member\"}")
+                .expiresAt(LocalDateTime.now().plusMinutes(4))
+                .attempts(0)
+                .isUsed(false)
+                .build();
+
+        when(emailVerificationRepository.findTopByEmailAndTypeAndIsUsedFalseOrderByCreatedAtDesc("otp_user@example.com", "REGISTRATION"))
+                .thenReturn(Optional.of(verification));
+        when(jwtTokenProvider.verifyOtp("123456", "stored-hmac-hash")).thenReturn(true);
+        when(objectMapper.readValue(anyString(), eq(AuthService.PendingUserPayload.class)))
+                .thenReturn(new AuthService.PendingUserPayload("otp_user", "otp_user@example.com", "$2a$10$hash", "OTP Member"));
+
+        User savedUser = User.builder()
+                .id(50)
+                .username("otp_user")
+                .email("otp_user@example.com")
+                .role("user")
+                .isActive(true)
+                .build();
+
+        when(userRepository.findByUsername("otp_user")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("otp_user@example.com")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+
+        when(jwtTokenProvider.generateToken(savedUser)).thenReturn("new-user-access-token");
+        when(jwtTokenProvider.generateRefreshToken()).thenReturn("new-user-refresh-token");
+        when(jwtTokenProvider.hashToken("new-user-refresh-token")).thenReturn("refresh-token-hash");
+        when(jwtTokenProvider.getJwtExpirationMs()).thenReturn(900000L);
+
+        AuthResponse authResponse = authService.verifyRegistrationOtp(request, null);
+
+        assertThat(authResponse).isNotNull();
+        assertThat(authResponse.getAccessToken()).isEqualTo("new-user-access-token");
+        assertThat(verification.getIsUsed()).isTrue();
+        verify(emailVerificationRepository, times(1)).save(verification);
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("OTP HMAC-SHA-256: Xác thực OTP thất bại khi mã không khớp -> tăng số lần thử")
+    void shouldFailVerifyRegistrationOtpWhenHmacMismatch() {
+        VerifyOtpRequest request = VerifyOtpRequest.builder()
+                .email("otp_user@example.com")
+                .otp("999999")
+                .build();
+
+        EmailVerification verification = EmailVerification.builder()
+                .id(1L)
+                .email("otp_user@example.com")
+                .otpHash("stored-hmac-hash")
+                .type("REGISTRATION")
+                .registrationPayload("{}")
+                .expiresAt(LocalDateTime.now().plusMinutes(4))
+                .attempts(2)
+                .isUsed(false)
+                .build();
+
+        when(emailVerificationRepository.findTopByEmailAndTypeAndIsUsedFalseOrderByCreatedAtDesc("otp_user@example.com", "REGISTRATION"))
+                .thenReturn(Optional.of(verification));
+        when(jwtTokenProvider.verifyOtp("999999", "stored-hmac-hash")).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.verifyRegistrationOtp(request, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Mã xác thực không chính xác. Bạn còn 2 lần thử.");
+
+        assertThat(verification.getAttempts()).isEqualTo(3);
+        verify(emailVerificationRepository, times(1)).save(verification);
+    }
+
+    @Test
+    @DisplayName("OTP HMAC-SHA-256: Gửi lại mã OTP (resendRegistrationOtp) sinh và băm mã mới bằng HMAC")
+    void shouldResendRegistrationOtpWithNewHmac() {
+        ResendOtpRequest request = ResendOtpRequest.builder()
+                .email("otp_user@example.com")
+                .build();
+
+        EmailVerification verification = EmailVerification.builder()
+                .id(1L)
+                .email("otp_user@example.com")
+                .otpHash("old-hmac-hash")
+                .type("REGISTRATION")
+                .createdAt(LocalDateTime.now().minusSeconds(70)) // Qua cooldown 60s
+                .attempts(3)
+                .isUsed(false)
+                .build();
+
+        when(emailVerificationRepository.findTopByEmailAndTypeAndIsUsedFalseOrderByCreatedAtDesc("otp_user@example.com", "REGISTRATION"))
+                .thenReturn(Optional.of(verification));
+        when(jwtTokenProvider.hashOtp(anyString())).thenReturn("brand-new-hmac-sha256-hash");
+
+        RegisterInitiateResponse response = authService.resendRegistrationOtp(request);
+
+        assertThat(response).isNotNull();
+        assertThat(verification.getOtpHash()).isEqualTo("brand-new-hmac-sha256-hash");
+        assertThat(verification.getAttempts()).isEqualTo(0);
+        verify(jwtTokenProvider, times(1)).hashOtp(anyString());
+        verify(emailVerificationRepository, times(1)).save(verification);
+        verify(emailService, times(1)).sendOtpEmail(eq("otp_user@example.com"), anyString(), anyString());
     }
 }
