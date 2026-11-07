@@ -71,7 +71,7 @@ class SummarizerServiceTest {
                 .pros("• Màn hình đẹp\n• Camera zoom 5x sắc nét")
                 .cons("• Giá thành cao")
                 .llmModelUsed("gemini-2.0-flash")
-                .reviewHash("2-3") // 2 reviews, sumIds = 1 + 2 = 3
+                .reviewHash(summarizerService.generateHash(validReviews)) // SHA-256 fingerprint đồng bộ với Review Fingerprint
                 .generatedAt(LocalDateTime.now())
                 .build();
         when(reviewSummaryRepository.findById(10L)).thenReturn(Optional.of(cached));

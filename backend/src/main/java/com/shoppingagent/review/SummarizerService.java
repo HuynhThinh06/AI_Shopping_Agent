@@ -84,11 +84,41 @@ public class SummarizerService {
         return result;
     }
 
-    private String generateHash(List<Review> reviews) {
-        // Hash đơn giản dựa trên số lượng và tổng ID của các bài review
-        long count = reviews.size();
-        long sumIds = reviews.stream().mapToLong(Review::getId).sum();
-        return count + "-" + sumIds;
+    /**
+     * Sinh mã băm mật mã học SHA-256 (64 ký tự Hex) đại diện cho dấu vân tay dữ liệu nguồn (Review Fingerprint).
+     * Sắp xếp danh sách theo ID tăng dần để đảm bảo tính tất định (deterministic).
+     * Bóc tách và kết hợp: ID, Rating, Nội dung (Content) nhằm phát hiện 100% mọi biến động dữ liệu.
+     */
+    String generateHash(List<Review> reviews) {
+        if (reviews == null || reviews.isEmpty()) {
+            return "";
+        }
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            StringBuilder sb = new StringBuilder();
+
+            reviews.stream()
+                    .sorted(java.util.Comparator.comparing(Review::getId, java.util.Comparator.nullsLast(Long::compareTo)))
+                    .forEach(r -> {
+                        sb.append(r.getId()).append(':')
+                          .append(r.getRating()).append(':')
+                          .append(r.getContent() != null ? r.getContent().trim() : "").append('|');
+                    });
+
+            byte[] hashBytes = digest.digest(sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            log.error("[Summarizer] SHA-256 algorithm not available, falling back to basic hash", e);
+            long count = reviews.size();
+            long sumIds = reviews.stream().mapToLong(r -> r.getId() != null ? r.getId() : 0L).sum();
+            return count + "-" + sumIds;
+        }
     }
 
     private boolean isCacheValid(ReviewSummary cached, String currentHash) {
