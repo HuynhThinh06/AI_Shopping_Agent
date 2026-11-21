@@ -2,14 +2,107 @@ import React, { useState, useEffect } from 'react';
 import { AdminNav } from '../../components/admin/AdminNav';
 import { runGinBenchmark, getBenchmarkStats, getCategoriesList } from '../../api/adminApi';
 import type { GinBenchmarkResult, BenchmarkStats, CategoryOption } from '../../types/admin';
-import { Zap, Play, CheckCircle2, Copy, BarChart3, Database, Sparkles, Terminal } from 'lucide-react';
+import { Zap, Play, CheckCircle2, Copy, BarChart3, Database, Sparkles, Terminal, AlertCircle } from 'lucide-react';
 
 const DEFAULT_CATEGORIES: CategoryOption[] = [
   { id: 1, code: 'laptop', name: 'Laptop' },
   { id: 2, code: 'phone', name: 'Điện thoại' },
 ];
 
-const formatMs = (val: number): string => (val < 1 ? val.toFixed(3) : val.toFixed(2));
+const DEFAULT_BENCHMARK_STATS: BenchmarkStats = {
+  totalGroundTruthQueries: 31,
+  baselinePrecision: 41.94,
+  baselineRecall: 39.20,
+  baselineMacroF1: 0.3252,
+  stage2Precision: 41.45,
+  stage2Recall: 38.86,
+  stage2MacroF1: 0.3212,
+  stage3Precision: 46.77,
+  stage3Recall: 41.99,
+  stage3MacroF1: 0.3573,
+  precisionGainPct: 11.5,
+  f1GainPct: 9.87,
+  scalingRowCount: 53400,
+  scalingTestQuery: 'specs @> \'{"ram": 16, "storage": 1024}\'::jsonb AND is_active = true',
+  scalingSeqScanAvgMs: 16.573,
+  scalingGinIndexAvgMs: 2.820,
+  scalingSpeedupRatio: 5.88,
+  scalingLatencyReductionPct: 82.98,
+  latencyBreakdown: [],
+};
+
+const safeNumber = (val: unknown, fallback: number): number =>
+  typeof val === 'number' && Number.isFinite(val) ? val : fallback;
+
+const formatMs = (val?: number | null): string => {
+  if (typeof val !== 'number' || !Number.isFinite(val)) return '0.00';
+  return val < 1 ? val.toFixed(3) : val.toFixed(2);
+};
+
+function normalizeBenchmarkStats(raw: unknown): BenchmarkStats {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return DEFAULT_BENCHMARK_STATS;
+  }
+  const r = raw as Record<string, unknown>;
+  return {
+    totalGroundTruthQueries: safeNumber(r.totalGroundTruthQueries, DEFAULT_BENCHMARK_STATS.totalGroundTruthQueries),
+    baselinePrecision: safeNumber(r.baselinePrecision, DEFAULT_BENCHMARK_STATS.baselinePrecision),
+    baselineRecall: safeNumber(r.baselineRecall, DEFAULT_BENCHMARK_STATS.baselineRecall),
+    baselineMacroF1: safeNumber(r.baselineMacroF1, DEFAULT_BENCHMARK_STATS.baselineMacroF1),
+    stage2Precision: safeNumber(r.stage2Precision, DEFAULT_BENCHMARK_STATS.stage2Precision),
+    stage2Recall: safeNumber(r.stage2Recall, DEFAULT_BENCHMARK_STATS.stage2Recall),
+    stage2MacroF1: safeNumber(r.stage2MacroF1, DEFAULT_BENCHMARK_STATS.stage2MacroF1),
+    stage3Precision: safeNumber(r.stage3Precision, DEFAULT_BENCHMARK_STATS.stage3Precision),
+    stage3Recall: safeNumber(r.stage3Recall, DEFAULT_BENCHMARK_STATS.stage3Recall),
+    stage3MacroF1: safeNumber(r.stage3MacroF1, DEFAULT_BENCHMARK_STATS.stage3MacroF1),
+    precisionGainPct: safeNumber(r.precisionGainPct, DEFAULT_BENCHMARK_STATS.precisionGainPct),
+    f1GainPct: safeNumber(r.f1GainPct, DEFAULT_BENCHMARK_STATS.f1GainPct),
+    scalingRowCount: safeNumber(r.scalingRowCount, DEFAULT_BENCHMARK_STATS.scalingRowCount),
+    scalingTestQuery:
+      typeof r.scalingTestQuery === 'string' && r.scalingTestQuery.trim()
+        ? r.scalingTestQuery
+        : DEFAULT_BENCHMARK_STATS.scalingTestQuery,
+    scalingSeqScanAvgMs: safeNumber(r.scalingSeqScanAvgMs, DEFAULT_BENCHMARK_STATS.scalingSeqScanAvgMs),
+    scalingGinIndexAvgMs: safeNumber(r.scalingGinIndexAvgMs, DEFAULT_BENCHMARK_STATS.scalingGinIndexAvgMs),
+    scalingSpeedupRatio: safeNumber(r.scalingSpeedupRatio, DEFAULT_BENCHMARK_STATS.scalingSpeedupRatio),
+    scalingLatencyReductionPct: safeNumber(
+      r.scalingLatencyReductionPct,
+      DEFAULT_BENCHMARK_STATS.scalingLatencyReductionPct
+    ),
+    latencyBreakdown: Array.isArray(r.latencyBreakdown) ? r.latencyBreakdown : [],
+  };
+}
+
+function normalizeBenchmarkResult(
+  raw: unknown,
+  fallback: { categoryCode: string; specKey: string; specValue: string; iterations: number }
+): GinBenchmarkResult | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+  const r = raw as Record<string, unknown>;
+  const hasSeq = typeof r.seqScanAvgLatencyMs === 'number' && Number.isFinite(r.seqScanAvgLatencyMs);
+  const hasGin = typeof r.ginIndexAvgLatencyMs === 'number' && Number.isFinite(r.ginIndexAvgLatencyMs);
+  if (!hasSeq && !hasGin) {
+    return null;
+  }
+
+  return {
+    categoryCode: typeof r.categoryCode === 'string' && r.categoryCode ? r.categoryCode : fallback.categoryCode,
+    specKey: typeof r.specKey === 'string' && r.specKey ? r.specKey : fallback.specKey,
+    specValue: typeof r.specValue === 'string' ? r.specValue : fallback.specValue,
+    iterations: safeNumber(r.iterations, fallback.iterations),
+    seqScanAvgLatencyMs: safeNumber(r.seqScanAvgLatencyMs, 0),
+    ginIndexAvgLatencyMs: safeNumber(r.ginIndexAvgLatencyMs, 0),
+    speedupRatio: safeNumber(r.speedupRatio, 1),
+    speedupPercent: safeNumber(r.speedupPercent, 0),
+    matchedCount: safeNumber(r.matchedCount, 0),
+    seqScanExecutionPlan: typeof r.seqScanExecutionPlan === 'string' ? r.seqScanExecutionPlan : '—',
+    ginIndexExecutionPlan: typeof r.ginIndexExecutionPlan === 'string' ? r.ginIndexExecutionPlan : '—',
+    seqScanSamples: Array.isArray(r.seqScanSamples) ? r.seqScanSamples : [],
+    ginIndexSamples: Array.isArray(r.ginIndexSamples) ? r.ginIndexSamples : [],
+  };
+}
 
 export const AdminBenchmarkPage: React.FC = () => {
   const [categories, setCategories] = useState<CategoryOption[]>(DEFAULT_CATEGORIES);
@@ -19,24 +112,26 @@ export const AdminBenchmarkPage: React.FC = () => {
   const [iterations, setIterations] = useState(10);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GinBenchmarkResult | null>(null);
-  const [stats, setStats] = useState<BenchmarkStats | null>(null);
+  const [stats, setStats] = useState<BenchmarkStats>(DEFAULT_BENCHMARK_STATS);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   // Run benchmark on initial mount and load categories + Ground Truth stats
   useEffect(() => {
     getCategoriesList()
       .then((list) => {
-        if (list && list.length > 0) setCategories(list);
+        if (Array.isArray(list) && list.length > 0) setCategories(list);
       })
       .catch(() => {});
     getBenchmarkStats()
-      .then((data) => setStats(data))
+      .then((data) => setStats(normalizeBenchmarkStats(data)))
       .catch(() => {});
     handleRunBenchmark();
   }, []);
 
   const handleRunBenchmark = async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await runGinBenchmark({
         categoryCode,
@@ -44,9 +139,25 @@ export const AdminBenchmarkPage: React.FC = () => {
         specValue,
         iterations,
       });
-      setResult(data);
-    } catch (err) {
+      const normalized = normalizeBenchmarkResult(data, {
+        categoryCode,
+        specKey,
+        specValue,
+        iterations,
+      });
+      if (!normalized) {
+        setError('Dữ liệu phản hồi từ API Benchmark không hợp lệ. Vui lòng thử lại sau.');
+        return;
+      }
+      setResult(normalized);
+    } catch (err: any) {
       console.error('Benchmark failed:', err);
+      const msg =
+        err?.response?.data?.message ||
+        (err?.code === 'ECONNABORTED'
+          ? 'Yêu cầu đo đạc Benchmark vượt quá thời gian chờ. Vui lòng giảm số lần lặp hoặc thử lại.'
+          : 'Không thể thực thi benchmark trên máy chủ. Vui lòng thử lại.');
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -181,6 +292,13 @@ export const AdminBenchmarkPage: React.FC = () => {
         </div>
       </div>
 
+      {error && (
+        <div className="bg-rose-50 border-2 border-rose-500 rounded-2xl p-4 shadow-brutal mb-6 flex items-start gap-3 text-rose-900">
+          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+          <div className="text-xs sm:text-sm font-bold">{error}</div>
+        </div>
+      )}
+
       {/* Live Results Display */}
       {result && (
         <div className="space-y-6">
@@ -192,7 +310,7 @@ export const AdminBenchmarkPage: React.FC = () => {
                 {formatMs(result.seqScanAvgLatencyMs)} ms
               </div>
               <div className="text-[11px] font-medium text-warm-muted mt-1">
-                Trung bình {result.iterations} vòng (enable_indexscan=off)
+                Trung bình {safeNumber(result.iterations, iterations)} vòng (enable_indexscan=off)
               </div>
             </div>
 
@@ -209,11 +327,11 @@ export const AdminBenchmarkPage: React.FC = () => {
             <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 shadow-brutal">
               <div className="text-xs font-bold text-warm-muted uppercase">Hệ số đối sánh (Speedup)</div>
               <div className="text-3xl font-black font-mono text-warm-primary mt-1">
-                {result.speedupRatio.toFixed(2)}x
+                {safeNumber(result.speedupRatio, 1).toFixed(2)}x
               </div>
               <div className="text-[11px] font-bold text-warm-muted mt-1">
-                {result.speedupRatio >= 1
-                  ? `Nhanh hơn ${result.speedupRatio.toFixed(2)} lần`
+                {safeNumber(result.speedupRatio, 1) >= 1
+                  ? `Nhanh hơn ${safeNumber(result.speedupRatio, 1).toFixed(2)} lần`
                   : 'Tập 178 SP (~16 trang 8KB): Seq Scan đủ nhanh'}
               </div>
             </div>
@@ -221,17 +339,19 @@ export const AdminBenchmarkPage: React.FC = () => {
             <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 shadow-brutal">
               <div className="text-xs font-bold text-warm-muted uppercase">Chênh lệch độ trễ</div>
               <div className="text-3xl font-black font-mono text-emerald-700 mt-1">
-                {result.speedupPercent > 0 ? `-${result.speedupPercent.toFixed(1)}%` : `${result.speedupPercent.toFixed(1)}%`}
+                {safeNumber(result.speedupPercent, 0) > 0
+                  ? `-${safeNumber(result.speedupPercent, 0).toFixed(1)}%`
+                  : `${safeNumber(result.speedupPercent, 0).toFixed(1)}%`}
               </div>
               <div className="text-[11px] font-medium text-warm-muted mt-1">
-                Khớp {result.matchedCount} sản phẩm hợp lệ
+                Khớp {safeNumber(result.matchedCount, 0)} sản phẩm hợp lệ
               </div>
             </div>
           </div>
 
-          {result.speedupRatio < 1.1 && (
+          {safeNumber(result.speedupRatio, 1) < 1.1 && (
             <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs font-medium">
-              <strong>Lưu ý về kích thước bảng hiện hành:</strong> Bảng `products` hiện có ~178 sản phẩm đang hoạt động (chỉ chiếm 16 trang 8KB trên PostgreSQL), nên `Seq Scan` hoàn tất trong dưới 1 ms và chi phí khởi tạo Bitmap Index có thể tương đương hoặc nhỉnh hơn đôi chút. Lợi ích vượt trội của `idx_products_specs_gin` thể hiện rõ ở bảng đối chứng quy mô lớn <strong>{stats ? stats.scalingRowCount.toLocaleString() : '53.400'}</strong> bản ghi bên dưới (<strong>{stats ? `${stats.scalingSpeedupRatio.toFixed(2)}x` : '5.88x'}</strong>).
+              <strong>Lưu ý về kích thước bảng hiện hành:</strong> Bảng `products` hiện có ~178 sản phẩm đang hoạt động (chỉ chiếm 16 trang 8KB trên PostgreSQL), nên `Seq Scan` hoàn tất trong dưới 1 ms và chi phí khởi tạo Bitmap Index có thể tương đương hoặc nhỉnh hơn đôi chút. Lợi ích vượt trội của `idx_products_specs_gin` thể hiện rõ ở bảng đối chứng quy mô lớn <strong>{stats.scalingRowCount.toLocaleString('vi-VN')}</strong> bản ghi bên dưới (<strong>{stats.scalingSpeedupRatio.toFixed(2)}x</strong>).
             </div>
           )}
 
@@ -331,7 +451,7 @@ export const AdminBenchmarkPage: React.FC = () => {
             </h2>
           </div>
           <p className="text-xs text-warm-muted font-medium mt-1">
-            Số liệu đồng nhất với Bảng 4.1 & Bảng 4.2 trong báo cáo: đánh giá trên {stats ? stats.totalGroundTruthQueries : 31} câu truy vấn chuẩn hóa và bảng mô phỏng công bằng {stats ? stats.scalingRowCount.toLocaleString() : '53.400'} bản ghi trên Neon PostgreSQL 18.7.
+            Số liệu đồng nhất với Bảng 4.1 & Bảng 4.2 trong báo cáo: đánh giá trên {stats.totalGroundTruthQueries} câu truy vấn chuẩn hóa và bảng mô phỏng công bằng {stats.scalingRowCount.toLocaleString('vi-VN')} bản ghi trên Neon PostgreSQL 18.7.
           </p>
         </div>
 
@@ -339,46 +459,46 @@ export const AdminBenchmarkPage: React.FC = () => {
           <div className="p-4 rounded-xl bg-warm-bg border-2 border-warm-text">
             <div className="text-xs font-bold text-warm-muted uppercase">Precision@20 (Stage 3)</div>
             <div className="text-2xl font-black font-mono text-emerald-700 mt-1">
-              {stats ? `${stats.stage3Precision.toFixed(2)}%` : '46.77%'}
+              {stats.stage3Precision.toFixed(2)}%
             </div>
             <div className="text-[11px] text-warm-muted mt-1">
-              +{stats ? stats.precisionGainPct.toFixed(1) : '11.5'}% tương đối so với Baseline ({stats ? `${stats.baselinePrecision.toFixed(2)}%` : '41.94%'})
+              +{stats.precisionGainPct.toFixed(1)}% tương đối so với Baseline ({stats.baselinePrecision.toFixed(2)}%)
             </div>
           </div>
 
           <div className="p-4 rounded-xl bg-warm-bg border-2 border-warm-text">
             <div className="text-xs font-bold text-warm-muted uppercase">Recall@20 (Stage 3)</div>
             <div className="text-2xl font-black font-mono text-emerald-700 mt-1">
-              {stats ? `${stats.stage3Recall.toFixed(2)}%` : '41.99%'}
+              {stats.stage3Recall.toFixed(2)}%
             </div>
             <div className="text-[11px] text-warm-muted mt-1">
-              Tăng từ mức Baseline {stats ? `${stats.baselineRecall.toFixed(2)}%` : '39.20%'}
+              Tăng từ mức Baseline {stats.baselineRecall.toFixed(2)}%
             </div>
           </div>
 
           <div className="p-4 rounded-xl bg-warm-bg border-2 border-warm-text">
             <div className="text-xs font-bold text-warm-muted uppercase">Macro F1-Score (31 Q)</div>
             <div className="text-2xl font-black font-mono text-warm-primary mt-1">
-              {stats ? stats.stage3MacroF1.toFixed(4) : '0.3573'}
+              {stats.stage3MacroF1.toFixed(4)}
             </div>
             <div className="text-[11px] text-warm-muted mt-1">
-              +{stats ? stats.f1GainPct.toFixed(2) : '9.87'}% tương đối so với Baseline ({stats ? stats.baselineMacroF1.toFixed(4) : '0.3252'})
+              +{stats.f1GainPct.toFixed(2)}% tương đối so với Baseline ({stats.baselineMacroF1.toFixed(4)})
             </div>
           </div>
 
           <div className="p-4 rounded-xl bg-warm-bg border-2 border-warm-text">
-            <div className="text-xs font-bold text-warm-muted uppercase">GIN Scaling ({stats ? `${(stats.scalingRowCount / 1000).toFixed(1)}k` : '53.4k'} dòng)</div>
+            <div className="text-xs font-bold text-warm-muted uppercase">GIN Scaling ({(stats.scalingRowCount / 1000).toFixed(1)}k dòng)</div>
             <div className="text-2xl font-black font-mono text-warm-primary mt-1">
-              {stats ? `${stats.scalingSpeedupRatio.toFixed(2)}x` : '5.88x'}
+              {stats.scalingSpeedupRatio.toFixed(2)}x
             </div>
             <div className="text-[11px] text-warm-muted mt-1">
-              {stats ? `${stats.scalingSeqScanAvgMs.toFixed(2)} ms → ${stats.scalingGinIndexAvgMs.toFixed(2)} ms (-${stats.scalingLatencyReductionPct.toFixed(1)}%)` : '16.57 ms → 2.82 ms (-83.0%)'}
+              {stats.scalingSeqScanAvgMs.toFixed(2)} ms → {stats.scalingGinIndexAvgMs.toFixed(2)} ms (-{stats.scalingLatencyReductionPct.toFixed(1)}%)
             </div>
           </div>
         </div>
 
         <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-medium">
-          <strong>Tổng kết thực nghiệm trên Neon PostgreSQL 18.7:</strong> Khi mở rộng dữ liệu lên <strong>{stats ? stats.scalingRowCount.toLocaleString() : '53.400'}</strong> bản ghi, chỉ mục GIN <code>idx_products_specs_gin</code> trên điều kiện chọn lọc cao (<code>specs @&gt; &#123;"ram": 16, "storage": 1024&#125;</code>) giúp giảm thời gian thực thi trung bình từ <strong>{stats ? stats.scalingSeqScanAvgMs.toFixed(3) : '16.573'} ms</strong> xuống còn <strong>{stats ? stats.scalingGinIndexAvgMs.toFixed(3) : '2.820'} ms</strong> (tăng tốc <strong>{stats ? stats.scalingSpeedupRatio.toFixed(2) : '5.88'}x</strong>, giảm <strong>57.0%</strong> Shared Buffers từ 2.901 xuống 1.246 blocks). Pipeline CoT + LLM Reranking trên {stats ? stats.totalGroundTruthQueries : 31} câu truy vấn Ground Truth đạt Precision <strong>{stats ? `${stats.stage3Precision.toFixed(2)}%` : '46.77%'}</strong> và Macro F1-Score <strong>{stats ? stats.stage3MacroF1.toFixed(4) : '0.3573'}</strong>.
+          <strong>Tổng kết thực nghiệm trên Neon PostgreSQL 18.7:</strong> Khi mở rộng dữ liệu lên <strong>{stats.scalingRowCount.toLocaleString('vi-VN')}</strong> bản ghi, chỉ mục GIN <code>idx_products_specs_gin</code> trên điều kiện chọn lọc cao (<code>specs @&gt; &#123;"ram": 16, "storage": 1024&#125;</code>) giúp giảm thời gian thực thi trung bình từ <strong>{stats.scalingSeqScanAvgMs.toFixed(3)} ms</strong> xuống còn <strong>{stats.scalingGinIndexAvgMs.toFixed(3)} ms</strong> (tăng tốc <strong>{stats.scalingSpeedupRatio.toFixed(2)}x</strong>, giảm <strong>57.0%</strong> Shared Buffers từ 2.901 xuống 1.246 blocks). Pipeline CoT + LLM Reranking trên {stats.totalGroundTruthQueries} câu truy vấn Ground Truth đạt Precision <strong>{stats.stage3Precision.toFixed(2)}%</strong> và Macro F1-Score <strong>{stats.stage3MacroF1.toFixed(4)}</strong>.
         </div>
       </div>
     </div>
