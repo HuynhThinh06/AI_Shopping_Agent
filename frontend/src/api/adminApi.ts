@@ -4,6 +4,7 @@ import type {
   LlmLogItem,
   GinBenchmarkRequest,
   GinBenchmarkResult,
+  BenchmarkStats,
   AdminReviewDTO,
   CategoryOption,
   AuditLogDTO,
@@ -78,6 +79,11 @@ export async function updateCategoryWeights(
   const res = await apiClient.put<Record<string, number>>(`/admin/weights/${categoryCode}`, {
     weights,
   });
+  return res.data;
+}
+
+export async function getBenchmarkStats(): Promise<BenchmarkStats> {
+  const res = await apiClient.get<BenchmarkStats>('/admin/benchmark');
   return res.data;
 }
 

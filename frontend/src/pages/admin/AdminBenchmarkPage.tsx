@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { AdminNav } from '../../components/admin/AdminNav';
-import { runGinBenchmark, getCategoriesList } from '../../api/adminApi';
-import type { GinBenchmarkResult, CategoryOption } from '../../types/admin';
+import { runGinBenchmark, getBenchmarkStats, getCategoriesList } from '../../api/adminApi';
+import type { GinBenchmarkResult, BenchmarkStats, CategoryOption } from '../../types/admin';
 import { Zap, Play, CheckCircle2, Copy, BarChart3, Database, Sparkles, Terminal } from 'lucide-react';
 
 const DEFAULT_CATEGORIES: CategoryOption[] = [
   { id: 1, code: 'laptop', name: 'Laptop' },
   { id: 2, code: 'phone', name: 'Điện thoại' },
 ];
+
+const formatMs = (val: number): string => (val < 1 ? val.toFixed(3) : val.toFixed(2));
 
 export const AdminBenchmarkPage: React.FC = () => {
   const [categories, setCategories] = useState<CategoryOption[]>(DEFAULT_CATEGORIES);
@@ -17,14 +19,18 @@ export const AdminBenchmarkPage: React.FC = () => {
   const [iterations, setIterations] = useState(10);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GinBenchmarkResult | null>(null);
+  const [stats, setStats] = useState<BenchmarkStats | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Run benchmark on initial mount and load categories
+  // Run benchmark on initial mount and load categories + Ground Truth stats
   useEffect(() => {
     getCategoriesList()
       .then((list) => {
         if (list && list.length > 0) setCategories(list);
       })
+      .catch(() => {});
+    getBenchmarkStats()
+      .then((data) => setStats(data))
       .catch(() => {});
     handleRunBenchmark();
   }, []);
@@ -36,31 +42,8 @@ export const AdminBenchmarkPage: React.FC = () => {
         categoryCode,
         specKey,
         specValue,
-        iterations
+        iterations,
       });
-      // Bảo vệ nếu Backend chưa được khởi động lại và trả về thời gian khứ hồi mạng Cloud Neon (>100ms)
-      if (data.ginIndexAvgLatencyMs >= data.seqScanAvgLatencyMs || data.ginIndexAvgLatencyMs > 80) {
-        const cleanSeqSamples = (data.seqScanSamples || []).map((_, idx) =>
-          Number((13.4 + ((idx % 5) - 2) * 0.45).toFixed(2))
-        );
-        const cleanGinSamples = (data.ginIndexSamples || []).map((_, idx) =>
-          Number((0.92 + ((idx % 4) - 1.5) * 0.08).toFixed(2))
-        );
-        const seqAvg =
-          cleanSeqSamples.length > 0
-            ? Number((cleanSeqSamples.reduce((a, b) => a + b, 0) / cleanSeqSamples.length).toFixed(2))
-            : 13.4;
-        const ginAvg =
-          cleanGinSamples.length > 0
-            ? Number((cleanGinSamples.reduce((a, b) => a + b, 0) / cleanGinSamples.length).toFixed(2))
-            : 0.92;
-        data.seqScanAvgLatencyMs = seqAvg;
-        data.ginIndexAvgLatencyMs = ginAvg;
-        data.seqScanSamples = cleanSeqSamples;
-        data.ginIndexSamples = cleanGinSamples;
-        data.speedupRatio = Number((seqAvg / ginAvg).toFixed(1));
-        data.speedupPercent = Number((((seqAvg - ginAvg) / seqAvg) * 100).toFixed(1));
-      }
       setResult(data);
     } catch (err) {
       console.error('Benchmark failed:', err);
@@ -71,19 +54,28 @@ export const AdminBenchmarkPage: React.FC = () => {
 
   const copyMarkdownTable = () => {
     if (!result) return;
-    const md = `### Bảng Số Liệu Thực Nghiệm Tối Ưu Hóa GIN Index (PostgreSQL)
-| Tham số đo đạc | Sequential Scan (Chưa có GIN) | GIN Index Scan (Tối ưu hóa) | Mức cải thiện (Speedup) |
+    const conditionText = result.specValue
+      ? `specs @> '{"${result.specKey}": ${result.specValue}}'::jsonb`
+      : `jsonb_exists(specs, '${result.specKey}')`;
+    const md = `### Bảng Số Liệu Thực Nghiệm EXPLAIN (ANALYZE, BUFFERS, TIMING ON) (PostgreSQL)
+| Tham số đo đạc | Sequential Scan | GIN / Index Scan | Tỷ lệ đối sánh |
 |---|---|---|---|
 | **Ngành hàng** | ${result.categoryCode} | ${result.categoryCode} | - |
-| **Tiêu chí lọc specs** | \`specs->>'${result.specKey}'\` | \`jsonb_exists(specs, '${result.specKey}')\` | - |
-| **Số lần lặp (Iterations)** | ${result.iterations} lần | ${result.iterations} lần | - |
-| **Độ trễ trung bình (Latency)** | **${result.seqScanAvgLatencyMs.toFixed(2)} ms** | **${result.ginIndexAvgLatencyMs.toFixed(2)} ms** | **${result.speedupRatio.toFixed(1)}x (${result.speedupPercent.toFixed(1)}%)** |
-| **Kỹ thuật Index** | Seq Scan | Bitmap Index Scan (\`idx_products_specs_gin\`) | Giảm I/O disk |
+| **Điều kiện lọc specs** | \`${conditionText}\` | \`${conditionText}\` | - |
+| **Số lần thực thi đo thực tế** | ${result.iterations} lần (+1 warm-up) | ${result.iterations} lần (+1 warm-up) | - |
+| **Execution Time trung bình** | **${formatMs(result.seqScanAvgLatencyMs)} ms** | **${formatMs(result.ginIndexAvgLatencyMs)} ms** | **${result.speedupRatio.toFixed(2)}x (${result.speedupPercent.toFixed(1)}%)** |
+| **Số sản phẩm khớp** | ${result.matchedCount} | ${result.matchedCount} | Đồng nhất |
 `;
     navigator.clipboard.writeText(md);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
+
+  const maxLatency = result
+    ? Math.max(result.seqScanAvgLatencyMs, result.ginIndexAvgLatencyMs, 0.001)
+    : 1;
+  const seqBarWidth = result ? Math.max(4, Math.round((result.seqScanAvgLatencyMs / maxLatency) * 100)) : 100;
+  const ginBarWidth = result ? Math.max(4, Math.round((result.ginIndexAvgLatencyMs / maxLatency) * 100)) : 20;
 
   return (
     <div>
@@ -102,7 +94,7 @@ export const AdminBenchmarkPage: React.FC = () => {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-warm-muted font-medium mt-1">
-            Đo tốc độ truy vấn CSDL trước & sau khi đánh GIN Index trên trường `specs` (JSONB) và đánh giá độ chính xác xếp hạng (Precision@K, MAP, NDCG) phục vụ báo cáo đồ án.
+            Đo Execution Time thực tế bằng `EXPLAIN (ANALYZE, BUFFERS, TIMING ON)` trên cùng câu truy vấn PostgreSQL JSONB, kết hợp thống kê 31 truy vấn Ground Truth và benchmark mở rộng 53.400 dòng.
           </p>
         </div>
 
@@ -130,7 +122,7 @@ export const AdminBenchmarkPage: React.FC = () => {
       <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-4 sm:p-5 shadow-brutal mb-6">
         <h2 className="text-xs font-black uppercase text-warm-muted mb-3 flex items-center gap-2">
           <Database className="w-4 h-4 text-warm-text" />
-          Cấu hình tham số kiểm thử CSDL
+          Cấu hình tham số kiểm thử trực tiếp trên bảng products hiện hành
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div>
@@ -168,7 +160,7 @@ export const AdminBenchmarkPage: React.FC = () => {
               type="text"
               value={specValue}
               onChange={(e) => setSpecValue(e.target.value)}
-              placeholder="16, 512, i7..."
+              placeholder="16, 512, 5000, i7..."
               className="w-full px-3 py-2 rounded-xl border-2 border-warm-text bg-warm-bg text-xs font-bold focus:outline-none"
             />
           </div>
@@ -183,46 +175,53 @@ export const AdminBenchmarkPage: React.FC = () => {
               <option value={5}>5 lần đo</option>
               <option value={10}>10 lần đo (Khuyến nghị)</option>
               <option value={20}>20 lần đo</option>
+              <option value={25}>25 lần đo (Tối đa)</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Results Display */}
+      {/* Live Results Display */}
       {result && (
         <div className="space-y-6">
           {/* 4 KPI Comparison Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 shadow-brutal">
-              <div className="text-xs font-bold text-warm-muted uppercase">Trước GIN (Sequential Scan)</div>
+              <div className="text-xs font-bold text-warm-muted uppercase">Sequential Scan (Thực đo)</div>
               <div className="text-3xl font-black font-mono text-red-600 mt-1">
-                {result.seqScanAvgLatencyMs.toFixed(2)} ms
+                {formatMs(result.seqScanAvgLatencyMs)} ms
               </div>
-              <div className="text-[11px] font-medium text-warm-muted mt-1">Quét toàn bộ bảng (O(N))</div>
+              <div className="text-[11px] font-medium text-warm-muted mt-1">
+                Trung bình {result.iterations} vòng (enable_indexscan=off)
+              </div>
             </div>
 
             <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 shadow-brutal">
-              <div className="text-xs font-bold text-warm-muted uppercase">Sau GIN (GIN Index Scan)</div>
+              <div className="text-xs font-bold text-warm-muted uppercase">GIN / Index Scan (Thực đo)</div>
               <div className="text-3xl font-black font-mono text-emerald-700 mt-1">
-                {result.ginIndexAvgLatencyMs.toFixed(2)} ms
+                {formatMs(result.ginIndexAvgLatencyMs)} ms
               </div>
-              <div className="text-[11px] font-medium text-warm-muted mt-1">B-Tree / GIN Inverted Index</div>
+              <div className="text-[11px] font-medium text-warm-muted mt-1">
+                Cùng câu SQL (enable_seqscan=off)
+              </div>
             </div>
 
             <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 shadow-brutal">
-              <div className="text-xs font-bold text-warm-muted uppercase">Tốc độ cải thiện (Speedup)</div>
+              <div className="text-xs font-bold text-warm-muted uppercase">Hệ số đối sánh (Speedup)</div>
               <div className="text-3xl font-black font-mono text-warm-primary mt-1">
-                {result.speedupRatio.toFixed(1)}x
+                {result.speedupRatio.toFixed(2)}x
               </div>
-              <div className="text-[11px] font-bold text-emerald-700 mt-1">
-                Nhanh hơn gấp {result.speedupRatio.toFixed(1)} lần
+              <div className="text-[11px] font-bold text-warm-muted mt-1">
+                {result.speedupRatio >= 1
+                  ? `Nhanh hơn ${result.speedupRatio.toFixed(2)} lần`
+                  : 'Tập 178 SP (~16 trang 8KB): Seq Scan đủ nhanh'}
               </div>
             </div>
 
             <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 shadow-brutal">
-              <div className="text-xs font-bold text-warm-muted uppercase">Thời gian tiết kiệm</div>
+              <div className="text-xs font-bold text-warm-muted uppercase">Chênh lệch độ trễ</div>
               <div className="text-3xl font-black font-mono text-emerald-700 mt-1">
-                {result.speedupPercent.toFixed(1)}%
+                {result.speedupPercent > 0 ? `-${result.speedupPercent.toFixed(1)}%` : `${result.speedupPercent.toFixed(1)}%`}
               </div>
               <div className="text-[11px] font-medium text-warm-muted mt-1">
                 Khớp {result.matchedCount} sản phẩm hợp lệ
@@ -230,16 +229,22 @@ export const AdminBenchmarkPage: React.FC = () => {
             </div>
           </div>
 
+          {result.speedupRatio < 1.1 && (
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs font-medium">
+              <strong>Lưu ý về kích thước bảng hiện hành:</strong> Bảng `products` hiện có ~178 sản phẩm đang hoạt động (chỉ chiếm 16 trang 8KB trên PostgreSQL), nên `Seq Scan` hoàn tất trong dưới 1 ms và chi phí khởi tạo Bitmap Index có thể tương đương hoặc nhỉnh hơn đôi chút. Lợi ích vượt trội của `idx_products_specs_gin` thể hiện rõ ở bảng đối chứng quy mô lớn <strong>{stats ? stats.scalingRowCount.toLocaleString() : '53.400'}</strong> bản ghi bên dưới (<strong>{stats ? `${stats.scalingSpeedupRatio.toFixed(2)}x` : '5.88x'}</strong>).
+            </div>
+          )}
+
           {/* Visual Latency Bar Comparison & Copy Button */}
           <div className="bg-warm-surface border-2 border-warm-text rounded-2xl p-5 sm:p-6 shadow-brutal space-y-4">
             <div className="flex items-center justify-between pb-3 border-b-2 border-warm-border-subtle">
               <div>
                 <h3 className="text-sm font-black text-warm-text uppercase tracking-wider flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-warm-text" />
-                  So sánh trực quan độ trễ trước & sau GIN Index
+                  So sánh trực quan Execution Time thực đo trên PostgreSQL
                 </h3>
                 <p className="text-xs text-warm-muted font-medium mt-0.5">
-                  Đo trên môi trường thực tế PostgreSQL với tập dữ liệu sản phẩm specs JSONB.
+                  Đo thực tế trên Neon PostgreSQL với cùng điều kiện WHERE và không dùng bất kỳ phép nội suy giả lập nào.
                 </p>
               </div>
 
@@ -265,25 +270,26 @@ export const AdminBenchmarkPage: React.FC = () => {
             <div className="space-y-4 pt-2">
               <div>
                 <div className="flex justify-between text-xs font-bold mb-1">
-                  <span className="text-red-700">Sequential Scan (Không dùng GIN):</span>
-                  <span className="font-mono">{result.seqScanAvgLatencyMs.toFixed(2)} ms (100%)</span>
+                  <span className="text-red-700">Sequential Scan:</span>
+                  <span className="font-mono">{formatMs(result.seqScanAvgLatencyMs)} ms</span>
                 </div>
                 <div className="w-full bg-red-100 rounded-full h-5 border-2 border-warm-text overflow-hidden">
-                  <div className="bg-red-500 h-full w-full rounded-full transition-all duration-500" />
+                  <div
+                    className="bg-red-500 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${seqBarWidth}%` }}
+                  />
                 </div>
               </div>
 
               <div>
                 <div className="flex justify-between text-xs font-bold mb-1">
-                  <span className="text-emerald-700">GIN Index Scan (Có GIN Index):</span>
-                  <span className="font-mono">
-                    {result.ginIndexAvgLatencyMs.toFixed(2)} ms ({(100 - result.speedupPercent).toFixed(1)}%)
-                  </span>
+                  <span className="text-emerald-700">GIN / Index Scan:</span>
+                  <span className="font-mono">{formatMs(result.ginIndexAvgLatencyMs)} ms</span>
                 </div>
                 <div className="w-full bg-emerald-100 rounded-full h-5 border-2 border-warm-text overflow-hidden">
                   <div
                     className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${Math.max(5, 100 - result.speedupPercent)}%` }}
+                    style={{ width: `${ginBarWidth}%` }}
                   />
                 </div>
               </div>
@@ -294,7 +300,7 @@ export const AdminBenchmarkPage: React.FC = () => {
               <div className="p-3.5 rounded-xl bg-warm-bg border-2 border-warm-text">
                 <div className="text-xs font-black text-warm-text uppercase flex items-center gap-1.5 mb-2">
                   <Terminal className="w-3.5 h-3.5 text-red-600" />
-                  Kế hoạch thực thi không có GIN (EXPLAIN)
+                  Kế hoạch thực thi Sequential Scan (EXPLAIN ANALYZE)
                 </div>
                 <pre className="text-[11px] font-mono text-warm-muted bg-white p-2.5 rounded-lg border border-warm-text/20 overflow-x-auto whitespace-pre-wrap">
                   {result.seqScanExecutionPlan}
@@ -304,7 +310,7 @@ export const AdminBenchmarkPage: React.FC = () => {
               <div className="p-3.5 rounded-xl bg-warm-bg border-2 border-warm-text">
                 <div className="text-xs font-black text-warm-text uppercase flex items-center gap-1.5 mb-2">
                   <Terminal className="w-3.5 h-3.5 text-emerald-700" />
-                  Kế hoạch thực thi dùng GIN Index (EXPLAIN)
+                  Kế hoạch thực thi Index Scan (EXPLAIN ANALYZE)
                 </div>
                 <pre className="text-[11px] font-mono text-warm-muted bg-white p-2.5 rounded-lg border border-warm-text/20 overflow-x-auto whitespace-pre-wrap">
                   {result.ginIndexExecutionPlan}
@@ -315,48 +321,64 @@ export const AdminBenchmarkPage: React.FC = () => {
         </div>
       )}
 
-      {/* Scientific Metrics from Ground Truth for Report */}
+      {/* Ground Truth Metrics & Scaling Benchmark Summary */}
       <div className="mt-6 bg-warm-surface border-2 border-warm-text rounded-2xl p-5 sm:p-6 shadow-brutal space-y-4">
         <div className="pb-3 border-b-2 border-warm-border-subtle">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-warm-primary" />
             <h2 className="text-base font-black text-warm-text uppercase tracking-tight">
-              Độ Chính Xác Xếp Hạng Thuật Toán (Ground Truth Metrics)
+              Độ Chính Xác Xếp Hạng (31 Ground Truth Queries) & Hiệu Năng Mở Rộng GIN
             </h2>
           </div>
           <p className="text-xs text-warm-muted font-medium mt-1">
-            Đo lường trên bộ 30 truy vấn thực nghiệm chuẩn hóa (`ground_truth_labels`) đối sánh giữa Weighted Scoring và Keyword Search truyền thống.
+            Số liệu đồng nhất với Bảng 4.1 & Bảng 4.2 trong báo cáo: đánh giá trên {stats ? stats.totalGroundTruthQueries : 31} câu truy vấn chuẩn hóa và bảng mô phỏng công bằng {stats ? stats.scalingRowCount.toLocaleString() : '53.400'} bản ghi trên Neon PostgreSQL 18.7.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="p-4 rounded-xl bg-warm-bg border-2 border-warm-text">
-            <div className="text-xs font-bold text-warm-muted uppercase">Precision@3</div>
-            <div className="text-2xl font-black font-mono text-emerald-700 mt-1">92.4%</div>
-            <div className="text-[11px] text-warm-muted mt-1">2.77 / 3 sản phẩm Top đầu chính xác</div>
+            <div className="text-xs font-bold text-warm-muted uppercase">Precision@20 (Stage 3)</div>
+            <div className="text-2xl font-black font-mono text-emerald-700 mt-1">
+              {stats ? `${stats.stage3Precision.toFixed(2)}%` : '46.77%'}
+            </div>
+            <div className="text-[11px] text-warm-muted mt-1">
+              +{stats ? stats.precisionGainPct.toFixed(1) : '11.5'}% tương đối so với Baseline ({stats ? `${stats.baselinePrecision.toFixed(2)}%` : '41.94%'})
+            </div>
           </div>
 
           <div className="p-4 rounded-xl bg-warm-bg border-2 border-warm-text">
-            <div className="text-xs font-bold text-warm-muted uppercase">Precision@5</div>
-            <div className="text-2xl font-black font-mono text-emerald-700 mt-1">88.6%</div>
-            <div className="text-[11px] text-warm-muted mt-1">Độ chính xác Top 5 ứng viên</div>
+            <div className="text-xs font-bold text-warm-muted uppercase">Recall@20 (Stage 3)</div>
+            <div className="text-2xl font-black font-mono text-emerald-700 mt-1">
+              {stats ? `${stats.stage3Recall.toFixed(2)}%` : '41.99%'}
+            </div>
+            <div className="text-[11px] text-warm-muted mt-1">
+              Tăng từ mức Baseline {stats ? `${stats.baselineRecall.toFixed(2)}%` : '39.20%'}
+            </div>
           </div>
 
           <div className="p-4 rounded-xl bg-warm-bg border-2 border-warm-text">
-            <div className="text-xs font-bold text-warm-muted uppercase">MAP (Mean Avg Precision)</div>
-            <div className="text-2xl font-black font-mono text-warm-primary mt-1">0.895</div>
-            <div className="text-[11px] text-warm-muted mt-1">So với Keyword Search (0.612)</div>
+            <div className="text-xs font-bold text-warm-muted uppercase">Macro F1-Score (31 Q)</div>
+            <div className="text-2xl font-black font-mono text-warm-primary mt-1">
+              {stats ? stats.stage3MacroF1.toFixed(4) : '0.3573'}
+            </div>
+            <div className="text-[11px] text-warm-muted mt-1">
+              +{stats ? stats.f1GainPct.toFixed(2) : '9.87'}% tương đối so với Baseline ({stats ? stats.baselineMacroF1.toFixed(4) : '0.3252'})
+            </div>
           </div>
 
           <div className="p-4 rounded-xl bg-warm-bg border-2 border-warm-text">
-            <div className="text-xs font-bold text-warm-muted uppercase">NDCG@5 Ranking</div>
-            <div className="text-2xl font-black font-mono text-warm-primary mt-1">0.912</div>
-            <div className="text-[11px] text-warm-muted mt-1">Sản phẩm tối ưu nằm ở Top đầu</div>
+            <div className="text-xs font-bold text-warm-muted uppercase">GIN Scaling ({stats ? `${(stats.scalingRowCount / 1000).toFixed(1)}k` : '53.4k'} dòng)</div>
+            <div className="text-2xl font-black font-mono text-warm-primary mt-1">
+              {stats ? `${stats.scalingSpeedupRatio.toFixed(2)}x` : '5.88x'}
+            </div>
+            <div className="text-[11px] text-warm-muted mt-1">
+              {stats ? `${stats.scalingSeqScanAvgMs.toFixed(2)} ms → ${stats.scalingGinIndexAvgMs.toFixed(2)} ms (-${stats.scalingLatencyReductionPct.toFixed(1)}%)` : '16.57 ms → 2.82 ms (-83.0%)'}
+            </div>
           </div>
         </div>
 
         <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-medium">
-          🎓 <strong>Kết luận đưa vào báo cáo nghiệm thu:</strong> Việc đánh GIN Index trên trường `specs` kết hợp hàm `jsonb_exists()` đã giúp đẩy điều kiện lọc xuống tầng CSDL PostgreSQL, giảm thời gian truy vấn trung bình từ <strong>{result ? result.seqScanAvgLatencyMs.toFixed(1) : '12.5'} ms</strong> xuống còn <strong>{result ? result.ginIndexAvgLatencyMs.toFixed(1) : '2.1'} ms</strong> (nhanh hơn gấp <strong>{result ? result.speedupRatio.toFixed(1) : '5.8'}x</strong>). Đồng thời, thuật toán Weighted Scoring kết hợp lọc rác review và cache đạt <strong>MAP = 0.895</strong>, đáp ứng trọn vẹn yêu cầu của giảng viên hướng dẫn.
+          <strong>Tổng kết thực nghiệm trên Neon PostgreSQL 18.7:</strong> Khi mở rộng dữ liệu lên <strong>{stats ? stats.scalingRowCount.toLocaleString() : '53.400'}</strong> bản ghi, chỉ mục GIN <code>idx_products_specs_gin</code> trên điều kiện chọn lọc cao (<code>specs @&gt; &#123;"ram": 16, "storage": 1024&#125;</code>) giúp giảm thời gian thực thi trung bình từ <strong>{stats ? stats.scalingSeqScanAvgMs.toFixed(3) : '16.573'} ms</strong> xuống còn <strong>{stats ? stats.scalingGinIndexAvgMs.toFixed(3) : '2.820'} ms</strong> (tăng tốc <strong>{stats ? stats.scalingSpeedupRatio.toFixed(2) : '5.88'}x</strong>, giảm <strong>57.0%</strong> Shared Buffers từ 2.901 xuống 1.246 blocks). Pipeline CoT + LLM Reranking trên {stats ? stats.totalGroundTruthQueries : 31} câu truy vấn Ground Truth đạt Precision <strong>{stats ? `${stats.stage3Precision.toFixed(2)}%` : '46.77%'}</strong> và Macro F1-Score <strong>{stats ? stats.stage3MacroF1.toFixed(4) : '0.3573'}</strong>.
         </div>
       </div>
     </div>

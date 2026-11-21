@@ -78,6 +78,34 @@ export interface GinBenchmarkResult {
   ginIndexSamples: number[];
 }
 
+export interface LatencyBreakdownItem {
+  stage: string;
+  latencyMs: number;
+  note?: string;
+}
+
+export interface BenchmarkStats {
+  totalGroundTruthQueries: number;
+  baselinePrecision: number;
+  baselineRecall: number;
+  baselineMacroF1: number;
+  stage2Precision: number;
+  stage2Recall: number;
+  stage2MacroF1: number;
+  stage3Precision: number;
+  stage3Recall: number;
+  stage3MacroF1: number;
+  precisionGainPct: number;
+  f1GainPct: number;
+  scalingRowCount: number;
+  scalingTestQuery: string;
+  scalingSeqScanAvgMs: number;
+  scalingGinIndexAvgMs: number;
+  scalingSpeedupRatio: number;
+  scalingLatencyReductionPct: number;
+  latencyBreakdown: LatencyBreakdownItem[];
+}
+
 export interface AdminUserDTO {
   id: number;
   username: string;
