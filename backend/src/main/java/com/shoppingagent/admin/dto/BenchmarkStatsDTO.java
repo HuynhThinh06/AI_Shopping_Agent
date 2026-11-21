@@ -13,12 +13,23 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BenchmarkStatsDTO {
-    private double precisionAt3;
-    private double precisionAt5;
-    private double meanAveragePrecision;
-    private double ndcgAt5;
-    private int ginAvgLatencyMs;
-    private int ilikeAvgLatencyMs;
-    private double speedupRatio;
+    private int totalGroundTruthQueries;
+    private double baselinePrecision;
+    private double baselineRecall;
+    private double baselineMacroF1;
+    private double stage2Precision;
+    private double stage2Recall;
+    private double stage2MacroF1;
+    private double stage3Precision;
+    private double stage3Recall;
+    private double stage3MacroF1;
+    private double precisionGainPct;
+    private double f1GainPct;
+    private int scalingRowCount;
+    private String scalingTestQuery;
+    private double scalingSeqScanAvgMs;
+    private double scalingGinIndexAvgMs;
+    private double scalingSpeedupRatio;
+    private double scalingLatencyReductionPct;
     private List<Map<String, Object>> latencyBreakdown;
 }
