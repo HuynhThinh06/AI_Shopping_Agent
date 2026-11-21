@@ -29,7 +29,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                    OR (:brand = 'iPhone' AND (LOWER(p.brand) = 'apple' OR LOWER(p.name) LIKE '%iphone%')))
               AND (:budgetMin IS NULL OR p.price >= :budgetMin)
               AND (:budgetMax IS NULL OR p.price <= :budgetMax)
-            ORDER BY p.avgRating DESC NULLS LAST
+            ORDER BY p.avgRating DESC NULLS LAST, p.id ASC
             """)
     List<Product> findCandidates(@Param("categoryCode") String categoryCode,
                                   @Param("brand") String brand,

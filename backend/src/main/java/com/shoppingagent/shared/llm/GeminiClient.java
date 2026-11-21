@@ -16,8 +16,11 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Triển khai LlmClient dùng Google Gemini REST API.
@@ -43,23 +46,50 @@ public class GeminiClient implements LlmClient {
     @Value("${llm.gemini.max-retries:2}")
     private int maxRetries;
 
-    // ─── Schema cho ExtractedCriteria ────────────────────────────────────────
-    private static final Map<String, Object> CRITERIA_SCHEMA = Map.of(
-            "type", "object",
-            "properties", Map.ofEntries(
-                    Map.entry("reasoning",      Map.of("type", "string", "description", "Step by step reasoning before extraction")),
-                    Map.entry("categoryCode",   Map.of("type", "string")),
-                    Map.entry("brand",          Map.of("type", "string", "nullable", true, "description", "Thương hiệu sản phẩm: MacBook, Dell, Asus, HP, Lenovo, Acer, MSI, iPhone, Samsung, Xiaomi, OPPO... null nếu không nhắc")),
-                    Map.entry("budgetMax",      Map.of("type", "number", "nullable", true)),
-                    Map.entry("budgetMin",      Map.of("type", "number", "nullable", true)),
-                    Map.entry("target",         Map.of("type", "string", "nullable", true)),
-                    Map.entry("requiredSpecs",  Map.of("type", "object")),
-                    Map.entry("weightPrice",    Map.of("type", "number")),
-                    Map.entry("weightRating",   Map.of("type", "number")),
-                    Map.entry("weightSpec",     Map.of("type", "number"))
-            ),
-            "required", List.of("reasoning", "categoryCode", "requiredSpecs", "weightPrice", "weightRating", "weightSpec")
+    private static final List<String> DEFAULT_SPEC_KEYS = List.of(
+            "ram", "storage", "battery", "weight", "screen_size",
+            "refresh_rate", "cpu", "chipset", "camera", "vga"
     );
+
+    // ─── Schema động cho ExtractedCriteria ───────────────────────────────────
+    Map<String, Object> buildCriteriaSchema(List<String> filterableAttributes) {
+        Set<String> allowedKeys = new LinkedHashSet<>();
+        if (filterableAttributes != null) {
+            for (String attr : filterableAttributes) {
+                if (attr != null && !attr.isBlank()) {
+                    allowedKeys.add(attr.trim().toLowerCase());
+                }
+            }
+        }
+        allowedKeys.addAll(DEFAULT_SPEC_KEYS);
+
+        Map<String, Object> specProps = new LinkedHashMap<>();
+        for (String key : allowedKeys) {
+            specProps.put(key, Map.of("type", "string", "nullable", true));
+        }
+
+        Map<String, Object> requiredSpecsSchema = Map.of(
+                "type", "object",
+                "properties", specProps
+        );
+
+        return Map.of(
+                "type", "object",
+                "properties", Map.ofEntries(
+                        Map.entry("reasoning",     Map.of("type", "string", "description", "Step by step reasoning before extraction")),
+                        Map.entry("categoryCode",  Map.of("type", "string")),
+                        Map.entry("brand",         Map.of("type", "string", "nullable", true, "description", "Thương hiệu sản phẩm: MacBook, Dell, Asus, HP, Lenovo, Acer, MSI, iPhone, Samsung, Xiaomi, OPPO... null nếu không nhắc")),
+                        Map.entry("budgetMax",     Map.of("type", "number", "nullable", true)),
+                        Map.entry("budgetMin",     Map.of("type", "number", "nullable", true)),
+                        Map.entry("target",        Map.of("type", "string", "nullable", true)),
+                        Map.entry("requiredSpecs", requiredSpecsSchema),
+                        Map.entry("weightPrice",   Map.of("type", "number")),
+                        Map.entry("weightRating",  Map.of("type", "number")),
+                        Map.entry("weightSpec",    Map.of("type", "number"))
+                ),
+                "required", List.of("reasoning", "categoryCode", "requiredSpecs", "weightPrice", "weightRating", "weightSpec")
+        );
+    }
 
     // ─── Schema cho SummaryResult ─────────────────────────────────────────────
     private static final Map<String, Object> SUMMARY_SCHEMA = Map.of(
@@ -79,11 +109,22 @@ public class GeminiClient implements LlmClient {
                                               String categoryCode,
                                               List<String> filterableAttributes) {
         String prompt = buildExtractionPrompt(queryText, categoryCode, filterableAttributes);
-        String json = callWithRetry(prompt, null, "extract_query", null);
+        Map<String, Object> criteriaSchema = buildCriteriaSchema(filterableAttributes);
+        String json = callWithRetry(prompt, criteriaSchema, "extract_query", null);
         try {
             ExtractedCriteria criteria = objectMapper.readValue(json, ExtractedCriteria.class);
             // Đảm bảo categoryCode luôn đúng (LLM có thể trả sai)
             criteria.setCategoryCode(categoryCode);
+            if (criteria.getRequiredSpecs() != null) {
+                Map<String, String> cleanedSpecs = new LinkedHashMap<>();
+                for (Map.Entry<String, String> entry : criteria.getRequiredSpecs().entrySet()) {
+                    if (entry.getKey() != null && !entry.getKey().isBlank()
+                            && entry.getValue() != null && !entry.getValue().isBlank()) {
+                        cleanedSpecs.put(entry.getKey(), entry.getValue().trim());
+                    }
+                }
+                criteria.setRequiredSpecs(cleanedSpecs);
+            }
             return criteria;
         } catch (JsonProcessingException e) {
             log.error("Failed to parse extracted criteria JSON: {}", json, e);
@@ -310,6 +351,7 @@ public class GeminiClient implements LlmClient {
     private Map<String, Object> buildRequestBody(String prompt, Map<String, Object> schema) {
         Map<String, Object> config = new java.util.HashMap<>();
         config.put("response_mime_type", "application/json");
+        config.put("temperature", 0.1);
         if (schema != null) {
             config.put("response_schema", schema);
         }

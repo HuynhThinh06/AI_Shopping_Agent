@@ -178,7 +178,7 @@ public class ProductSpecRepository {
             }
         }
 
-        sql.append(" ORDER BY p.avg_rating DESC NULLS LAST");
+        sql.append(" ORDER BY p.avg_rating DESC NULLS LAST, p.id ASC");
 
         log.debug("[ProductSpecRepo] Native SQL: {}", sql);
         log.debug("[ProductSpecRepo] Params: {}", params);

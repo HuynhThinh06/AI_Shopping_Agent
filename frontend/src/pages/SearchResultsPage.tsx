@@ -494,17 +494,16 @@ export const SearchResultsPage: React.FC = () => {
   const processedProducts = useMemo(() => {
     if (!result?.results || result.results.length === 0) return [];
 
-    // 1. Min / Max price across all items for normalization
-    let allMinPrice = Infinity;
-    let allMaxPrice = -Infinity;
+    // 1. Inverse price Min / Max across valid items for normalization (matching Backend RankingService)
+    let minInv = Infinity;
+    let maxInv = -Infinity;
     result.results.forEach((item) => {
-      if (item.price != null) {
-        if (item.price < allMinPrice) allMinPrice = item.price;
-        if (item.price > allMaxPrice) allMaxPrice = item.price;
+      if (item.price != null && item.price > 0) {
+        const inv = 1.0 / item.price;
+        if (inv < minInv) minInv = inv;
+        if (inv > maxInv) maxInv = inv;
       }
     });
-    if (allMinPrice === Infinity) allMinPrice = 0;
-    if (allMaxPrice === -Infinity) allMaxPrice = 50000000;
 
     // 2. Filter items by facets
     const filtered = result.results.filter((item) => {
@@ -566,49 +565,55 @@ export const SearchResultsPage: React.FC = () => {
 
     // 3. Score items with SAW / MCDM
     const scored = filtered.map((item) => {
-      const rawSpecScore = item.specMatchScore != null ? item.specMatchScore : (item.score || 0.85);
-      const sSpec = Math.max(0.1, Math.min(1.0, rawSpecScore));
+      const sSpec = Math.max(0.0, Math.min(1.0, item.specMatchScore ?? item.score ?? 0));
 
-      let sPrice = 0.5;
+      let sPrice = 0.0;
       const price = item.price || 0;
-      if (allMaxPrice > allMinPrice) {
-        const rawNorm = (allMaxPrice - price) / (allMaxPrice - allMinPrice);
-        sPrice = algoPreset === 'price' ? rawNorm : (0.25 + 0.75 * rawNorm);
-        sPrice = Math.max(0.0, Math.min(1.0, sPrice));
-      } else {
-        sPrice = 1.0;
-      }
-
-      const rating = item.avgRating ? Number(item.avgRating) : 5.0;
-      const sRating = Math.max(0.0, Math.min(1.0, rating / 5.0));
-
-      let wSpec = 0.40, wPrice = 0.35, wRating = 0.25;
-      if (algoPreset === 'spec') {
-        wSpec = 0.60; wPrice = 0.20; wRating = 0.20;
-      } else if (algoPreset === 'price') {
-        wSpec = 0.20; wPrice = 0.60; wRating = 0.20;
-      } else if (algoPreset === 'review') {
-        wSpec = 0.25; wPrice = 0.25; wRating = 0.50;
-      }
-
-      const composite = (wSpec * sSpec) + (wPrice * sPrice) + (wRating * sRating);
-      const score100 = Math.min(99, Math.max(65, Math.round(composite * 100)));
-
-      let reasoning = item.reasoning;
-      if (algoPreset === 'price') {
-        if (sPrice >= 0.95 && rating < 4.2) {
-          reasoning = `Mức giá ${formatVnd(price)} tiết kiệm chi phí hàng đầu (tối ưu giá ${Math.round(sPrice * 100)}%). Xếp sau top 1 do điểm đánh giá thực tế đạt ${rating.toFixed(1)}/5 sao, thuật toán cân đối để tránh đánh đổi độ bền.`;
-        } else if (sPrice >= 0.85) {
-          reasoning = `Mức giá ${formatVnd(price)} cực kỳ mềm và tối ưu chi phí, đạt điểm tương thích giá ${Math.round(sPrice * 100)}% trong phân khúc.`;
+      if (price > 0 && Number.isFinite(minInv) && Number.isFinite(maxInv)) {
+        if (maxInv === minInv) {
+          sPrice = 1.0;
         } else {
-          reasoning = `Mức giá ${formatVnd(price)} hợp lý, đạt điểm giá ${Math.round(sPrice * 100)}% cùng độ hài lòng ${rating.toFixed(1)}/5 sao.`;
+          const inv = 1.0 / price;
+          sPrice = Math.max(0.0, Math.min(1.0, (inv - minInv) / (maxInv - minInv)));
         }
-      } else if (algoPreset === 'spec') {
-        reasoning = `Cấu hình phần cứng tối ưu hiệu năng với điểm kỹ thuật ${Math.round(sSpec * 100)}%, đáp ứng tác vụ chuyên sâu.`;
-      } else if (algoPreset === 'review') {
-        reasoning = `Đánh giá thực tế từ người dùng đạt ${rating.toFixed(1)}/5 sao, bảo đảm độ tin cậy và trải nghiệm ổn định.`;
+      }
+
+      const hasRating = item.avgRating != null;
+      const ratingNum = hasRating ? Number(item.avgRating) : null;
+      const sRating = ratingNum != null ? Math.max(0.0, Math.min(1.0, ratingNum / 5.0)) : 0.5;
+
+      let composite: number;
+      let score100: number;
+      let reasoning = item.reasoning;
+
+      if (algoPreset === 'balanced') {
+        composite = item.score != null ? Number(item.score) : 0;
+        score100 = Math.max(0, Math.min(100, Math.round(composite * 100)));
+        reasoning = reasoning || 'Đề xuất tối ưu theo điểm tổng hợp đa tiêu chí MCDM từ hệ thống.';
       } else {
-        reasoning = reasoning || 'Cân bằng xuất sắc giữa cấu hình phần cứng, tầm giá đầu tư và mức độ hài lòng của cộng đồng.';
+        let wSpec = 0.60, wPrice = 0.20, wRating = 0.20;
+        if (algoPreset === 'price') {
+          wSpec = 0.20; wPrice = 0.60; wRating = 0.20;
+        } else if (algoPreset === 'review') {
+          wSpec = 0.25; wPrice = 0.25; wRating = 0.50;
+        }
+        composite = (wSpec * sSpec) + (wPrice * sPrice) + (wRating * sRating);
+        score100 = Math.max(0, Math.min(100, Math.round(composite * 100)));
+
+        const ratingLabel = ratingNum != null ? `${ratingNum.toFixed(1)}/5 sao` : 'Chưa có đánh giá';
+        if (algoPreset === 'price') {
+          if (sPrice >= 0.95 && ratingNum != null && ratingNum < 4.2) {
+            reasoning = `Mức giá ${formatVnd(price)} tiết kiệm chi phí hàng đầu (tối ưu giá ${Math.round(sPrice * 100)}%). Điểm đánh giá thực tế đạt ${ratingLabel}, thuật toán cân đối để tránh đánh đổi độ bền.`;
+          } else if (sPrice >= 0.85) {
+            reasoning = `Mức giá ${formatVnd(price)} cực kỳ mềm và tối ưu chi phí, đạt điểm tương thích giá ${Math.round(sPrice * 100)}% trong phân khúc.`;
+          } else {
+            reasoning = `Mức giá ${formatVnd(price)} hợp lý, đạt điểm giá ${Math.round(sPrice * 100)}% cùng độ hài lòng ${ratingLabel}.`;
+          }
+        } else if (algoPreset === 'spec') {
+          reasoning = `Cấu hình phần cứng tối ưu hiệu năng với điểm kỹ thuật ${Math.round(sSpec * 100)}%, đáp ứng tác vụ chuyên sâu.`;
+        } else {
+          reasoning = `Đánh giá thực tế từ người dùng: ${ratingLabel}, bảo đảm độ tin cậy và trải nghiệm ổn định.`;
+        }
       }
 
       return {
@@ -624,7 +629,15 @@ export const SearchResultsPage: React.FC = () => {
 
     // 4. Sort
     if (sortOrder === 'score') {
-      scored.sort((a, b) => b.calculatedComposite - a.calculatedComposite);
+      if (algoPreset === 'balanced') {
+        scored.sort(
+          (a, b) =>
+            (a.rankPosition ?? Number.MAX_SAFE_INTEGER) - (b.rankPosition ?? Number.MAX_SAFE_INTEGER) ||
+            b.calculatedComposite - a.calculatedComposite
+        );
+      } else {
+        scored.sort((a, b) => b.calculatedComposite - a.calculatedComposite);
+      }
     } else if (sortOrder === 'price_asc') {
       scored.sort((a, b) => (a.price || 0) - (b.price || 0));
     } else if (sortOrder === 'price_desc') {
@@ -979,7 +992,7 @@ export const SearchResultsPage: React.FC = () => {
             )}
             {algoPreset === 'balanced' && (
               <span>
-                Được sắp xếp tự động theo thuật toán chấm điểm đa tiêu chí SAW cân bằng (40% Cấu hình + 35% Giá + 25% Đánh giá).
+                Giữ nguyên thứ tự và điểm tổng hợp MCDM từ Backend (theo trọng số ngành hàng trong CSDL / ý định AI kết hợp LLM Reranking nếu có).
               </span>
             )}
           </div>
@@ -1316,7 +1329,7 @@ export const SearchResultsPage: React.FC = () => {
                           <div className="flex items-center gap-3 text-xs font-bold text-warm-muted">
                             <div className="flex items-center gap-1 text-amber-600">
                               <Star className="w-3.5 h-3.5 fill-current" />
-                              <span>{product.avgRating ? Number(product.avgRating).toFixed(1) : '4.5'}</span>
+                              <span>{product.avgRating != null ? Number(product.avgRating).toFixed(1) : 'Chưa có'}</span>
                             </div>
                             <span>•</span>
                             <span>{product.reviewCount || 0} đánh giá</span>
