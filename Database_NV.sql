@@ -1,7 +1,7 @@
 -- =============================================================
 --  AI Shopping Agent — PostgreSQL Schema
 --  Phiên bản: 2.0 (đã sửa lỗi FK, seed id, bổ sung log columns)
---  Target: PostgreSQL 16+
+--  Target: PostgreSQL 16+ (triển khai thực tế trên Neon Serverless PostgreSQL 18.7)
 -- =============================================================
 
 -- -------------------------------------------------------------
@@ -276,31 +276,31 @@ CREATE INDEX IF NOT EXISTS "idx_llm_logs_created"       ON "llm_request_logs" ("
 CREATE INDEX IF NOT EXISTS "idx_reviews_created"        ON "reviews" ("created_at");
 
 -- category_attributes: mỗi ngành hàng không được có attribute_key trùng
-CREATE UNIQUE INDEX ON "category_attributes" ("category_id", "attribute_key");
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_category_attributes_cat_key" ON "category_attributes" ("category_id", "attribute_key");
 
 -- ranking_weights: mỗi ngành hàng không được có criteria trùng
-CREATE UNIQUE INDEX ON "ranking_weights" ("category_id", "criteria");
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_ranking_weights_cat_criteria" ON "ranking_weights" ("category_id", "criteria");
 
 -- products: composite index cho luồng lọc chính (category + giá)
-CREATE INDEX ON "products" ("category_id", "price");
+CREATE INDEX IF NOT EXISTS "idx_products_category_price" ON "products" ("category_id", "price");
 
 -- products: composite index bổ sung cho lọc + sắp xếp theo rating (khớp ORDER BY avg_rating DESC NULLS LAST)
-CREATE INDEX ON "products" ("category_id", "is_active", "avg_rating" DESC NULLS LAST, "price");
+CREATE INDEX IF NOT EXISTS "idx_products_cat_active_rating" ON "products" ("category_id", "is_active", "avg_rating" DESC NULLS LAST, "price");
 
 -- products: GIN index cho truy vấn jsonb specs (toán tử @>, ?, @?)
-CREATE INDEX ON "products" USING GIN ("specs");
+CREATE INDEX IF NOT EXISTS "idx_products_specs_gin" ON "products" USING GIN ("specs");
 
 -- user_favorites: mỗi user chỉ favorite 1 sản phẩm 1 lần
-CREATE UNIQUE INDEX ON "user_favorites" ("user_id", "product_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "user_favorites_user_id_product_id_key" ON "user_favorites" ("user_id", "product_id");
 
 -- ground_truth_labels: mỗi cặp (query, product) chỉ có 1 nhãn
-CREATE UNIQUE INDEX ON "ground_truth_labels" ("query_id", "product_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "ground_truth_labels_query_id_product_id_key" ON "ground_truth_labels" ("query_id", "product_id");
 
 -- search_results: tra cứu nhanh kết quả theo query
-CREATE INDEX ON "search_results" ("query_id");
+CREATE INDEX IF NOT EXISTS "idx_search_results_query_id" ON "search_results" ("query_id");
 
 -- llm_request_logs: tra cứu log theo query
-CREATE INDEX ON "llm_request_logs" ("query_id");
+CREATE INDEX IF NOT EXISTS "idx_llm_request_logs_query_id" ON "llm_request_logs" ("query_id");
 
 -- =============================================================
 -- FOREIGN KEYS

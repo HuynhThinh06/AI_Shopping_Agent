@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,6 +22,7 @@ public class LLMRerankingService {
     private final GeminiClient geminiClient;
     private final ObjectMapper objectMapper;
 
+    @SuppressWarnings("unchecked")
     public List<RankedProduct> rerank(String originalQuery, List<RankedProduct> topCandidates, int finalTopK) {
         if (topCandidates == null || topCandidates.isEmpty()) {
             return List.of();
@@ -48,15 +50,32 @@ public class LLMRerankingService {
                          .append("\n");
         }
         
-        promptBuilder.append("\nConsider requirements like 'không phải Acer' (brand must not be Acer), 'dân văn phòng' (lightweight), 'sinh viên' (budget-friendly), 'lập trình' (RAM>=16). Return a JSON object containing a strictly ordered array of the best product IDs (best first).");
+        promptBuilder.append("\nConsider requirements like 'không phải Acer' (brand must not be Acer), 'dân văn phòng' (lightweight), 'sinh viên' (budget-friendly), 'lập trình' (RAM>=16). ")
+                     .append("Return a JSON object containing:\n")
+                     .append("1. 'reasoning': a concise Vietnamese summary explaining your overall ranking logic.\n")
+                     .append("2. 'rankedProductIds': a strictly ordered array of the best product IDs (best first).\n")
+                     .append("3. 'productReasons': an array of objects {productId, reason} where each 'reason' is 1 short, concrete Vietnamese sentence explaining why that product matches the query.");
+
+        Map<String, Object> productReasonItemSchema = Map.of(
+            "type", "object",
+            "properties", Map.of(
+                "productId", Map.of("type", "integer"),
+                "reason", Map.of("type", "string", "description", "1 câu tiếng Việt ngắn gọn giải thích mức độ phù hợp của sản phẩm")
+            ),
+            "required", List.of("productId", "reason")
+        );
 
         Map<String, Object> schema = Map.of(
             "type", "object",
             "properties", Map.of(
-                "reasoning", Map.of("type", "string", "description", "Step by step analysis of the candidates against the user query before ranking"),
+                "reasoning", Map.of("type", "string", "description", "Tóm tắt ngắn gọn bằng tiếng Việt về tiêu chí tái xếp hạng tổng thể"),
                 "rankedProductIds", Map.of(
                     "type", "array",
                     "items", Map.of("type", "integer")
+                ),
+                "productReasons", Map.of(
+                    "type", "array",
+                    "items", productReasonItemSchema
                 )
             ),
             "required", List.of("reasoning", "rankedProductIds")
@@ -71,6 +90,24 @@ public class LLMRerankingService {
             
             // Parse response - using Number to safely avoid ClassCastException
             Map<String, Object> result = objectMapper.readValue(rawJson, new TypeReference<>() {});
+            String overallReasoning = result.get("reasoning") instanceof String s && !s.isBlank()
+                    ? s.trim()
+                    : null;
+
+            Map<Long, String> reasonByProductId = new HashMap<>();
+            Object productReasonsObj = result.get("productReasons");
+            if (productReasonsObj instanceof List<?> reasonList) {
+                for (Object itemObj : reasonList) {
+                    if (itemObj instanceof Map<?, ?> itemMap) {
+                        Object pidObj = itemMap.get("productId");
+                        Object reasonObj = itemMap.get("reason");
+                        if (pidObj instanceof Number pidNum && reasonObj instanceof String rStr && !rStr.isBlank()) {
+                            reasonByProductId.put(pidNum.longValue(), rStr.trim());
+                        }
+                    }
+                }
+            }
+
             List<Number> rankedIdsRaw = (List<Number>) result.get("rankedProductIds");
             List<Long> rankedIds = rankedIdsRaw == null ? null : rankedIdsRaw.stream().map(Number::longValue).collect(Collectors.toList());
 
@@ -84,6 +121,7 @@ public class LLMRerankingService {
                 candidatesToSend.stream()
                         .filter(p -> p.getProductId().equals(id))
                         .findFirst()
+                        .filter(p -> !finalRanked.contains(p))
                         .ifPresent(finalRanked::add);
                 if (finalRanked.size() == finalTopK) break;
             }
@@ -96,9 +134,14 @@ public class LLMRerankingService {
                 }
             }
             
-            // Re-assign rankPosition (1 -> N)
+            // Re-assign rankPosition (1 -> N) và lưu lý do giải thích từ LLM Reranking
             for (int i = 0; i < finalRanked.size(); i++) {
-                finalRanked.get(i).setRankPosition(i + 1);
+                RankedProduct rp = finalRanked.get(i);
+                rp.setRankPosition(i + 1);
+                String reason = reasonByProductId.getOrDefault(rp.getProductId(), overallReasoning);
+                if (reason != null && !reason.isBlank()) {
+                    rp.setReasoning(reason);
+                }
             }
 
             return finalRanked;

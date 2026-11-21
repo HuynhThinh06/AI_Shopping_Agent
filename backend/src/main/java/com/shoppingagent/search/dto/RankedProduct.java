@@ -30,6 +30,9 @@ public class RankedProduct {
     /** Hạng trong danh sách kết quả (1 = tốt nhất) */
     private Integer rankPosition;
 
+    /** Giải thích ngắn gọn về lý do phù hợp (từ LLM Reranking nếu có) */
+    private String reasoning;
+
     @com.fasterxml.jackson.annotation.JsonProperty("productName")
     public String getProductName() {
         return name;

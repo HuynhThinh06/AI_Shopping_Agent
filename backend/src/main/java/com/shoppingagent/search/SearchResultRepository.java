@@ -27,6 +27,7 @@ public class SearchResultRepository {
                     .product(entityManager.getReference(Product.class, rp.getProductId()))
                     .rankPosition(rp.getRankPosition())
                     .score(rp.getScore())
+                    .reasoning(rp.getReasoning())
                     .build();
             entityManager.persist(result);
         }

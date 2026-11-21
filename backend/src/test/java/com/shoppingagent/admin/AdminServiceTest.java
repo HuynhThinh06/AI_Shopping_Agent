@@ -1,5 +1,6 @@
 package com.shoppingagent.admin;
 
+import com.shoppingagent.admin.dto.BenchmarkStatsDTO;
 import com.shoppingagent.admin.dto.BulkActionRequest;
 import com.shoppingagent.admin.dto.BulkActionResultDTO;
 import com.shoppingagent.admin.dto.DashboardTrendsDTO;
@@ -285,5 +286,76 @@ class AdminServiceTest {
         assertThat(trends.getTotals().get("tokens")).isEqualTo(12300L);
         assertThat(trends.getPreviousTotals().get("searches")).isEqualTo(8L);
         assertThat(trends.getPreviousTotals().get("tokens")).isEqualTo(4500L);
+    }
+
+    @Test
+    @DisplayName("runGinBenchmark — Trích xuất đúng Execution Time từ EXPLAIN thật, không tự bịa speedup 11.5x")
+    void shouldParseRealPostgresExplainWithoutFabricatingSpeedup() {
+        Query setQuery = mock(Query.class);
+        Query countQuery = mock(Query.class);
+        Query seqExplainQuery = mock(Query.class);
+        Query ginExplainQuery = mock(Query.class);
+
+        java.util.concurrent.atomic.AtomicInteger explainCalls = new java.util.concurrent.atomic.AtomicInteger(0);
+        when(entityManager.createNativeQuery(anyString())).thenAnswer(inv -> {
+            String sql = inv.getArgument(0, String.class);
+            if (sql.startsWith("SET LOCAL")) return setQuery;
+            if (sql.startsWith("EXPLAIN")) {
+                // Calls 0..1: seqWarmup + seq iteration 0; Calls 2..3: ginWarmup + gin iteration 0
+                return explainCalls.getAndIncrement() < 2 ? seqExplainQuery : ginExplainQuery;
+            }
+            return countQuery;
+        });
+
+        when(countQuery.getResultList()).thenReturn(List.of(1L, 2L, 3L));
+        when(seqExplainQuery.getResultList()).thenReturn(List.of(
+                "Seq Scan on products (actual time=0.02..0.09 rows=3.00 loops=1)",
+                "  Buffers: shared hit=16",
+                "Planning Time: 0.100 ms",
+                "Execution Time: 0.110 ms"
+        ));
+        when(ginExplainQuery.getResultList()).thenReturn(List.of(
+                "Bitmap Heap Scan on products (actual time=0.05..0.11 rows=3.00 loops=1)",
+                "  Buffers: shared hit=15",
+                "Planning Time: 0.120 ms",
+                "Execution Time: 0.140 ms"
+        ));
+
+        GinBenchmarkResultDTO result = adminService.runGinBenchmark(
+                GinBenchmarkRequest.builder()
+                        .categoryCode("laptop")
+                        .specKey("ram")
+                        .specValue("16")
+                        .iterations(1)
+                        .build()
+        );
+
+        assertThat(result.getMatchedCount()).isEqualTo(3);
+        assertThat(result.getSeqScanSamples()).containsExactly(0.11);
+        assertThat(result.getGinIndexSamples()).containsExactly(0.14);
+        assertThat(result.getSeqScanAvgLatencyMs()).isEqualTo(0.11);
+        assertThat(result.getGinIndexAvgLatencyMs()).isEqualTo(0.14);
+        // Vì 0.11 < 0.14 nên speedupRatio < 1.0, tuyệt đối không bị ép thành 11.5x
+        assertThat(result.getSpeedupRatio()).isLessThan(1.0);
+        assertThat(result.getSpeedupPercent()).isLessThan(0.0);
+    }
+
+    @Test
+    @DisplayName("getBenchmarkStats — Trả số liệu Ground Truth 31 truy vấn (Bảng 4.1) và scaling 53.400 dòng nhất quán")
+    void shouldReturnConsistentGroundTruthAndScalingBenchmarkStats() {
+        BenchmarkStatsDTO stats = adminService.getBenchmarkStats();
+
+        assertThat(stats.getTotalGroundTruthQueries()).isEqualTo(31);
+        assertThat(stats.getBaselinePrecision()).isEqualTo(41.94);
+        assertThat(stats.getBaselineRecall()).isEqualTo(39.20);
+        assertThat(stats.getBaselineMacroF1()).isEqualTo(0.3252);
+        assertThat(stats.getStage3Precision()).isEqualTo(46.77);
+        assertThat(stats.getStage3Recall()).isEqualTo(41.99);
+        assertThat(stats.getStage3MacroF1()).isEqualTo(0.3573);
+        assertThat(stats.getScalingRowCount()).isEqualTo(53400);
+        assertThat(stats.getScalingSeqScanAvgMs()).isEqualTo(16.573);
+        assertThat(stats.getScalingGinIndexAvgMs()).isEqualTo(2.820);
+        assertThat(stats.getScalingSpeedupRatio()).isGreaterThan(1.0);
+        assertThat(stats.getLatencyBreakdown()).hasSize(4);
     }
 }

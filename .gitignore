@@ -105,3 +105,25 @@ logs/*
 !**/logs/.gitkeep
 tmp/
 temp/
+
+# --- Documents & Reports (Báo cáo đồ án) ---
+*.docx
+*.doc
+*.pdf
+~$*
+
+# --- Video & Demo recordings ---
+demo_videos/
+*.mp4
+*.webm
+
+# --- Document generation & utility scripts ---
+build_*.py
+export_*.py
+scripts/build_*.py
+scripts/generate_*.py
+scripts/*.ps1
+scripts/convert_webm_to_mp4.py
+scripts/inspect_pmp.py
+scripts/record_admin_demo.py
+scripts/verify_doc.ps1
