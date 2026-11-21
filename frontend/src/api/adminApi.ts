@@ -88,7 +88,9 @@ export async function getBenchmarkStats(): Promise<BenchmarkStats> {
 }
 
 export async function runGinBenchmark(req?: GinBenchmarkRequest): Promise<GinBenchmarkResult> {
-  const res = await apiClient.post<GinBenchmarkResult>('/admin/benchmark', req || {});
+  const res = await apiClient.post<GinBenchmarkResult>('/admin/benchmark', req || {}, {
+    timeout: 60000,
+  });
   return res.data;
 }
 
